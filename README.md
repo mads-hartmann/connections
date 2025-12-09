@@ -10,13 +10,29 @@ Install dependencies using opam:
 opam install . --deps-only
 ```
 
-Building
+### Building
 
 ```bash
 dune build
 ```
 
-Running
+### Formatting
+
+Format all OCaml code:
+
+```bash
+dune fmt
+```
+
+Or format a specific file:
+
+```bash
+ocamlformat -i server/lib/person.ml
+```
+
+For editor integration, install the [OCaml Platform](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform) extension. It will automatically format on save when `ocamlformat` is installed and a `.ocamlformat` file exists.
+
+### Running
 
 ```bash
 dune exec connections-server

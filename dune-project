@@ -6,6 +6,8 @@
 
 (generate_opam_files true)
 
+(formatting (enabled_for ocaml))
+
 (package
  (name connections-server)
  (synopsis "A simple web server for managing connections (people)")
@@ -19,5 +21,6 @@
   (yojson (>= 2.0.0))
   (ppx_yojson_conv (>= 0.15.0))
   (lwt (>= 5.6.0))
-  (openapi_router (>= 0.0.1))))
+  (openapi_router (>= 0.0.1))
+  (ocamlformat (>= 0.26.0))))
 
