@@ -1,0 +1,5 @@
+(library
+ (name connections_server)
+ (libraries dream caqti caqti-lwt caqti-driver-sqlite3 yojson lwt)
+ (preprocess (pps ppx_yojson_conv)))
+
