@@ -11,15 +11,11 @@ let () =
       |> Option.value ~default:8080 
     in
     let* () = Db.init db_path in
+    let* () = Db.Person.init_table () in
     Dream.log "Starting server on port %d with database %s" port db_path;
+    Dream.log "OpenAPI spec available at http://localhost:%d/openapi.json" port;
+    Dream.log "API documentation available at http://localhost:%d/docs" port;
     Dream.serve ~port
       @@ Dream.logger
-      @@ Dream.router [
-        Dream.get "/persons" Handlers.list_persons;
-        Dream.get "/persons/:id" Handlers.get_person;
-        Dream.post "/persons" Handlers.create_person;
-        Dream.put "/persons/:id" Handlers.update_person;
-        Dream.delete "/persons/:id" Handlers.delete_person;
-      ]
+      @@ Router.build ()
   end
-

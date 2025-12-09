@@ -18,5 +18,6 @@
   (caqti-lwt (>= 2.0.0))
   (yojson (>= 2.0.0))
   (ppx_yojson_conv (>= 0.15.0))
-  (lwt (>= 5.6.0))))
+  (lwt (>= 5.6.0))
+  (openapi_router (>= 0.0.1))))
 
