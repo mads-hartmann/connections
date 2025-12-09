@@ -1,5 +1,12 @@
 (library
  (name connections_server)
- (libraries dream caqti caqti-lwt caqti-driver-sqlite3 yojson lwt openapi_router)
- (preprocess (pps ppx_yojson_conv)))
-
+ (libraries
+  dream
+  caqti
+  caqti-lwt
+  caqti-driver-sqlite3
+  yojson
+  lwt
+  openapi_router)
+ (preprocess
+  (pps ppx_yojson_conv)))

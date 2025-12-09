@@ -60,4 +60,3 @@ let build () =
        "/persons/:id"
        Handlers.Person.delete
   |> Api.build
-
