@@ -13,8 +13,12 @@ export interface PersonsResponse {
   total_pages: number;
 }
 
-export function listUrl({ page }: { page: number }) {
-  return `http://localhost:8080/persons?page=${page}&per_page=20`;
+export function listUrl({ page, query }: { page: number; query?: string }) {
+  const params = new URLSearchParams({ page: String(page), per_page: "20" });
+  if (query) {
+    params.append("query", query);
+  }
+  return `http://localhost:8080/persons?${params.toString()}`;
 }
 
 export async function deletePerson(person: Person) {

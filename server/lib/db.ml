@@ -48,6 +48,16 @@ module Person = struct
     Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
       "SELECT COUNT(*) FROM persons"
 
+  let list_filtered_query =
+    Caqti_request.Infix.(
+      Caqti_type.(t3 string int int) ->* Caqti_type.(t2 int string))
+      "SELECT id, name FROM persons WHERE name LIKE ? ORDER BY name DESC LIMIT \
+       ? OFFSET ?"
+
+  let count_filtered_query =
+    Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
+      "SELECT COUNT(*) FROM persons WHERE name LIKE ?"
+
   let update_query =
     Caqti_request.Infix.(Caqti_type.(t2 string int) ->. Caqti_type.unit)
       "UPDATE persons SET name = ? WHERE id = ?"
@@ -97,22 +107,38 @@ module Person = struct
     | Ok None -> Lwt.return_ok None
     | Ok (Some (id, name)) -> Lwt.return_ok (Some { Person.id; name })
 
-  let list ~page ~per_page =
+  let list ~page ~per_page ?query () =
     let pool = get_pool () in
     let offset = (page - 1) * per_page in
     let* count_result =
-      Caqti_lwt_unix.Pool.use
-        (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find count_query ())
-        pool
+      match query with
+      | None ->
+          Caqti_lwt_unix.Pool.use
+            (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find count_query ())
+            pool
+      | Some q ->
+          let pattern = "%" ^ q ^ "%" in
+          Caqti_lwt_unix.Pool.use
+            (fun (module Db : Caqti_lwt.CONNECTION) ->
+              Db.find count_filtered_query pattern)
+            pool
     in
     match count_result with
     | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
     | Ok total -> (
         let* list_result =
-          Caqti_lwt_unix.Pool.use
-            (fun (module Db : Caqti_lwt.CONNECTION) ->
-              Db.collect_list list_query (per_page, offset))
-            pool
+          match query with
+          | None ->
+              Caqti_lwt_unix.Pool.use
+                (fun (module Db : Caqti_lwt.CONNECTION) ->
+                  Db.collect_list list_query (per_page, offset))
+                pool
+          | Some q ->
+              let pattern = "%" ^ q ^ "%" in
+              Caqti_lwt_unix.Pool.use
+                (fun (module Db : Caqti_lwt.CONNECTION) ->
+                  Db.collect_list list_filtered_query (pattern, per_page, offset))
+                pool
         in
         match list_result with
         | Error err ->

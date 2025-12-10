@@ -1,11 +1,14 @@
 import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
+import { useState } from "react";
 import { CreatePersonForm } from "./components/create-person-form";
 import * as Person from "./api/person";
 
 export default function Command() {
+  const [searchText, setSearchText] = useState("");
+
   const { isLoading, data, pagination, revalidate } = useFetch(
-    (options) => Person.listUrl({ page: options.page + 1 }),
+    (options) => Person.listUrl({ page: options.page + 1, query: searchText || undefined }),
     {
       mapResult(result: Person.PersonsResponse) {
         return {
@@ -13,6 +16,7 @@ export default function Command() {
           hasMore: result.page < result.total_pages,
         };
       },
+      keepPreviousData: true,
     },
   );
 
@@ -25,6 +29,9 @@ export default function Command() {
     <List
       isLoading={isLoading}
       pagination={pagination}
+      filtering={false}
+      onSearchTextChange={setSearchText}
+      searchBarPlaceholder="Search people..."
       actions={
         <ActionPanel>
           <Action.Push

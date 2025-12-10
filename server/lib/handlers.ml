@@ -21,11 +21,12 @@ let parse_query_int name default request =
       match int_of_string_opt value with Some v -> v | None -> default)
 
 module Person = struct
-  (* GET /persons - List all persons with pagination *)
+  (* GET /persons - List all persons with pagination and optional search *)
   let list request =
     let page = max 1 (parse_query_int "page" 1 request) in
     let per_page = max 1 (min 100 (parse_query_int "per_page" 10 request)) in
-    let* result = Db.Person.list ~page ~per_page in
+    let query = Dream.query request "query" in
+    let* result = Db.Person.list ~page ~per_page ?query () in
     match result with
     | Error msg -> Lwt.return (error_response `Internal_Server_Error msg)
     | Ok paginated ->
