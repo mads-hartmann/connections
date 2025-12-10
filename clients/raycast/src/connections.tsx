@@ -1,24 +1,13 @@
-import { Action, ActionPanel, Alert, confirmAlert, Icon, List } from "@raycast/api";
+import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
-
-interface Person {
-  id: number;
-  name: string;
-}
-
-interface PersonsResponse {
-  data: Person[];
-  page: number;
-  per_page: number;
-  total: number;
-  total_pages: number;
-}
+import { CreatePersonForm } from "./components/create-person-form";
+import * as Person from "./api/person";
 
 export default function Command() {
   const { isLoading, data, pagination, revalidate } = useFetch(
-    (options) => `http://localhost:8080/persons?page=${options.page + 1}&per_page=20`,
+    (options) => Person.listUrl({ page: options.page + 1 }),
     {
-      mapResult(result: PersonsResponse) {
+      mapResult(result: Person.PersonsResponse) {
         return {
           data: result.data,
           hasMore: result.page < result.total_pages,
@@ -27,37 +16,44 @@ export default function Command() {
     },
   );
 
-  async function deletePerson(person: Person) {
-    if (
-      await confirmAlert({
-        title: "Delete Person",
-        message: `Are you sure you want to delete "${person.name}"?`,
-        primaryAction: {
-          title: "Delete",
-          style: Alert.ActionStyle.Destructive,
-        },
-      })
-    ) {
-      await fetch(`http://localhost:8080/persons/${person.id}`, {
-        method: "DELETE",
-      });
-      revalidate();
-    }
-  }
+  const deletePerson = async (person: Person.Person) => {
+    await Person.deletePerson(person);
+    revalidate();
+  };
 
   return (
-    <List isLoading={isLoading} pagination={pagination}>
+    <List
+      isLoading={isLoading}
+      pagination={pagination}
+      actions={
+        <ActionPanel>
+          <Action.Push
+            title="Create Person"
+            icon={Icon.Plus}
+            shortcut={Keyboard.Shortcut.Common.New}
+            target={<CreatePersonForm revalidate={revalidate} />}
+          />
+        </ActionPanel>
+      }
+    >
       {data?.map((person) => (
         <List.Item
           key={String(person.id)}
           title={person.name}
           actions={
             <ActionPanel>
+              <Action.Push
+                title="Create Person"
+                icon={Icon.Plus}
+                shortcut={Keyboard.Shortcut.Common.New}
+                target={<CreatePersonForm revalidate={revalidate} />}
+              />
               <Action
                 title="Delete"
                 icon={Icon.Trash}
                 style={Action.Style.Destructive}
                 onAction={() => deletePerson(person)}
+                shortcut={Keyboard.Shortcut.Common.Remove}
               />
             </ActionPanel>
           }
