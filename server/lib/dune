@@ -6,7 +6,7 @@
   caqti-lwt
   caqti-driver-sqlite3
   yojson
-  lwt
-  openapi_router)
+  ppx_yojson_conv_lib
+  lwt)
  (preprocess
   (pps ppx_yojson_conv)))
