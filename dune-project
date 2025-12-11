@@ -24,4 +24,6 @@
   (syndic (>= 1.7.0))
   (cohttp-lwt-unix (>= 5.0.0))
   (ocamlformat (>= 0.28.1))
-  (ocaml-lsp-server (>= 01.24.0))))
+  (ocaml-lsp-server (>= 01.24.0))
+  (alcotest (>= 1.7.0))
+  (alcotest-lwt (>= 1.7.0))))

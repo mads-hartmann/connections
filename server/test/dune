@@ -1,0 +1,10 @@
+(test
+ (name test_main)
+ (libraries
+  connections_server
+  alcotest
+  alcotest-lwt
+  lwt
+  lwt.unix
+  yojson
+  dream))

@@ -28,6 +28,12 @@ Formatting
 dune fmt
 ```
 
+Testing
+
+```bash
+dune test
+```
+
 Running
 
 ```bash

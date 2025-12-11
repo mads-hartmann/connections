@@ -33,6 +33,17 @@ tasks:
       cd /workspaces/connections
       dune build
 
+  test:
+    name: Run Tests
+    description: Run the OCaml test suite
+    triggeredBy:
+      - manual
+    dependsOn:
+      - install-deps
+    command: |
+      cd /workspaces/connections
+      dune test
+
   format:
     name: Format Code
     description: Format OCaml code with dune fmt
