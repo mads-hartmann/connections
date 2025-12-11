@@ -70,7 +70,7 @@ let create ~name =
   in
   match result with
   | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
-  | Ok id -> Lwt.return_ok { Person.id; name }
+  | Ok id -> Lwt.return_ok { Model.Person.id; name }
 
 let get ~id =
   let pool = Pool.get () in
@@ -82,7 +82,7 @@ let get ~id =
   match result with
   | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
   | Ok None -> Lwt.return_ok None
-  | Ok (Some (id, name)) -> Lwt.return_ok (Some { Person.id; name })
+  | Ok (Some (id, name)) -> Lwt.return_ok (Some { Model.Person.id; name })
 
 let list ~page ~per_page ?query () =
   let pool = Pool.get () in
@@ -120,10 +120,12 @@ let list ~page ~per_page ?query () =
       match list_result with
       | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
       | Ok rows ->
-          let persons = List.map (fun (id, name) -> { Person.id; name }) rows in
+          let persons =
+            List.map (fun (id, name) -> { Model.Person.id; name }) rows
+          in
           let total_pages = (total + per_page - 1) / per_page in
           Lwt.return_ok
-            { Person.data = persons; page; per_page; total; total_pages })
+            { Model.Person.data = persons; page; per_page; total; total_pages })
 
 let update ~id ~name =
   let pool = Pool.get () in
@@ -144,7 +146,7 @@ let update ~id ~name =
       in
       match update_result with
       | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
-      | Ok () -> Lwt.return_ok (Some { Person.id; name }))
+      | Ok () -> Lwt.return_ok (Some { Model.Person.id; name }))
 
 let delete ~id =
   let pool = Pool.get () in

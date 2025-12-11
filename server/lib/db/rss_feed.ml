@@ -57,9 +57,9 @@ let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
     "SELECT COUNT(*) FROM rss_feeds WHERE id = ?"
 
-(* Helper to convert DB tuple to Rss_feed.t *)
+(* Helper to convert DB tuple to Model.Rss_feed.t *)
 let tuple_to_feed (id, person_id, url, title, created_at, last_fetched_at) =
-  { Rss_feed.id; person_id; url; title; created_at; last_fetched_at }
+  { Model.Rss_feed.id; person_id; url; title; created_at; last_fetched_at }
 
 (* Initialize table *)
 let init_table () =
@@ -140,7 +140,7 @@ let list_by_person ~person_id ~page ~per_page =
           let feeds = List.map tuple_to_feed rows in
           let total_pages = (total + per_page - 1) / per_page in
           Lwt.return_ok
-            { Rss_feed.data = feeds; page; per_page; total; total_pages })
+            { Model.Rss_feed.data = feeds; page; per_page; total; total_pages })
 
 (* UPDATE - handles partial updates *)
 let update ~id ~url ~title =
