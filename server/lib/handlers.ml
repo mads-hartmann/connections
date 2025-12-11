@@ -157,7 +157,7 @@ module RssFeed = struct
                   | Error msg -> Lwt.return (error_response `Bad_Request msg)
                   | Ok valid_url -> (
                       let* result =
-                        Db.RssFeed.create ~person_id ~url:valid_url ~title
+                        Db.Rss_feed.create ~person_id ~url:valid_url ~title
                       in
                       match result with
                       | Error "Person not found" ->
@@ -186,7 +186,7 @@ module RssFeed = struct
               max 1 (min 100 (parse_query_int "per_page" 10 request))
             in
             let* result =
-              Db.RssFeed.list_by_person ~person_id ~page ~per_page
+              Db.Rss_feed.list_by_person ~person_id ~page ~per_page
             in
             match result with
             | Error msg ->
@@ -200,7 +200,7 @@ module RssFeed = struct
     match parse_int_param "id" request with
     | Error msg -> Lwt.return (error_response `Bad_Request msg)
     | Ok id -> (
-        let* result = Db.RssFeed.get ~id in
+        let* result = Db.Rss_feed.get ~id in
         match result with
         | Error msg -> Lwt.return (error_response `Internal_Server_Error msg)
         | Ok None -> Lwt.return (error_response `Not_Found "Feed not found")
@@ -238,7 +238,7 @@ module RssFeed = struct
                 | Error msg -> Lwt.return (error_response `Bad_Request msg)
                 | Ok validated_url -> (
                     let* result =
-                      Db.RssFeed.update ~id ~url:validated_url ~title
+                      Db.Rss_feed.update ~id ~url:validated_url ~title
                     in
                     match result with
                     | Error msg ->
@@ -253,7 +253,7 @@ module RssFeed = struct
     match parse_int_param "id" request with
     | Error msg -> Lwt.return (error_response `Bad_Request msg)
     | Ok id -> (
-        let* result = Db.RssFeed.delete ~id in
+        let* result = Db.Rss_feed.delete ~id in
         match result with
         | Error msg -> Lwt.return (error_response `Internal_Server_Error msg)
         | Ok false -> Lwt.return (error_response `Not_Found "Feed not found")
