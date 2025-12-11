@@ -6,7 +6,7 @@ services:
       - postDevcontainerStart
     commands:
       start: |
-        cd /workspaces/workspaces
+        cd /workspaces/connections
         gitpod env port open 8080 --name connections-server
         dune exec connections-server
       ready: curl -sf http://localhost:8080/persons > /dev/null
@@ -19,7 +19,7 @@ tasks:
     triggeredBy:
       - postDevcontainerStart
     command: |
-      cd /workspaces/workspaces
+      cd /workspaces/connections
       opam install . --deps-only -y
 
   build:
@@ -30,7 +30,7 @@ tasks:
     dependsOn:
       - install-deps
     command: |
-      cd /workspaces/workspaces
+      cd /workspaces/connections
       dune build
 
   format:
@@ -39,7 +39,7 @@ tasks:
     triggeredBy:
       - manual
     command: |
-      cd /workspaces/workspaces
+      cd /workspaces/connections
       dune fmt
 
   install-raycast-deps:
@@ -48,7 +48,7 @@ tasks:
     triggeredBy:
       - postDevcontainerStart
     command: |
-      cd /workspaces/workspaces/clients/raycast
+      cd /workspaces/connections/clients/raycast
       npm install
 
   lint-raycast:
@@ -59,7 +59,7 @@ tasks:
     dependsOn:
       - install-raycast-deps
     command: |
-      cd /workspaces/workspaces/clients/raycast
+      cd /workspaces/connections/clients/raycast
       npm run lint
 
   build-raycast:
@@ -70,5 +70,5 @@ tasks:
     dependsOn:
       - install-raycast-deps
     command: |
-      cd /workspaces/workspaces/clients/raycast
+      cd /workspaces/connections/clients/raycast
       npm run build
