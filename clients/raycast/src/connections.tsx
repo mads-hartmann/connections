@@ -2,6 +2,7 @@ import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import { CreatePersonForm } from "./components/create-person-form";
+import { FeedList } from "./components/feed-list";
 import * as Person from "./api/person";
 
 export default function Command() {
@@ -49,6 +50,11 @@ export default function Command() {
           title={person.name}
           actions={
             <ActionPanel>
+              <Action.Push
+                title="View Feeds"
+                icon={Icon.List}
+                target={<FeedList personId={person.id} personName={person.name} />}
+              />
               <Action.Push
                 title="Create Person"
                 icon={Icon.Plus}
