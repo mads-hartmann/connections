@@ -1,6 +1,7 @@
 import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import * as Feed from "../api/feed";
+import { ArticleList } from "./article-list";
 import { CreateFeedForm } from "./create-feed-form";
 import { EditFeedForm } from "./edit-feed-form";
 
@@ -62,6 +63,11 @@ export function FeedList({ personId, personName }: FeedListProps) {
           accessories={[{ text: formatLastFetched(feed.last_fetched_at) }]}
           actions={
             <ActionPanel>
+              <Action.Push
+                title="View Articles"
+                icon={Icon.List}
+                target={<ArticleList feedId={feed.id} feedTitle={feed.title || feed.url} />}
+              />
               <Action.Push
                 title="Edit Feed"
                 icon={Icon.Pencil}

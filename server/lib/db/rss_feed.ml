@@ -57,6 +57,17 @@ let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
     "SELECT COUNT(*) FROM rss_feeds WHERE id = ?"
 
+let list_all_query =
+  Caqti_request.Infix.(
+    Caqti_type.unit
+    ->* Caqti_type.(t6 int int string (option string) string (option string)))
+    "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
+     rss_feeds"
+
+let update_last_fetched_query =
+  Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
+    "UPDATE rss_feeds SET last_fetched_at = datetime('now') WHERE id = ?"
+
 (* Helper to convert DB tuple to Model.Rss_feed.t *)
 let tuple_to_feed (id, person_id, url, title, created_at, last_fetched_at) =
   { Model.Rss_feed.id; person_id; url; title; created_at; last_fetched_at }
@@ -198,3 +209,29 @@ let delete ~id =
       match delete_result with
       | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
       | Ok () -> Lwt.return_ok true)
+
+(* LIST ALL - no pagination, for scheduler *)
+let list_all () =
+  let pool = Pool.get () in
+  let* result =
+    Caqti_lwt_unix.Pool.use
+      (fun (module Db : Caqti_lwt.CONNECTION) ->
+        Db.collect_list list_all_query ())
+      pool
+  in
+  match result with
+  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Ok rows -> Lwt.return_ok (List.map tuple_to_feed rows)
+
+(* UPDATE LAST FETCHED timestamp *)
+let update_last_fetched ~id =
+  let pool = Pool.get () in
+  let* result =
+    Caqti_lwt_unix.Pool.use
+      (fun (module Db : Caqti_lwt.CONNECTION) ->
+        Db.exec update_last_fetched_query id)
+      pool
+  in
+  match result with
+  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Ok () -> Lwt.return_ok ()

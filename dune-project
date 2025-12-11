@@ -21,5 +21,7 @@
   (yojson (>= 2.0.0))
   (ppx_yojson_conv (>= 0.15.0))
   (lwt (>= 5.6.0))
+  (syndic (>= 1.7.0))
+  (cohttp-lwt-unix (>= 5.0.0))
   (ocamlformat (>= 0.28.1))
   (ocaml-lsp-server (>= 01.24.0))))

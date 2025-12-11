@@ -139,3 +139,19 @@ let delete request =
       | Ok false ->
           Lwt.return (Utils.error_response `Not_Found "Feed not found")
       | Ok true -> Lwt.return (Dream.response ~status:`No_Content ""))
+
+(* POST /feeds/:id/refresh - Manually trigger a feed refresh *)
+let refresh request =
+  match Utils.parse_int_param "id" request with
+  | Error msg -> Lwt.return (Utils.error_response `Bad_Request msg)
+  | Ok id -> (
+      let* result = Db.Rss_feed.get ~id in
+      match result with
+      | Error msg ->
+          Lwt.return (Utils.error_response `Internal_Server_Error msg)
+      | Ok None -> Lwt.return (Utils.error_response `Not_Found "Feed not found")
+      | Ok (Some feed) ->
+          let* () = Feed_fetcher.process_feed feed in
+          Lwt.return
+            (Utils.json_response
+               (`Assoc [ ("message", `String "Feed refreshed") ])))

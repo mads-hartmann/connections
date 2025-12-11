@@ -14,4 +14,14 @@ let build () =
       Dream.get "/feeds/:id" Handlers.Rss_feed.get;
       Dream.put "/feeds/:id" Handlers.Rss_feed.update;
       Dream.delete "/feeds/:id" Handlers.Rss_feed.delete;
+      Dream.post "/feeds/:id/refresh" Handlers.Rss_feed.refresh;
+      (* Article routes - nested under feeds *)
+      Dream.get "/feeds/:feed_id/articles" Handlers.Article.list_by_feed;
+      Dream.post "/feeds/:feed_id/articles/mark-all-read"
+        Handlers.Article.mark_all_read;
+      (* Article routes - top-level *)
+      Dream.get "/articles" Handlers.Article.list_all;
+      Dream.get "/articles/:id" Handlers.Article.get;
+      Dream.post "/articles/:id/read" Handlers.Article.mark_read;
+      Dream.delete "/articles/:id" Handlers.Article.delete;
     ]

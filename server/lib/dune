@@ -9,6 +9,8 @@
   caqti-driver-sqlite3
   yojson
   ppx_yojson_conv_lib
-  lwt)
+  lwt
+  syndic
+  cohttp-lwt-unix)
  (preprocess
   (pps ppx_yojson_conv)))
