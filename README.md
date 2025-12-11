@@ -88,3 +88,43 @@ curl -X PUT http://localhost:8080/persons/1 \
 ```bash
 curl -X DELETE http://localhost:8080/persons/1
 ```
+
+### Add an RSS feed to a person
+
+```bash
+curl -X POST http://localhost:8080/persons/1/feeds \
+  -H "Content-Type: application/json" \
+  -d '{"person_id": 1, "url": "https://example.com/feed.xml", "title": "Example Feed"}'
+```
+
+### List all feeds for a person
+
+```bash
+curl http://localhost:8080/persons/1/feeds
+```
+
+With pagination:
+
+```bash
+curl "http://localhost:8080/persons/1/feeds?page=1&per_page=5"
+```
+
+### Get a specific feed by ID
+
+```bash
+curl http://localhost:8080/feeds/1
+```
+
+### Update a feed
+
+```bash
+curl -X PUT http://localhost:8080/feeds/1 \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/new-feed.xml", "title": "Updated Feed Title"}'
+```
+
+### Delete a feed
+
+```bash
+curl -X DELETE http://localhost:8080/feeds/1
+```
