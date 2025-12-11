@@ -1,0 +1,74 @@
+services:
+  connections-server:
+    name: Connections Server
+    description: OCaml web server for managing connections
+    triggeredBy:
+      - postDevcontainerStart
+    commands:
+      start: |
+        cd /workspaces/connections
+        gitpod env port open 8080 --name connections-server
+        dune exec connections-server
+      ready: curl -sf http://localhost:8080/persons > /dev/null
+      stop: pkill -f connections-server
+
+tasks:
+  install-deps:
+    name: Install Dependencies
+    description: Install OCaml dependencies via opam
+    triggeredBy:
+      - postDevcontainerStart
+    command: |
+      cd /workspaces/connections
+      opam install . --deps-only -y
+
+  build:
+    name: Build Server
+    description: Build the OCaml server
+    triggeredBy:
+      - manual
+    dependsOn:
+      - install-deps
+    command: |
+      cd /workspaces/connections
+      dune build
+
+  format:
+    name: Format Code
+    description: Format OCaml code with dune fmt
+    triggeredBy:
+      - manual
+    command: |
+      cd /workspaces/connections
+      dune fmt
+
+  install-raycast-deps:
+    name: Install Raycast Dependencies
+    description: Install npm dependencies for Raycast client
+    triggeredBy:
+      - postDevcontainerStart
+    command: |
+      cd /workspaces/connections/clients/raycast
+      npm install
+
+  lint-raycast:
+    name: Lint Raycast Client
+    description: Run ESLint on Raycast client
+    triggeredBy:
+      - manual
+    dependsOn:
+      - install-raycast-deps
+    command: |
+      cd /workspaces/connections/clients/raycast
+      npm run lint
+
+  build-raycast:
+    name: Build Raycast Client
+    description: Build the Raycast extension
+    triggeredBy:
+      - manual
+    dependsOn:
+      - install-raycast-deps
+    command: |
+      cd /workspaces/connections/clients/raycast
+      npm run build
