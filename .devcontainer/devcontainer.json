@@ -1,0 +1,22 @@
+{
+	"name": "Connections",
+	"build": {
+		"context": ".",
+		"dockerfile": "Dockerfile"
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "22"
+		}
+	},
+	"forwardPorts": [8080],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ocamllabs.ocaml-platform",
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode"
+			]
+		}
+	}
+}
