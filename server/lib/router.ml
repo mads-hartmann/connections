@@ -35,4 +35,7 @@ let build () =
       Dream.get "/categories/:id" Handlers.Category.get;
       Dream.post "/categories" Handlers.Category.create;
       Dream.delete "/categories/:id" Handlers.Category.delete;
+      (* Import routes *)
+      Dream.post "/import/opml/preview" Handlers.Import.preview;
+      Dream.post "/import/opml/confirm" Handlers.Import.confirm;
     ]
