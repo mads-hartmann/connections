@@ -3,6 +3,7 @@ import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import { CreatePersonForm } from "./components/create-person-form";
 import { FeedList } from "./components/feed-list";
+import { ImportOpml } from "./components/import-opml";
 import * as Person from "./api/person";
 
 export default function Command() {
@@ -41,6 +42,12 @@ export default function Command() {
             shortcut={Keyboard.Shortcut.Common.New}
             target={<CreatePersonForm revalidate={revalidate} />}
           />
+          <Action.Push
+            title="Import from OPML"
+            icon={Icon.Download}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "i" }}
+            target={<ImportOpml revalidate={revalidate} />}
+          />
         </ActionPanel>
       }
     >
@@ -61,6 +68,12 @@ export default function Command() {
                 icon={Icon.Plus}
                 shortcut={Keyboard.Shortcut.Common.New}
                 target={<CreatePersonForm revalidate={revalidate} />}
+              />
+              <Action.Push
+                title="Import from OPML"
+                icon={Icon.Download}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "i" }}
+                target={<ImportOpml revalidate={revalidate} />}
               />
               <Action
                 title="Delete"
