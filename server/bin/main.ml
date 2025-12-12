@@ -16,6 +16,7 @@ let () =
       let* () = Db.Person.init_table () in
       let* () = Db.Rss_feed.init_table () in
       let* () = Db.Article.init_table () in
+      let* () = Db.Category.init_table () in
       (* Start background RSS feed scheduler *)
       Scheduler.start ();
       Dream.log "Starting server on port %d with database %s" port db_path;

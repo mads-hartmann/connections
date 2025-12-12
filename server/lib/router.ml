@@ -10,6 +10,12 @@ let build () =
       (* RSS Feed routes - nested under persons *)
       Dream.post "/persons/:person_id/feeds" Handlers.Rss_feed.create;
       Dream.get "/persons/:person_id/feeds" Handlers.Rss_feed.list_by_person;
+      (* Person-Category routes *)
+      Dream.get "/persons/:person_id/categories" Handlers.Category.list_by_person;
+      Dream.post "/persons/:person_id/categories/:category_id"
+        Handlers.Category.add_to_person;
+      Dream.delete "/persons/:person_id/categories/:category_id"
+        Handlers.Category.remove_from_person;
       (* RSS Feed routes - top-level for direct access *)
       Dream.get "/feeds/:id" Handlers.Rss_feed.get;
       Dream.put "/feeds/:id" Handlers.Rss_feed.update;
@@ -24,4 +30,9 @@ let build () =
       Dream.get "/articles/:id" Handlers.Article.get;
       Dream.post "/articles/:id/read" Handlers.Article.mark_read;
       Dream.delete "/articles/:id" Handlers.Article.delete;
+      (* Category routes *)
+      Dream.get "/categories" Handlers.Category.list;
+      Dream.get "/categories/:id" Handlers.Category.get;
+      Dream.post "/categories" Handlers.Category.create;
+      Dream.delete "/categories/:id" Handlers.Category.delete;
     ]

@@ -10,6 +10,13 @@ type t_with_counts = {
 }
 [@@deriving yojson]
 
+type with_categories = {
+  id : int;
+  name : string;
+  categories : Category.t list;
+}
+[@@deriving yojson]
+
 type create_request = { name : string } [@@deriving yojson]
 type update_request = { name : string } [@@deriving yojson]
 
@@ -35,6 +42,7 @@ type error_response = { error : string } [@@deriving yojson]
 
 let to_json person = yojson_of_t person
 let of_json json = t_of_yojson json
+let with_categories_to_json person = yojson_of_with_categories person
 let list_to_json persons = `List (List.map yojson_of_t persons)
 let paginated_to_json response = yojson_of_paginated_response response
 
