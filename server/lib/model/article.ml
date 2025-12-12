@@ -10,7 +10,7 @@ type t = {
   author : string option; [@yojson.option]
   image_url : string option; [@yojson.option]
   created_at : string;
-  read_at : string option; [@yojson.option]
+  read_at : string option;
 }
 [@@deriving yojson]
 

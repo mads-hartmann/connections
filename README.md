@@ -134,3 +134,61 @@ curl -X PUT http://localhost:8080/feeds/1 \
 ```bash
 curl -X DELETE http://localhost:8080/feeds/1
 ```
+
+### List articles for a feed
+
+```bash
+curl http://localhost:8080/feeds/1/articles
+```
+
+With pagination:
+
+```bash
+curl "http://localhost:8080/feeds/1/articles?page=1&per_page=20"
+```
+
+### List all articles
+
+```bash
+curl http://localhost:8080/articles
+```
+
+Filter to show only unread articles:
+
+```bash
+curl "http://localhost:8080/articles?unread=true"
+```
+
+### Get a specific article
+
+```bash
+curl http://localhost:8080/articles/1
+```
+
+### Mark an article as read
+
+```bash
+curl -X POST http://localhost:8080/articles/1/read \
+  -H "Content-Type: application/json" \
+  -d '{"read": true}'
+```
+
+### Mark an article as unread
+
+```bash
+curl -X POST http://localhost:8080/articles/1/read \
+  -H "Content-Type: application/json" \
+  -d '{"read": false}'
+```
+
+### Mark all articles in a feed as read
+
+```bash
+curl -X POST http://localhost:8080/feeds/1/articles/mark-all-read
+```
+
+### Delete an article
+
+```bash
+curl -X DELETE http://localhost:8080/articles/1
+```
