@@ -149,6 +149,61 @@ let parse_feed (content : string) : (parsed_feed, string) result =
     with exn ->
       Error (Printf.sprintf "Parse error: %s" (Printexc.to_string exn)))
 
+(* Feed metadata for import - author and title extraction *)
+type feed_metadata = { author : string option; title : string option }
+
+(* Extract author from RSS2 channel *)
+let extract_rss2_author (channel : Syndic.Rss2.channel) : string option =
+  (* Try managingEditor first, then look at first item's author *)
+  match channel.managingEditor with
+  | Some editor -> Some editor
+  | None -> (
+      match channel.items with
+      | item :: _ -> item.author
+      | [] -> None)
+
+(* Extract author from Atom feed *)
+let extract_atom_author (feed : Syndic.Atom.feed) : string option =
+  match feed.authors with
+  | author :: _ -> Some author.name
+  | [] -> (
+      (* Try first entry's author *)
+      match feed.entries with
+      | entry :: _ ->
+          let first_author, _ = entry.authors in
+          Some first_author.name
+      | [] -> None)
+
+(* Extract feed title *)
+let extract_feed_title (feed : parsed_feed) : string option =
+  match feed with
+  | Rss2 channel -> Some channel.title
+  | Atom feed -> (
+      match feed.title with
+      | Syndic.Atom.Text t -> Some t
+      | Syndic.Atom.Html (_, t) -> Some t
+      | Syndic.Atom.Xhtml _ -> None)
+
+(* Extract metadata from parsed feed *)
+let extract_metadata (feed : parsed_feed) : feed_metadata =
+  let author =
+    match feed with
+    | Rss2 channel -> extract_rss2_author channel
+    | Atom feed -> extract_atom_author feed
+  in
+  let title = extract_feed_title feed in
+  { author; title }
+
+(* Fetch feed and extract metadata only - for OPML import *)
+let fetch_feed_metadata (url : string) : (feed_metadata, string) result Lwt.t =
+  let* fetch_result = fetch_url url in
+  match fetch_result with
+  | Error msg -> Lwt.return_error msg
+  | Ok content -> (
+      match parse_feed content with
+      | Error msg -> Lwt.return_error msg
+      | Ok parsed_feed -> Lwt.return_ok (extract_metadata parsed_feed))
+
 (* Extract articles from parsed feed *)
 let extract_articles ~feed_id (feed : parsed_feed) :
     Model.Article.create_input list =

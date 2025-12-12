@@ -1,0 +1,77 @@
+(* OPML Parser - extracts feed URLs, titles, and categories from OPML files *)
+
+type feed_entry = {
+  url : string;
+  title : string option;
+  categories : string list;
+}
+
+type parse_result = { feeds : feed_entry list; errors : string list }
+
+(* Extract attribute value from attribute list *)
+let get_attr name attrs =
+  List.find_map
+    (fun ((_, local), value) -> if local = name then Some value else None)
+    attrs
+
+(* Parse outline elements recursively, tracking category path *)
+let rec parse_outline ~categories acc input =
+  match Xmlm.peek input with
+  | `El_end -> acc
+  | `El_start ((_, "outline"), attrs) ->
+      let _ = Xmlm.input input in
+      (* consume start tag *)
+      let xml_url = get_attr "xmlUrl" attrs in
+      let title = get_attr "title" attrs in
+      let text = get_attr "text" attrs in
+      let display_name = match title with Some t -> Some t | None -> text in
+      let acc =
+        match xml_url with
+        | Some url ->
+            (* This is a feed entry *)
+            { url; title = display_name; categories } :: acc
+        | None ->
+            (* This is a category/folder - recurse with updated category path *)
+            let category_name =
+              match display_name with Some n -> n | None -> "Unknown"
+            in
+            let new_categories = categories @ [ category_name ] in
+            parse_outline ~categories:new_categories acc input
+      in
+      (* Parse siblings *)
+      parse_outline ~categories acc input
+  | `El_start _ ->
+      (* Skip non-outline elements *)
+      let _ = Xmlm.input input in
+      parse_outline ~categories acc input
+  | `Data _ ->
+      let _ = Xmlm.input input in
+      parse_outline ~categories acc input
+  | `Dtd _ ->
+      let _ = Xmlm.input input in
+      parse_outline ~categories acc input
+
+(* Skip to body element *)
+let rec skip_to_body input =
+  match Xmlm.input input with
+  | `El_start ((_, "body"), _) -> true
+  | `El_end -> false
+  | _ -> skip_to_body input
+
+(* Main parse function *)
+let parse (content : string) : (parse_result, string) result =
+  try
+    let input = Xmlm.make_input (`String (0, content)) in
+    (* Skip DTD if present *)
+    let _ = Xmlm.input input in
+    (* Find body element *)
+    if skip_to_body input then
+      let feeds = parse_outline ~categories:[] [] input in
+      Ok { feeds = List.rev feeds; errors = [] }
+    else Error "No body element found in OPML"
+  with
+  | Xmlm.Error ((line, col), err) ->
+      Error
+        (Printf.sprintf "XML parse error at line %d, col %d: %s" line col
+           (Xmlm.error_message err))
+  | exn -> Error (Printf.sprintf "Parse error: %s" (Printexc.to_string exn))
