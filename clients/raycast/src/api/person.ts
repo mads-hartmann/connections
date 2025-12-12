@@ -3,6 +3,8 @@ import { Alert, confirmAlert } from "@raycast/api";
 export interface Person {
   id: number;
   name: string;
+  feed_count: number;
+  article_count: number;
 }
 
 export interface PersonsResponse {

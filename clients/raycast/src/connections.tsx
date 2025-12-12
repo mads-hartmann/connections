@@ -48,6 +48,7 @@ export default function Command() {
         <List.Item
           key={String(person.id)}
           title={person.name}
+          accessories={[{ text: `${person.feed_count} feeds` }, { text: `${person.article_count} articles` }]}
           actions={
             <ActionPanel>
               <Action.Push

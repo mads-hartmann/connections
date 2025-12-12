@@ -32,10 +32,11 @@ let test_person_error_to_json () =
     (Yojson.Safe.to_string json)
 
 let test_person_paginated_to_json () =
-  let response =
+  let alice : Model.Person.t = { id = 1; name = "Alice" } in
+  let bob : Model.Person.t = { id = 2; name = "Bob" } in
+  let response : Model.Person.paginated_response =
     {
-      Model.Person.data =
-        [ { id = 1; name = "Alice" }; { id = 2; name = "Bob" } ];
+      data = [ alice; bob ];
       page = 1;
       per_page = 10;
       total = 2;
@@ -52,12 +53,47 @@ let test_person_paginated_to_json () =
         (List.mem_assoc "total" fields)
   | _ -> Alcotest.fail "expected JSON object"
 
+let test_person_paginated_with_counts_to_json () =
+  let response : Model.Person.paginated_response_with_counts =
+    {
+      data =
+        [
+          { id = 1; name = "Alice"; feed_count = 2; article_count = 10 };
+          { id = 2; name = "Bob"; feed_count = 1; article_count = 5 };
+        ];
+      page = 1;
+      per_page = 10;
+      total = 2;
+      total_pages = 1;
+    }
+  in
+  let json = Model.Person.paginated_with_counts_to_json response in
+  match json with
+  | `Assoc fields -> (
+      Alcotest.(check bool) "has data field" true (List.mem_assoc "data" fields);
+      Alcotest.(check bool) "has page field" true (List.mem_assoc "page" fields);
+      Alcotest.(check bool)
+        "has total field" true
+        (List.mem_assoc "total" fields);
+      match List.assoc "data" fields with
+      | `List [ `Assoc person1; _ ] ->
+          Alcotest.(check bool)
+            "person has feed_count" true
+            (List.mem_assoc "feed_count" person1);
+          Alcotest.(check bool)
+            "person has article_count" true
+            (List.mem_assoc "article_count" person1)
+      | _ -> Alcotest.fail "expected data to be a list of objects")
+  | _ -> Alcotest.fail "expected JSON object"
+
 let json_suite =
   [
     sync_test "Person.to_json" test_person_to_json;
     sync_test "Person.of_json" test_person_of_json;
     sync_test "Person.error_to_json" test_person_error_to_json;
     sync_test "Person.paginated_to_json" test_person_paginated_to_json;
+    sync_test "Person.paginated_with_counts_to_json"
+      test_person_paginated_with_counts_to_json;
   ]
 
 (* ============================================
@@ -187,6 +223,105 @@ let test_db_person_delete_not_found () =
   | Ok false -> Lwt.return_unit
   | Ok true -> Alcotest.fail "expected false for non-existent id"
 
+let test_db_person_list_with_counts () =
+  let* () = setup_test_db () in
+  let* person_result = Db.Person.create ~name:"Alice" in
+  match person_result with
+  | Error msg -> Alcotest.fail ("create person failed: " ^ msg)
+  | Ok person -> (
+      (* Create 2 feeds for Alice *)
+      let* _ =
+        Db.Rss_feed.create ~person_id:person.id ~url:"https://feed1.com/rss"
+          ~title:(Some "Feed 1")
+      in
+      let* feed2_result =
+        Db.Rss_feed.create ~person_id:person.id ~url:"https://feed2.com/rss"
+          ~title:(Some "Feed 2")
+      in
+      match feed2_result with
+      | Error msg -> Alcotest.fail ("create feed failed: " ^ msg)
+      | Ok feed2 -> (
+          (* Create 3 articles in feed2 *)
+          let* _ =
+            Db.Article.upsert
+              {
+                Model.Article.feed_id = feed2.id;
+                title = Some "Article 1";
+                url = "https://example.com/article1";
+                published_at = None;
+                content = None;
+                author = None;
+                image_url = None;
+              }
+          in
+          let* _ =
+            Db.Article.upsert
+              {
+                Model.Article.feed_id = feed2.id;
+                title = Some "Article 2";
+                url = "https://example.com/article2";
+                published_at = None;
+                content = None;
+                author = None;
+                image_url = None;
+              }
+          in
+          let* _ =
+            Db.Article.upsert
+              {
+                Model.Article.feed_id = feed2.id;
+                title = Some "Article 3";
+                url = "https://example.com/article3";
+                published_at = None;
+                content = None;
+                author = None;
+                image_url = None;
+              }
+          in
+          let* result = Db.Person.list_with_counts ~page:1 ~per_page:10 () in
+          match result with
+          | Error msg -> Alcotest.fail ("list_with_counts failed: " ^ msg)
+          | Ok paginated ->
+              Alcotest.(check int) "total is 1" 1 paginated.total;
+              Alcotest.(check int)
+                "data length is 1" 1
+                (List.length paginated.data);
+              let alice = List.hd paginated.data in
+              Alcotest.(check string) "name is Alice" "Alice" alice.name;
+              Alcotest.(check int) "feed_count is 2" 2 alice.feed_count;
+              Alcotest.(check int) "article_count is 3" 3 alice.article_count;
+              Lwt.return_unit))
+
+let test_db_person_list_with_counts_no_feeds () =
+  let* () = setup_test_db () in
+  let* _ = Db.Person.create ~name:"Bob" in
+  let* result = Db.Person.list_with_counts ~page:1 ~per_page:10 () in
+  match result with
+  | Error msg -> Alcotest.fail ("list_with_counts failed: " ^ msg)
+  | Ok paginated ->
+      Alcotest.(check int) "total is 1" 1 paginated.total;
+      let bob = List.hd paginated.data in
+      Alcotest.(check string) "name is Bob" "Bob" bob.name;
+      Alcotest.(check int) "feed_count is 0" 0 bob.feed_count;
+      Alcotest.(check int) "article_count is 0" 0 bob.article_count;
+      Lwt.return_unit
+
+let test_db_person_list_with_counts_query () =
+  let* () = setup_test_db () in
+  let* _ = Db.Person.create ~name:"Alice Smith" in
+  let* _ = Db.Person.create ~name:"Bob Jones" in
+  let* result =
+    Db.Person.list_with_counts ~page:1 ~per_page:10 ~query:"Alice" ()
+  in
+  match result with
+  | Error msg -> Alcotest.fail ("list_with_counts failed: " ^ msg)
+  | Ok paginated ->
+      Alcotest.(check int) "total is 1" 1 paginated.total;
+      Alcotest.(check int) "data length is 1" 1 (List.length paginated.data);
+      let alice = List.hd paginated.data in
+      Alcotest.(check string) "name is Alice Smith" "Alice Smith" alice.name;
+      Lwt.return_unit
+
 let db_suite =
   [
     lwt_test "create person" test_db_person_create;
@@ -199,6 +334,11 @@ let db_suite =
     lwt_test "update person not found" test_db_person_update_not_found;
     lwt_test "delete person" test_db_person_delete;
     lwt_test "delete person not found" test_db_person_delete_not_found;
+    lwt_test "list persons with counts" test_db_person_list_with_counts;
+    lwt_test "list persons with counts (no feeds)"
+      test_db_person_list_with_counts_no_feeds;
+    lwt_test "list persons with counts (query)"
+      test_db_person_list_with_counts_query;
   ]
 
 (* ============================================
@@ -216,8 +356,17 @@ let test_handler_person_list () =
   let* body = Dream.body response in
   let json = Yojson.Safe.from_string body in
   (match json with
-  | `Assoc fields ->
-      Alcotest.(check bool) "has data field" true (List.mem_assoc "data" fields)
+  | `Assoc fields -> (
+      Alcotest.(check bool) "has data field" true (List.mem_assoc "data" fields);
+      match List.assoc "data" fields with
+      | `List [ `Assoc person_fields ] ->
+          Alcotest.(check bool)
+            "person has feed_count" true
+            (List.mem_assoc "feed_count" person_fields);
+          Alcotest.(check bool)
+            "person has article_count" true
+            (List.mem_assoc "article_count" person_fields)
+      | _ -> Alcotest.fail "expected data to be a list with one person")
   | _ -> Alcotest.fail "expected JSON object");
   Lwt.return_unit
 

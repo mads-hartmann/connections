@@ -7,12 +7,13 @@ let list request =
     max 1 (min 100 (Utils.parse_query_int "per_page" 10 request))
   in
   let query = Dream.query request "query" in
-  let* result = Db.Person.list ~page ~per_page ?query () in
+  let* result = Db.Person.list_with_counts ~page ~per_page ?query () in
   match result with
   | Error msg -> Lwt.return (Utils.error_response `Internal_Server_Error msg)
   | Ok paginated ->
       Lwt.return
-        (Utils.json_response (Model.Person.paginated_to_json paginated))
+        (Utils.json_response
+           (Model.Person.paginated_with_counts_to_json paginated))
 
 (* GET /persons/:id - Get a single person *)
 let get request =

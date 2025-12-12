@@ -36,6 +36,41 @@ let count_filtered_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
     "SELECT COUNT(*) FROM persons WHERE name LIKE ?"
 
+let list_with_counts_query =
+  Caqti_request.Infix.(
+    Caqti_type.(t2 int int) ->* Caqti_type.(t4 int string int int))
+    {|
+      SELECT
+        p.id,
+        p.name,
+        COUNT(DISTINCT f.id) as feed_count,
+        COUNT(a.id) as article_count
+      FROM persons p
+      LEFT JOIN rss_feeds f ON f.person_id = p.id
+      LEFT JOIN articles a ON a.feed_id = f.id
+      GROUP BY p.id
+      ORDER BY p.id
+      LIMIT ? OFFSET ?
+    |}
+
+let list_with_counts_filtered_query =
+  Caqti_request.Infix.(
+    Caqti_type.(t3 string int int) ->* Caqti_type.(t4 int string int int))
+    {|
+      SELECT
+        p.id,
+        p.name,
+        COUNT(DISTINCT f.id) as feed_count,
+        COUNT(a.id) as article_count
+      FROM persons p
+      LEFT JOIN rss_feeds f ON f.person_id = p.id
+      LEFT JOIN articles a ON a.feed_id = f.id
+      WHERE p.name LIKE ?
+      GROUP BY p.id
+      ORDER BY p.name DESC
+      LIMIT ? OFFSET ?
+    |}
+
 let update_query =
   Caqti_request.Infix.(Caqti_type.(t2 string int) ->. Caqti_type.unit)
     "UPDATE persons SET name = ? WHERE id = ?"
@@ -124,8 +159,10 @@ let list ~page ~per_page ?query () =
             List.map (fun (id, name) -> { Model.Person.id; name }) rows
           in
           let total_pages = (total + per_page - 1) / per_page in
-          Lwt.return_ok
-            { Model.Person.data = persons; page; per_page; total; total_pages })
+          let response : Model.Person.paginated_response =
+            { data = persons; page; per_page; total; total_pages }
+          in
+          Lwt.return_ok response)
 
 let update ~id ~name =
   let pool = Pool.get () in
@@ -167,3 +204,52 @@ let delete ~id =
       match delete_result with
       | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
       | Ok () -> Lwt.return_ok true)
+
+let list_with_counts ~page ~per_page ?query () =
+  let pool = Pool.get () in
+  let offset = (page - 1) * per_page in
+  let* count_result =
+    match query with
+    | None ->
+        Caqti_lwt_unix.Pool.use
+          (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find count_query ())
+          pool
+    | Some q ->
+        let pattern = "%" ^ q ^ "%" in
+        Caqti_lwt_unix.Pool.use
+          (fun (module Db : Caqti_lwt.CONNECTION) ->
+            Db.find count_filtered_query pattern)
+          pool
+  in
+  match count_result with
+  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Ok total -> (
+      let* list_result =
+        match query with
+        | None ->
+            Caqti_lwt_unix.Pool.use
+              (fun (module Db : Caqti_lwt.CONNECTION) ->
+                Db.collect_list list_with_counts_query (per_page, offset))
+              pool
+        | Some q ->
+            let pattern = "%" ^ q ^ "%" in
+            Caqti_lwt_unix.Pool.use
+              (fun (module Db : Caqti_lwt.CONNECTION) ->
+                Db.collect_list list_with_counts_filtered_query
+                  (pattern, per_page, offset))
+              pool
+      in
+      match list_result with
+      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Ok rows ->
+          let persons =
+            List.map
+              (fun (id, name, feed_count, article_count) ->
+                { Model.Person.id; name; feed_count; article_count })
+              rows
+          in
+          let total_pages = (total + per_page - 1) / per_page in
+          let response : Model.Person.paginated_response_with_counts =
+            { data = persons; page; per_page; total; total_pages }
+          in
+          Lwt.return_ok response)
