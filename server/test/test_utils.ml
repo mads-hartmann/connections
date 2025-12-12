@@ -4,33 +4,40 @@ open Connections_server
 open Test_helpers
 
 let test_is_valid_url_https () =
-  Alcotest.(check bool) "https URL is valid" true
+  Alcotest.(check bool)
+    "https URL is valid" true
     (Handlers.Utils.is_valid_url "https://example.com")
 
 let test_is_valid_url_http () =
-  Alcotest.(check bool) "http URL is valid" true
+  Alcotest.(check bool)
+    "http URL is valid" true
     (Handlers.Utils.is_valid_url "http://example.com")
 
 let test_is_valid_url_with_path () =
-  Alcotest.(check bool) "URL with path is valid" true
+  Alcotest.(check bool)
+    "URL with path is valid" true
     (Handlers.Utils.is_valid_url "https://example.com/feed.xml")
 
 let test_is_valid_url_no_scheme () =
-  Alcotest.(check bool) "URL without scheme is invalid" false
+  Alcotest.(check bool)
+    "URL without scheme is invalid" false
     (Handlers.Utils.is_valid_url "example.com")
 
 let test_is_valid_url_ftp () =
-  Alcotest.(check bool) "ftp URL is invalid" false
+  Alcotest.(check bool)
+    "ftp URL is invalid" false
     (Handlers.Utils.is_valid_url "ftp://example.com")
 
 let test_is_valid_url_empty () =
-  Alcotest.(check bool) "empty string is invalid" false
+  Alcotest.(check bool)
+    "empty string is invalid" false
     (Handlers.Utils.is_valid_url "")
 
 let test_is_valid_url_no_host () =
   (* Note: Uri.of_string "https://" parses with empty host, which Uri.host returns as Some "" *)
   (* The current implementation considers this valid - this test documents actual behavior *)
-  Alcotest.(check bool) "URL with empty host is considered valid by Uri" true
+  Alcotest.(check bool)
+    "URL with empty host is considered valid by Uri" true
     (Handlers.Utils.is_valid_url "https://")
 
 let test_validate_url_valid () =
@@ -40,22 +47,19 @@ let test_validate_url_valid () =
 
 let test_validate_url_empty () =
   Alcotest.(check (result string string))
-    "empty URL returns Error"
-    (Error "URL cannot be empty")
+    "empty URL returns Error" (Error "URL cannot be empty")
     (Handlers.Utils.validate_url "")
 
 let test_validate_url_whitespace () =
   Alcotest.(check (result string string))
-    "whitespace-only URL returns Error"
-    (Error "URL cannot be empty")
+    "whitespace-only URL returns Error" (Error "URL cannot be empty")
     (Handlers.Utils.validate_url "   ")
 
 let test_validate_url_invalid_scheme () =
   match Handlers.Utils.validate_url "ftp://example.com" with
   | Error msg ->
       Alcotest.(check bool)
-        "error message mentions invalid format"
-        true
+        "error message mentions invalid format" true
         (String.length msg > 0)
   | Ok _ -> Alcotest.fail "expected Error for ftp URL"
 

@@ -34,7 +34,8 @@ let test_person_error_to_json () =
 let test_person_paginated_to_json () =
   let response =
     {
-      Model.Person.data = [ { id = 1; name = "Alice" }; { id = 2; name = "Bob" } ];
+      Model.Person.data =
+        [ { id = 1; name = "Alice" }; { id = 2; name = "Bob" } ];
       page = 1;
       per_page = 10;
       total = 2;
@@ -44,12 +45,8 @@ let test_person_paginated_to_json () =
   let json = Model.Person.paginated_to_json response in
   match json with
   | `Assoc fields ->
-      Alcotest.(check bool)
-        "has data field" true
-        (List.mem_assoc "data" fields);
-      Alcotest.(check bool)
-        "has page field" true
-        (List.mem_assoc "page" fields);
+      Alcotest.(check bool) "has data field" true (List.mem_assoc "data" fields);
+      Alcotest.(check bool) "has page field" true (List.mem_assoc "page" fields);
       Alcotest.(check bool)
         "has total field" true
         (List.mem_assoc "total" fields)
@@ -277,9 +274,7 @@ let test_handler_json_content_type () =
   let* response = Handlers.Person.list request in
   let content_type = Dream.header response "Content-Type" in
   Alcotest.(check (option string))
-    "content-type is application/json"
-    (Some "application/json")
-    content_type;
+    "content-type is application/json" (Some "application/json") content_type;
   Lwt.return_unit
 
 let handler_suite =

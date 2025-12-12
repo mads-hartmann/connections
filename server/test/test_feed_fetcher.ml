@@ -9,8 +9,7 @@ let test_ptime_to_string () =
   | None -> Alcotest.fail "failed to create ptime"
   | Some ptime ->
       let result = Feed_fetcher.ptime_to_string ptime in
-      Alcotest.(check string)
-        "formats correctly" "2024-06-15 10:30:45" result
+      Alcotest.(check string) "formats correctly" "2024-06-15 10:30:45" result
 
 let test_parse_feed_invalid () =
   let result = Feed_fetcher.parse_feed "not valid xml" in
