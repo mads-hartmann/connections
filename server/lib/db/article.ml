@@ -201,7 +201,7 @@ let upsert (input : Model.Article.create_input) =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok () -> Lwt.return_ok ()
 
 (* UPSERT MANY - returns count of inserted articles *)
@@ -240,7 +240,7 @@ let upsert_many (inputs : Model.Article.create_input list) =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok count -> Lwt.return_ok count
 
 (* GET *)
@@ -252,7 +252,7 @@ let get ~id =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok None -> Lwt.return_ok None
   | Ok (Some tuple) -> Lwt.return_ok (Some (tuple_to_article tuple))
 
@@ -267,7 +267,7 @@ let list_by_feed ~feed_id ~page ~per_page =
       pool
   in
   match count_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let* list_result =
         Caqti_lwt_unix.Pool.use
@@ -276,7 +276,7 @@ let list_by_feed ~feed_id ~page ~per_page =
           pool
       in
       match list_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let articles = List.map tuple_to_article rows in
           let total_pages = (total + per_page - 1) / per_page in
@@ -301,7 +301,7 @@ let list_all ~page ~per_page ~unread_only =
       pool
   in
   match count_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let* list_result =
         Caqti_lwt_unix.Pool.use
@@ -312,7 +312,7 @@ let list_all ~page ~per_page ~unread_only =
           pool
       in
       match list_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let articles = List.map tuple_to_article rows in
           let total_pages = (total + per_page - 1) / per_page in
@@ -334,7 +334,7 @@ let mark_read ~id ~read =
       pool
   in
   match exists_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok 0 -> Lwt.return_ok None
   | Ok _ -> (
       let read_at =
@@ -355,7 +355,7 @@ let mark_read ~id ~read =
           pool
       in
       match update_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok () -> get ~id)
 
 (* MARK ALL READ for a feed *)
@@ -368,7 +368,7 @@ let mark_all_read ~feed_id =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok ids -> Lwt.return_ok (List.length ids)
 
 (* DELETE *)
@@ -380,7 +380,7 @@ let delete ~id =
       pool
   in
   match exists_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok 0 -> Lwt.return_ok false
   | Ok _ -> (
       let* delete_result =
@@ -389,5 +389,5 @@ let delete ~id =
           pool
       in
       match delete_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok () -> Lwt.return_ok true)

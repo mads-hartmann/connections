@@ -1,3 +1,5 @@
+let caqti_error_to_string err = Format.asprintf "%a" Caqti_error.pp err
+
 (* Database connection pool *)
 let pool_ref :
     (Caqti_lwt.connection, Caqti_error.t) Caqti_lwt_unix.Pool.t option ref =

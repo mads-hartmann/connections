@@ -92,7 +92,7 @@ let create ~name =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok id -> Lwt.return_ok { Model.Category.id; name }
 
 let get ~id =
@@ -103,7 +103,7 @@ let get ~id =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok None -> Lwt.return_ok None
   | Ok (Some (id, name)) -> Lwt.return_ok (Some { Model.Category.id; name })
 
@@ -115,7 +115,7 @@ let get_by_name ~name =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok None -> Lwt.return_ok None
   | Ok (Some (id, name)) -> Lwt.return_ok (Some { Model.Category.id; name })
 
@@ -134,7 +134,7 @@ let list_all () =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok rows ->
       let categories =
         List.map (fun (id, name) -> { Model.Category.id; name }) rows
@@ -150,7 +150,7 @@ let list ~page ~per_page () =
       pool
   in
   match count_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let* list_result =
         Caqti_lwt_unix.Pool.use
@@ -159,7 +159,7 @@ let list ~page ~per_page () =
           pool
       in
       match list_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let categories =
             List.map (fun (id, name) -> { Model.Category.id; name }) rows
@@ -182,7 +182,7 @@ let delete ~id =
       pool
   in
   match exists_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok 0 -> Lwt.return_ok false
   | Ok _ -> (
       let* delete_result =
@@ -191,7 +191,7 @@ let delete ~id =
           pool
       in
       match delete_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok () -> Lwt.return_ok true)
 
 let add_to_person ~person_id ~category_id =
@@ -203,7 +203,7 @@ let add_to_person ~person_id ~category_id =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok () -> Lwt.return_ok ()
 
 let remove_from_person ~person_id ~category_id =
@@ -215,7 +215,7 @@ let remove_from_person ~person_id ~category_id =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok () -> Lwt.return_ok ()
 
 let get_by_person ~person_id =
@@ -227,7 +227,7 @@ let get_by_person ~person_id =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok rows ->
       let categories =
         List.map (fun (id, name) -> { Model.Category.id; name }) rows

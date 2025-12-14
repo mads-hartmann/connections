@@ -104,7 +104,7 @@ let create ~name =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok id -> Lwt.return_ok { Model.Person.id; name }
 
 let get ~id =
@@ -115,7 +115,7 @@ let get ~id =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok None -> Lwt.return_ok None
   | Ok (Some (id, name)) -> Lwt.return_ok (Some { Model.Person.id; name })
 
@@ -136,7 +136,7 @@ let list ~page ~per_page ?query () =
           pool
   in
   match count_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let* list_result =
         match query with
@@ -153,7 +153,7 @@ let list ~page ~per_page ?query () =
               pool
       in
       match list_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let persons =
             List.map (fun (id, name) -> { Model.Person.id; name }) rows
@@ -172,7 +172,7 @@ let update ~id ~name =
       pool
   in
   match exists_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok 0 -> Lwt.return_ok None
   | Ok _ -> (
       let* update_result =
@@ -182,7 +182,7 @@ let update ~id ~name =
           pool
       in
       match update_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok () -> Lwt.return_ok (Some { Model.Person.id; name }))
 
 let delete ~id =
@@ -193,7 +193,7 @@ let delete ~id =
       pool
   in
   match exists_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok 0 -> Lwt.return_ok false
   | Ok _ -> (
       let* delete_result =
@@ -202,7 +202,7 @@ let delete ~id =
           pool
       in
       match delete_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok () -> Lwt.return_ok true)
 
 let list_with_counts ~page ~per_page ?query () =
@@ -222,7 +222,7 @@ let list_with_counts ~page ~per_page ?query () =
           pool
   in
   match count_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let* list_result =
         match query with
@@ -240,7 +240,7 @@ let list_with_counts ~page ~per_page ?query () =
               pool
       in
       match list_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let persons =
             List.map

@@ -99,7 +99,7 @@ let create ~person_id ~url ~title =
   in
   match result with
   | Error err ->
-      let err_msg = Format.asprintf "%a" Caqti_error.pp err in
+      let err_msg = Pool.caqti_error_to_string err in
       Lwt.return_error err_msg
   | Ok id -> (
       (* Fetch the complete feed to get timestamps *)
@@ -109,7 +109,7 @@ let create ~person_id ~url ~title =
           pool
       in
       match get_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok None -> Lwt.return_error "Failed to retrieve created feed"
       | Ok (Some tuple) -> Lwt.return_ok (tuple_to_feed tuple))
 
@@ -122,7 +122,7 @@ let get ~id =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok None -> Lwt.return_ok None
   | Ok (Some tuple) -> Lwt.return_ok (Some (tuple_to_feed tuple))
 
@@ -137,7 +137,7 @@ let list_by_person ~person_id ~page ~per_page =
       pool
   in
   match count_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let* list_result =
         Caqti_lwt_unix.Pool.use
@@ -146,7 +146,7 @@ let list_by_person ~person_id ~page ~per_page =
           pool
       in
       match list_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let feeds = List.map tuple_to_feed rows in
           let total_pages = (total + per_page - 1) / per_page in
@@ -162,7 +162,7 @@ let update ~id ~url ~title =
       pool
   in
   match exists_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok 0 -> Lwt.return_ok None
   | Ok _ -> (
       (* Get current feed to merge with updates *)
@@ -183,7 +183,7 @@ let update ~id ~url ~title =
           in
           match update_result with
           | Error err ->
-              let err_msg = Format.asprintf "%a" Caqti_error.pp err in
+              let err_msg = Pool.caqti_error_to_string err in
               Lwt.return_error err_msg
           | Ok () ->
               Lwt.return_ok
@@ -198,7 +198,7 @@ let delete ~id =
       pool
   in
   match exists_result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok 0 -> Lwt.return_ok false
   | Ok _ -> (
       let* delete_result =
@@ -207,7 +207,7 @@ let delete ~id =
           pool
       in
       match delete_result with
-      | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok () -> Lwt.return_ok true)
 
 (* LIST ALL - no pagination, for scheduler *)
@@ -220,7 +220,7 @@ let list_all () =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok rows -> Lwt.return_ok (List.map tuple_to_feed rows)
 
 (* UPDATE LAST FETCHED timestamp *)
@@ -233,5 +233,5 @@ let update_last_fetched ~id =
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Format.asprintf "%a" Caqti_error.pp err)
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok () -> Lwt.return_ok ()

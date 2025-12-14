@@ -11,7 +11,7 @@ let is_valid_url url =
     let uri = Uri.of_string url in
     match Uri.scheme uri with
     | Some ("http" | "https") -> (
-        match Uri.host uri with Some _ -> true | None -> false)
+        Option.is_some (Uri.host uri))
     | _ -> false
   with _ -> false
 
