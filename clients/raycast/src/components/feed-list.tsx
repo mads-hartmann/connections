@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
+import { Action, ActionPanel, Icon, Keyboard, List, showToast, Toast } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import * as Feed from "../api/feed";
 import { ArticleList } from "./article-list";
@@ -36,6 +36,23 @@ export function FeedList({ personId, personName }: FeedListProps) {
     const deleted = await Feed.deleteFeed(feed);
     if (deleted) {
       revalidate();
+    }
+  };
+
+  const refreshFeed = async (feed: Feed.Feed) => {
+    const toast = await showToast({
+      style: Toast.Style.Animated,
+      title: "Refreshing feed",
+    });
+    try {
+      await Feed.refreshFeed(feed.id);
+      toast.style = Toast.Style.Success;
+      toast.title = "Feed refreshed";
+      revalidate();
+    } catch (error) {
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to refresh feed";
+      toast.message = error instanceof Error ? error.message : "Unknown error";
     }
   };
 
@@ -78,6 +95,12 @@ export function FeedList({ personId, personName }: FeedListProps) {
                 icon={Icon.Plus}
                 shortcut={Keyboard.Shortcut.Common.New}
                 target={<CreateFeedForm personId={personId} revalidate={revalidate} />}
+              />
+              <Action
+                title="Refresh Feed"
+                icon={Icon.ArrowClockwise}
+                shortcut={Keyboard.Shortcut.Common.Refresh}
+                onAction={() => refreshFeed(feed)}
               />
               <Action
                 title="Delete"
