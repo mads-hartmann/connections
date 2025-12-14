@@ -40,16 +40,19 @@ export function FeedList({ personId, personName }: FeedListProps) {
   };
 
   const refreshFeed = async (feed: Feed.Feed) => {
+    const toast = await showToast({
+      style: Toast.Style.Animated,
+      title: "Refreshing feed",
+    });
     try {
       await Feed.refreshFeed(feed.id);
-      await showToast({ style: Toast.Style.Success, title: "Feed refreshed" });
+      toast.style = Toast.Style.Success;
+      toast.title = "Feed refreshed";
       revalidate();
     } catch (error) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to refresh feed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to refresh feed";
+      toast.message = error instanceof Error ? error.message : "Unknown error";
     }
   };
 
