@@ -66,3 +66,14 @@ export async function deleteFeed(feed: Feed) {
   }
   return false;
 }
+
+export async function refreshFeed(id: number) {
+  const response = await fetch(`http://localhost:8080/feeds/${id}/refresh`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to refresh feed");
+  }
+  return response.json();
+}
