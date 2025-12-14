@@ -7,4 +7,6 @@
   lwt
   lwt.unix
   yojson
-  dream))
+  dream)
+ (deps
+  (source_tree data)))

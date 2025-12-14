@@ -13,4 +13,5 @@ let () =
          ("Db.Article", Test_article.db_suite);
          ("Handlers.Article", Test_article.handler_suite);
          ("Feed_fetcher", Test_feed_fetcher.suite);
+         ("Opml_parser", Test_opml_parser.suite);
        ])
