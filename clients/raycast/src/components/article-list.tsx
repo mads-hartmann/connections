@@ -38,10 +38,6 @@ export function ArticleList({ feedId, feedTitle }: ArticleListProps) {
     try {
       await ArticleApi.markArticleRead(article.id, !isRead);
       revalidate();
-      showToast({
-        style: Toast.Style.Success,
-        title: isRead ? "Marked as unread" : "Marked as read",
-      });
     } catch (error) {
       showToast({
         style: Toast.Style.Failure,
