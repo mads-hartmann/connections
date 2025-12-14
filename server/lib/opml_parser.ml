@@ -14,10 +14,20 @@ let get_attr name attrs =
     (fun ((_, local), value) -> if local = name then Some value else None)
     attrs
 
+(* Skip element and all its children *)
+let rec skip_element input =
+  match Xmlm.input input with
+  | `El_end -> ()
+  | `El_start _ -> skip_element input; skip_element input
+  | _ -> skip_element input
+
 (* Parse outline elements recursively, tracking category path *)
 let rec parse_outline ~categories acc input =
   match Xmlm.peek input with
-  | `El_end -> acc
+  | `El_end ->
+      (* Consume the end tag and return *)
+      let _ = Xmlm.input input in
+      acc
   | `El_start ((_, "outline"), attrs) ->
       let _ = Xmlm.input input in
       (* consume start tag *)
@@ -28,8 +38,10 @@ let rec parse_outline ~categories acc input =
       let acc =
         match xml_url with
         | Some url ->
-            (* This is a feed entry *)
-            { url; title = display_name; categories } :: acc
+            (* This is a feed entry - parse any children then continue *)
+            let acc = { url; title = display_name; categories } :: acc in
+            (* Consume children until we hit the end tag for this outline *)
+            parse_outline ~categories acc input
         | None ->
             (* This is a category/folder - recurse with updated category path *)
             let category_name =
@@ -42,7 +54,7 @@ let rec parse_outline ~categories acc input =
       parse_outline ~categories acc input
   | `El_start _ ->
       (* Skip non-outline elements *)
-      let _ = Xmlm.input input in
+      skip_element input;
       parse_outline ~categories acc input
   | `Data _ ->
       let _ = Xmlm.input input in
@@ -51,19 +63,18 @@ let rec parse_outline ~categories acc input =
       let _ = Xmlm.input input in
       parse_outline ~categories acc input
 
-(* Skip to body element *)
+(* Skip to body element - returns true if found, false if end of document *)
 let rec skip_to_body input =
-  match Xmlm.input input with
-  | `El_start ((_, "body"), _) -> true
-  | `El_end -> false
-  | _ -> skip_to_body input
+  if not (Xmlm.eoi input) then
+    match Xmlm.input input with
+    | `El_start ((_, "body"), _) -> true
+    | _ -> skip_to_body input
+  else false
 
 (* Main parse function *)
 let parse (content : string) : (parse_result, string) result =
   try
     let input = Xmlm.make_input (`String (0, content)) in
-    (* Skip DTD if present *)
-    let _ = Xmlm.input input in
     (* Find body element *)
     if skip_to_body input then
       let feeds = parse_outline ~categories:[] [] input in
