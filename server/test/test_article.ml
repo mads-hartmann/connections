@@ -34,15 +34,7 @@ let test_article_to_json () =
   | _ -> Alcotest.fail "expected JSON object"
 
 let test_article_paginated_to_json () =
-  let response =
-    {
-      Model.Article.data = [];
-      page = 1;
-      per_page = 10;
-      total = 0;
-      total_pages = 0;
-    }
-  in
+  let response = Model.Shared.Paginated.make ~data:[] ~page:1 ~per_page:10 ~total:0 in
   let json = Model.Article.paginated_to_json response in
   match json with
   | `Assoc fields ->

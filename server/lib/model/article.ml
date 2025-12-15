@@ -26,19 +26,7 @@ type create_input = {
 
 type mark_read_request = { read : bool } [@@deriving yojson]
 
-type paginated_response = {
-  data : t list;
-  page : int;
-  per_page : int;
-  total : int;
-  total_pages : int;
-}
-[@@deriving yojson]
-
-type error_response = { error : string } [@@deriving yojson]
-
-let to_json article = yojson_of_t article
-let of_json json = t_of_yojson json
-let list_to_json articles = `List (List.map yojson_of_t articles)
-let paginated_to_json response = yojson_of_paginated_response response
-let error_to_json msg = yojson_of_error_response { error = msg }
+let to_json = yojson_of_t
+let of_json = t_of_yojson
+let paginated_to_json response = Shared.Paginated.to_json yojson_of_t response
+let error_to_json = Shared.error_to_json
