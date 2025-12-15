@@ -148,10 +148,8 @@ let list_by_person ~person_id ~page ~per_page =
       match list_result with
       | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
-          let feeds = List.map tuple_to_feed rows in
-          let total_pages = (total + per_page - 1) / per_page in
-          Lwt.return_ok
-            { Model.Rss_feed.data = feeds; page; per_page; total; total_pages })
+          let data = List.map tuple_to_feed rows in
+          Lwt.return_ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
 
 (* UPDATE - handles partial updates *)
 let update ~id ~url ~title =

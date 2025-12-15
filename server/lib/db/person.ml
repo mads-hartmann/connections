@@ -155,14 +155,10 @@ let list ~page ~per_page ?query () =
       match list_result with
       | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
-          let persons =
+          let data =
             List.map (fun (id, name) -> { Model.Person.id; name }) rows
           in
-          let total_pages = (total + per_page - 1) / per_page in
-          let response : Model.Person.paginated_response =
-            { data = persons; page; per_page; total; total_pages }
-          in
-          Lwt.return_ok response)
+          Lwt.return_ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
 
 let update ~id ~name =
   let pool = Pool.get () in
@@ -242,14 +238,10 @@ let list_with_counts ~page ~per_page ?query () =
       match list_result with
       | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
-          let persons =
+          let data =
             List.map
               (fun (id, name, feed_count, article_count) ->
                 { Model.Person.id; name; feed_count; article_count })
               rows
           in
-          let total_pages = (total + per_page - 1) / per_page in
-          let response : Model.Person.paginated_response_with_counts =
-            { data = persons; page; per_page; total; total_pages }
-          in
-          Lwt.return_ok response)
+          Lwt.return_ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))

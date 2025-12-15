@@ -161,18 +161,10 @@ let list ~page ~per_page () =
       match list_result with
       | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
-          let categories =
+          let data =
             List.map (fun (id, name) -> { Model.Category.id; name }) rows
           in
-          let total_pages = (total + per_page - 1) / per_page in
-          Lwt.return_ok
-            {
-              Model.Category.data = categories;
-              page;
-              per_page;
-              total;
-              total_pages;
-            })
+          Lwt.return_ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
 
 let delete ~id =
   let pool = Pool.get () in

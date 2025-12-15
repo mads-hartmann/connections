@@ -34,15 +34,7 @@ let test_person_error_to_json () =
 let test_person_paginated_to_json () =
   let alice : Model.Person.t = { id = 1; name = "Alice" } in
   let bob : Model.Person.t = { id = 2; name = "Bob" } in
-  let response : Model.Person.paginated_response =
-    {
-      data = [ alice; bob ];
-      page = 1;
-      per_page = 10;
-      total = 2;
-      total_pages = 1;
-    }
-  in
+  let response = Model.Shared.Paginated.make ~data:[ alice; bob ] ~page:1 ~per_page:10 ~total:2 in
   let json = Model.Person.paginated_to_json response in
   match json with
   | `Assoc fields ->
@@ -54,19 +46,13 @@ let test_person_paginated_to_json () =
   | _ -> Alcotest.fail "expected JSON object"
 
 let test_person_paginated_with_counts_to_json () =
-  let response : Model.Person.paginated_response_with_counts =
-    {
-      data =
-        [
-          { id = 1; name = "Alice"; feed_count = 2; article_count = 10 };
-          { id = 2; name = "Bob"; feed_count = 1; article_count = 5 };
-        ];
-      page = 1;
-      per_page = 10;
-      total = 2;
-      total_pages = 1;
-    }
+  let data =
+    [
+      { Model.Person.id = 1; name = "Alice"; feed_count = 2; article_count = 10 };
+      { Model.Person.id = 2; name = "Bob"; feed_count = 1; article_count = 5 };
+    ]
   in
+  let response = Model.Shared.Paginated.make ~data ~page:1 ~per_page:10 ~total:2 in
   let json = Model.Person.paginated_with_counts_to_json response in
   match json with
   | `Assoc fields -> (
