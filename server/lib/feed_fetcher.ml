@@ -157,10 +157,7 @@ let extract_rss2_author (channel : Syndic.Rss2.channel) : string option =
   (* Try managingEditor first, then look at first item's author *)
   match channel.managingEditor with
   | Some editor -> Some editor
-  | None -> (
-      match channel.items with
-      | item :: _ -> item.author
-      | [] -> None)
+  | None -> ( match channel.items with item :: _ -> item.author | [] -> None)
 
 (* Extract author from Atom feed *)
 let extract_atom_author (feed : Syndic.Atom.feed) : string option =

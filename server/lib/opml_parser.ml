@@ -18,7 +18,9 @@ let get_attr name attrs =
 let rec skip_element input =
   match Xmlm.input input with
   | `El_end -> ()
-  | `El_start _ -> skip_element input; skip_element input
+  | `El_start _ ->
+      skip_element input;
+      skip_element input
   | _ -> skip_element input
 
 (* Parse outline elements recursively, tracking category path *)

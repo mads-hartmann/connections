@@ -158,7 +158,8 @@ let list ~page ~per_page ?query () =
           let data =
             List.map (fun (id, name) -> { Model.Person.id; name }) rows
           in
-          Lwt.return_ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+          Lwt.return_ok
+            (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
 
 let update ~id ~name =
   let pool = Pool.get () in
@@ -244,4 +245,5 @@ let list_with_counts ~page ~per_page ?query () =
                 { Model.Person.id; name; feed_count; article_count })
               rows
           in
-          Lwt.return_ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+          Lwt.return_ok
+            (Model.Shared.Paginated.make ~data ~page ~per_page ~total))

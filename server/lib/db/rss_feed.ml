@@ -149,7 +149,8 @@ let list_by_person ~person_id ~page ~per_page =
       | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let data = List.map tuple_to_feed rows in
-          Lwt.return_ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+          Lwt.return_ok
+            (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
 
 (* UPDATE - handles partial updates *)
 let update ~id ~url ~title =

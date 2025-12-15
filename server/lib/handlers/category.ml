@@ -2,12 +2,15 @@ open Lwt.Syntax
 
 let list request =
   let page = max 1 (Response.parse_query_int "page" 1 request) in
-  let per_page = min 100 (max 1 (Response.parse_query_int "per_page" 10 request)) in
+  let per_page =
+    min 100 (max 1 (Response.parse_query_int "per_page" 10 request))
+  in
   let* result = Db.Category.list ~page ~per_page () in
   match result with
   | Error msg -> Lwt.return (Response.internal_error msg)
   | Ok response ->
-      Lwt.return (Response.json_response (Model.Category.paginated_to_json response))
+      Lwt.return
+        (Response.json_response (Model.Category.paginated_to_json response))
 
 let get request =
   match Response.parse_int_param "id" request with
@@ -21,10 +24,12 @@ let get request =
           Lwt.return (Response.json_response (Model.Category.to_json category)))
 
 let create request =
-  let* parsed = Response.parse_json_body Model.Category.create_request_of_yojson request in
+  let* parsed =
+    Response.parse_json_body Model.Category.create_request_of_yojson request
+  in
   match parsed with
   | Error msg -> Lwt.return (Response.bad_request msg)
-  | Ok { name } ->
+  | Ok { name } -> (
       if String.trim name = "" then
         Lwt.return (Response.bad_request "Name cannot be empty")
       else
@@ -33,7 +38,8 @@ let create request =
         | Error msg -> Lwt.return (Response.internal_error msg)
         | Ok category ->
             Lwt.return
-              (Response.json_response ~status:`Created (Model.Category.to_json category))
+              (Response.json_response ~status:`Created
+                 (Model.Category.to_json category)))
 
 let delete request =
   match Response.parse_int_param "id" request with
@@ -47,8 +53,8 @@ let delete request =
 
 let add_to_person request =
   match
-    Response.parse_int_param "person_id" request,
-    Response.parse_int_param "category_id" request
+    ( Response.parse_int_param "person_id" request,
+      Response.parse_int_param "category_id" request )
   with
   | Error msg, _ | _, Error msg -> Lwt.return (Response.bad_request msg)
   | Ok person_id, Ok category_id -> (
@@ -59,8 +65,8 @@ let add_to_person request =
 
 let remove_from_person request =
   match
-    Response.parse_int_param "person_id" request,
-    Response.parse_int_param "category_id" request
+    ( Response.parse_int_param "person_id" request,
+      Response.parse_int_param "category_id" request )
   with
   | Error msg, _ | _, Error msg -> Lwt.return (Response.bad_request msg)
   | Ok person_id, Ok category_id -> (
@@ -77,4 +83,5 @@ let list_by_person request =
       match result with
       | Error msg -> Lwt.return (Response.internal_error msg)
       | Ok categories ->
-          Lwt.return (Response.json_response (Model.Category.list_to_json categories)))
+          Lwt.return
+            (Response.json_response (Model.Category.list_to_json categories)))

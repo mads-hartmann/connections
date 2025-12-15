@@ -279,7 +279,8 @@ let list_by_feed ~feed_id ~page ~per_page =
       | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let data = List.map tuple_to_article rows in
-          Lwt.return_ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+          Lwt.return_ok
+            (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
 
 (* LIST ALL with pagination and optional unread filter *)
 let list_all ~page ~per_page ~unread_only =
@@ -307,7 +308,8 @@ let list_all ~page ~per_page ~unread_only =
       | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let data = List.map tuple_to_article rows in
-          Lwt.return_ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+          Lwt.return_ok
+            (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
 
 (* MARK READ/UNREAD *)
 let mark_read ~id ~read =

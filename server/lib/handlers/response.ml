@@ -32,7 +32,7 @@ let parse_int_param name request =
 let parse_query_int name default request =
   Dream.query request name
   |> Option.fold ~none:default ~some:(fun v ->
-         int_of_string_opt v |> Option.value ~default)
+      int_of_string_opt v |> Option.value ~default)
 
 (* JSON body parsing helper *)
 let parse_json_body parser request =

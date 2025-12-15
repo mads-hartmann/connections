@@ -10,11 +10,7 @@ type t_with_counts = {
 }
 [@@deriving yojson]
 
-type with_categories = {
-  id : int;
-  name : string;
-  categories : Category.t list;
-}
+type with_categories = { id : int; name : string; categories : Category.t list }
 [@@deriving yojson]
 
 type create_request = { name : string } [@@deriving yojson]

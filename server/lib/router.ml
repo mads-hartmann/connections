@@ -11,7 +11,8 @@ let build () =
       Dream.post "/persons/:person_id/feeds" Handlers.Rss_feed.create;
       Dream.get "/persons/:person_id/feeds" Handlers.Rss_feed.list_by_person;
       (* Person-Category routes *)
-      Dream.get "/persons/:person_id/categories" Handlers.Category.list_by_person;
+      Dream.get "/persons/:person_id/categories"
+        Handlers.Category.list_by_person;
       Dream.post "/persons/:person_id/categories/:category_id"
         Handlers.Category.add_to_person;
       Dream.delete "/persons/:person_id/categories/:category_id"

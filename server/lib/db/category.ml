@@ -111,7 +111,8 @@ let get_by_name ~name =
   let pool = Pool.get () in
   let* result =
     Caqti_lwt_unix.Pool.use
-      (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find_opt get_by_name_query name)
+      (fun (module Db : Caqti_lwt.CONNECTION) ->
+        Db.find_opt get_by_name_query name)
       pool
   in
   match result with
@@ -130,7 +131,8 @@ let list_all () =
   let pool = Pool.get () in
   let* result =
     Caqti_lwt_unix.Pool.use
-      (fun (module Db : Caqti_lwt.CONNECTION) -> Db.collect_list list_all_query ())
+      (fun (module Db : Caqti_lwt.CONNECTION) ->
+        Db.collect_list list_all_query ())
       pool
   in
   match result with
@@ -164,7 +166,8 @@ let list ~page ~per_page () =
           let data =
             List.map (fun (id, name) -> { Model.Category.id; name }) rows
           in
-          Lwt.return_ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+          Lwt.return_ok
+            (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
 
 let delete ~id =
   let pool = Pool.get () in

@@ -145,8 +145,8 @@ let preview (opml_content : string) : (preview_response, string) result Lwt.t =
         Lwt.return_ok response
 
 (* Confirm import - create people, feeds, and categories *)
-let confirm (request : confirm_request) : (confirm_response, string) result Lwt.t
-    =
+let confirm (request : confirm_request) :
+    (confirm_response, string) result Lwt.t =
   let created_people = ref 0 in
   let created_feeds = ref 0 in
   let created_categories = ref 0 in

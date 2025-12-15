@@ -69,7 +69,7 @@ let test_feed_titles () =
   let content = read_test_opml () in
   match Opml_parser.parse content with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
-  | Ok result ->
+  | Ok result -> (
       (* Find specific feeds and check their titles *)
       let find_by_url url =
         List.find_opt (fun f -> f.Opml_parser.url = url) result.feeds
@@ -84,7 +84,7 @@ let test_feed_titles () =
       | Some feed ->
           Alcotest.(check (option string))
             "Mads Hartmann title" (Some "Mads Hartmann") feed.title);
-      (match find_by_url "https://charity.wtf/rss" with
+      match find_by_url "https://charity.wtf/rss" with
       | None -> Alcotest.fail "charity.wtf feed not found"
       | Some feed ->
           Alcotest.(check (option string))
@@ -115,24 +115,26 @@ let test_last_feed () =
           Alcotest.(check string)
             "last feed url" "https://veekaybee.github.io/index.xml" last.url;
           Alcotest.(check (option string))
-            "last feed title"
-            (Some "★❤✰ Vicki Boykis ★❤✰")
-            last.title)
+            "last feed title" (Some "★❤✰ Vicki Boykis ★❤✰") last.title)
 
 let test_parse_empty_body () =
-  let content = {|<?xml version="1.0" encoding="UTF-8"?>
+  let content =
+    {|<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
 <head><title>Empty</title></head>
 <body>
 </body>
-</opml>|} in
+</opml>|}
+  in
   match Opml_parser.parse content with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
   | Ok result ->
-      Alcotest.(check int) "empty body has no feeds" 0 (List.length result.feeds)
+      Alcotest.(check int)
+        "empty body has no feeds" 0 (List.length result.feeds)
 
 let test_parse_with_categories () =
-  let content = {|<?xml version="1.0" encoding="UTF-8"?>
+  let content =
+    {|<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
 <head><title>Test</title></head>
 <body>
@@ -144,10 +146,11 @@ let test_parse_with_categories () =
 </outline>
 <outline xmlUrl="https://example.com/feed3.xml" title="Feed 3" type="rss" />
 </body>
-</opml>|} in
+</opml>|}
+  in
   match Opml_parser.parse content with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
-  | Ok result ->
+  | Ok result -> (
       Alcotest.(check int) "should have 3 feeds" 3 (List.length result.feeds);
       let find_by_url url =
         List.find_opt (fun f -> f.Opml_parser.url = url) result.feeds
@@ -162,7 +165,7 @@ let test_parse_with_categories () =
       | Some feed ->
           Alcotest.(check (list string))
             "feed2 categories" [ "Tech" ] feed.categories);
-      (match find_by_url "https://example.com/feed3.xml" with
+      match find_by_url "https://example.com/feed3.xml" with
       | None -> Alcotest.fail "feed3 not found"
       | Some feed ->
           Alcotest.(check (list string)) "feed3 categories" [] feed.categories)
@@ -174,15 +177,15 @@ let test_parse_invalid_xml () =
   | Ok _ -> Alcotest.fail "expected parse error for invalid XML"
 
 let test_parse_no_body () =
-  let content = {|<?xml version="1.0" encoding="UTF-8"?>
+  let content =
+    {|<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
 <head><title>No Body</title></head>
-</opml>|} in
+</opml>|}
+  in
   match Opml_parser.parse content with
   | Error msg ->
-      Alcotest.(check bool)
-        "error mentions body" true
-        (String.length msg > 0)
+      Alcotest.(check bool) "error mentions body" true (String.length msg > 0)
   | Ok _ -> Alcotest.fail "expected error for OPML without body"
 
 let suite =
