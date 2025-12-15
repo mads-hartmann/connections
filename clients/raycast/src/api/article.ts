@@ -36,3 +36,19 @@ export async function markArticleRead(id: number, read: boolean): Promise<Articl
   }
   return response.json();
 }
+
+export interface MarkAllReadResponse {
+  marked_read: number;
+}
+
+export async function markAllArticlesRead(feedId: number): Promise<MarkAllReadResponse> {
+  const response = await fetch(`http://localhost:8080/feeds/${feedId}/articles/mark-all-read`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to mark all articles as read");
+  }
+  return response.json();
+}

@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Icon, Keyboard, List, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Alert, confirmAlert, Icon, Keyboard, List, showToast, Toast } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import * as ArticleApi from "../api/article";
@@ -13,6 +13,17 @@ function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
   const date = new Date(dateStr);
   return date.toLocaleDateString();
+}
+
+async function confirmMarkAllRead(feedTitle: string): Promise<boolean> {
+  return await confirmAlert({
+    title: "Mark All as Read",
+    message: `Are you sure you want to mark all articles in "${feedTitle}" as read?`,
+    primaryAction: {
+      title: "Mark All as Read",
+      style: Alert.ActionStyle.Default,
+    },
+  });
 }
 
 export function ArticleList({ feedId, feedTitle }: ArticleListProps) {
@@ -44,6 +55,31 @@ export function ArticleList({ feedId, feedTitle }: ArticleListProps) {
         title: "Failed to update article",
         message: error instanceof Error ? error.message : "Unknown error",
       });
+    }
+  };
+
+  const markAllRead = async () => {
+    const confirmed = await confirmMarkAllRead(feedTitle);
+    if (!confirmed) {
+      return;
+    }
+
+    const toast = await showToast({
+      style: Toast.Style.Animated,
+      title: "Marking all articles as read",
+    });
+
+    try {
+      const result = await ArticleApi.markAllArticlesRead(feedId);
+
+      toast.style = Toast.Style.Success;
+      toast.title = `Marked ${result.marked_read} article${result.marked_read !== 1 ? "s" : ""} as read`;
+
+      revalidate();
+    } catch (error) {
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to mark articles as read";
+      toast.message = error instanceof Error ? error.message : "Unknown error";
     }
   };
 
@@ -87,6 +123,12 @@ export function ArticleList({ feedId, feedTitle }: ArticleListProps) {
                   icon={isRead ? Icon.Circle : Icon.Checkmark}
                   onAction={() => toggleRead(article)}
                   shortcut={{ modifiers: ["cmd"], key: "m" }}
+                />
+                <Action
+                  title="Mark All as Read"
+                  icon={Icon.CheckCircle}
+                  onAction={markAllRead}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
                 />
                 <Action.CopyToClipboard
                   title="Copy URL"
