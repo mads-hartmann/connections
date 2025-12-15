@@ -131,7 +131,42 @@ let create name email age = ...
 let create ~name ~email ~age = ...
 ```
 
-### 7. Every Main Type Should Have
+### 7. Naming Complex Arguments
+
+Instead of inline complex expressions, bind them to named variables:
+
+```ocaml
+(* Bad *)
+let temp = f x y z "large expression" "other large expression" in
+
+(* Good *)
+let t = "large expression"
+and u = "other large expression" in
+let temp = f x y z t u in
+```
+
+### 8. Naming Anonymous Functions
+
+For complex iterator arguments, define the function with a `let` binding:
+
+```ocaml
+(* Bad *)
+List.map
+  (function x ->
+    blabla
+    blabla
+    blabla)
+  l
+
+(* Good *)
+let f x =
+  blabla
+  blabla
+  blabla in
+List.map f l
+```
+
+### 9. Every Main Type Should Have
 
 - `pp` function (pretty-printer)
 - `equal` function
