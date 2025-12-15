@@ -1,6 +1,6 @@
 # Connections Server
 
-A simple OCaml web server for managing connections (people) with SQLite storage.
+A simple OCaml web server for managing connections (people, companies, groups, etc.) with SQLite storage.
 
 ## Development
 
