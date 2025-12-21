@@ -1,6 +1,7 @@
-open Lwt.Syntax
+open Response.Syntax
 
 let preview request =
+  let open Lwt.Syntax in
   let* body = Dream.body request in
   if String.trim body = "" then
     Lwt.return (Response.bad_request "Request body cannot be empty")
@@ -14,19 +15,14 @@ let preview request =
              (Opml_import.preview_response_to_json response))
 
 let confirm request =
-  let* parsed =
+  let* req =
     Response.parse_json_body Opml_import.confirm_request_of_json request
+    |> Response.or_bad_request_lwt
   in
-  match parsed with
-  | Error msg -> Lwt.return (Response.bad_request msg)
-  | Ok req -> (
-      if List.length req.people = 0 then
-        Lwt.return (Response.bad_request "No people selected for import")
-      else
-        let* result = Opml_import.confirm req in
-        match result with
-        | Error msg -> Lwt.return (Response.internal_error msg)
-        | Ok response ->
-            Lwt.return
-              (Response.json_response ~status:`Created
-                 (Opml_import.confirm_response_to_json response)))
+  if List.length req.people = 0 then
+    Lwt.return (Response.bad_request "No people selected for import")
+  else
+    let* response = Opml_import.confirm req |> Response.or_internal_error in
+    Lwt.return
+      (Response.json_response ~status:`Created
+         (Opml_import.confirm_response_to_json response))

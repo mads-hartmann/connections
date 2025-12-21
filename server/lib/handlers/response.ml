@@ -45,3 +45,26 @@ let parse_json_body parser request =
       match parser json with
       | exception _ -> Lwt.return_error "Invalid request body format"
       | result -> Lwt.return_ok result)
+
+(* Monadic syntax for handlers - errors short-circuit as responses *)
+module Syntax = struct
+  let ( let* ) lwt_result f =
+    let open Lwt.Syntax in
+    let* result = lwt_result in
+    match result with
+    | Error response -> Lwt.return response
+    | Ok value -> f value
+end
+
+(* Convert string errors to response errors - designed for use with |> *)
+let or_bad_request result = Result.map_error bad_request result |> Lwt.return
+
+let or_bad_request_lwt lwt_result =
+  Lwt.map (Result.map_error bad_request) lwt_result
+
+let or_internal_error lwt_result =
+  Lwt.map (Result.map_error internal_error) lwt_result
+
+let or_not_found msg = function
+  | Some x -> Ok x |> Lwt.return
+  | None -> Error (not_found msg) |> Lwt.return
