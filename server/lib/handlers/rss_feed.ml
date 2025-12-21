@@ -111,3 +111,15 @@ let refresh request =
           Lwt.return
             (Response.json_response
                (`Assoc [ ("message", `String "Feed refreshed") ])))
+
+let list_all request =
+  let page = max 1 (Response.parse_query_int "page" 1 request) in
+  let per_page =
+    min 100 (max 1 (Response.parse_query_int "per_page" 10 request))
+  in
+  let* result = Db.Rss_feed.list_all_paginated ~page ~per_page in
+  match result with
+  | Error msg -> Lwt.return (Response.internal_error msg)
+  | Ok paginated ->
+      Lwt.return
+        (Response.json_response (Model.Rss_feed.paginated_to_json paginated))

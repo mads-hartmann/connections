@@ -18,6 +18,7 @@ let build () =
       Dream.delete "/persons/:person_id/categories/:category_id"
         Handlers.Category.remove_from_person;
       (* RSS Feed routes - top-level for direct access *)
+      Dream.get "/feeds" Handlers.Rss_feed.list_all;
       Dream.get "/feeds/:id" Handlers.Rss_feed.get;
       Dream.put "/feeds/:id" Handlers.Rss_feed.update;
       Dream.delete "/feeds/:id" Handlers.Rss_feed.delete;

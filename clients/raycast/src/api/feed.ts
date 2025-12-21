@@ -22,6 +22,11 @@ export function listUrl({ personId, page }: { personId: number; page: number }) 
   return `http://localhost:8080/persons/${personId}/feeds?${params.toString()}`;
 }
 
+export function listAllUrl({ page }: { page: number }) {
+  const params = new URLSearchParams({ page: String(page), per_page: "20" });
+  return `http://localhost:8080/feeds?${params.toString()}`;
+}
+
 export async function createFeed(personId: number, url: string, title: string) {
   const response = await fetch(`http://localhost:8080/persons/${personId}/feeds`, {
     method: "POST",

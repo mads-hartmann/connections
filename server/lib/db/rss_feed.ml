@@ -64,6 +64,17 @@ let list_all_query =
     "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
      rss_feeds"
 
+let list_all_paginated_query =
+  Caqti_request.Infix.(
+    Caqti_type.(t2 int int)
+    ->* Caqti_type.(t6 int int string (option string) string (option string)))
+    "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
+     rss_feeds ORDER BY created_at DESC LIMIT ? OFFSET ?"
+
+let count_all_query =
+  Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
+    "SELECT COUNT(*) FROM rss_feeds"
+
 let update_last_fetched_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
     "UPDATE rss_feeds SET last_fetched_at = datetime('now') WHERE id = ?"
@@ -221,6 +232,31 @@ let list_all () =
   match result with
   | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
   | Ok rows -> Lwt.return_ok (List.map tuple_to_feed rows)
+
+(* LIST ALL with pagination *)
+let list_all_paginated ~page ~per_page =
+  let pool = Pool.get () in
+  let offset = (page - 1) * per_page in
+  let* count_result =
+    Caqti_lwt_unix.Pool.use
+      (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find count_all_query ())
+      pool
+  in
+  match count_result with
+  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
+  | Ok total -> (
+      let* list_result =
+        Caqti_lwt_unix.Pool.use
+          (fun (module Db : Caqti_lwt.CONNECTION) ->
+            Db.collect_list list_all_paginated_query (per_page, offset))
+          pool
+      in
+      match list_result with
+      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
+      | Ok rows ->
+          let data = List.map tuple_to_feed rows in
+          Lwt.return_ok
+            (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
 
 (* UPDATE LAST FETCHED timestamp *)
 let update_last_fetched ~id =

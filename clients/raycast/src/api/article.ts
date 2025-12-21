@@ -24,6 +24,14 @@ export function listUrl({ feedId, page }: { feedId: number; page: number }) {
   return `http://localhost:8080/feeds/${feedId}/articles?${params.toString()}`;
 }
 
+export function listAllUrl({ page, unread }: { page: number; unread?: boolean }) {
+  const params = new URLSearchParams({ page: String(page), per_page: "20" });
+  if (unread) {
+    params.set("unread", "true");
+  }
+  return `http://localhost:8080/articles?${params.toString()}`;
+}
+
 export async function markArticleRead(id: number, read: boolean): Promise<Article> {
   const response = await fetch(`http://localhost:8080/articles/${id}/read`, {
     method: "POST",
