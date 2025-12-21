@@ -1,5 +1,9 @@
 open Lwt.Syntax
 
+(* Row type definitions *)
+let rss_feed_row_type =
+  Caqti_type.(t6 int int string (option string) string (option string))
+
 (* Query definitions *)
 let create_table_query =
   Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
@@ -27,16 +31,12 @@ let insert_query =
      id"
 
 let get_query =
-  Caqti_request.Infix.(
-    Caqti_type.int
-    ->? Caqti_type.(t6 int int string (option string) string (option string)))
+  Caqti_request.Infix.(Caqti_type.int ->? rss_feed_row_type)
     "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
      rss_feeds WHERE id = ?"
 
 let list_by_person_query =
-  Caqti_request.Infix.(
-    Caqti_type.(t3 int int int)
-    ->* Caqti_type.(t6 int int string (option string) string (option string)))
+  Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* rss_feed_row_type)
     "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
      rss_feeds WHERE person_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
 
@@ -58,16 +58,12 @@ let exists_query =
     "SELECT COUNT(*) FROM rss_feeds WHERE id = ?"
 
 let list_all_query =
-  Caqti_request.Infix.(
-    Caqti_type.unit
-    ->* Caqti_type.(t6 int int string (option string) string (option string)))
+  Caqti_request.Infix.(Caqti_type.unit ->* rss_feed_row_type)
     "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
      rss_feeds"
 
 let list_all_paginated_query =
-  Caqti_request.Infix.(
-    Caqti_type.(t2 int int)
-    ->* Caqti_type.(t6 int int string (option string) string (option string)))
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* rss_feed_row_type)
     "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
      rss_feeds ORDER BY created_at DESC LIMIT ? OFFSET ?"
 

@@ -1,5 +1,8 @@
 open Lwt.Syntax
 
+(* Row type definitions *)
+let category_row_type = Caqti_type.(t2 int string)
+
 (* Query definitions *)
 let create_table_query =
   Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
@@ -27,19 +30,19 @@ let insert_query =
     "INSERT INTO categories (name) VALUES (?) RETURNING id"
 
 let get_query =
-  Caqti_request.Infix.(Caqti_type.int ->? Caqti_type.(t2 int string))
+  Caqti_request.Infix.(Caqti_type.int ->? category_row_type)
     "SELECT id, name FROM categories WHERE id = ?"
 
 let get_by_name_query =
-  Caqti_request.Infix.(Caqti_type.string ->? Caqti_type.(t2 int string))
+  Caqti_request.Infix.(Caqti_type.string ->? category_row_type)
     "SELECT id, name FROM categories WHERE name = ?"
 
 let list_query =
-  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* Caqti_type.(t2 int string))
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* category_row_type)
     "SELECT id, name FROM categories ORDER BY name LIMIT ? OFFSET ?"
 
 let list_all_query =
-  Caqti_request.Infix.(Caqti_type.unit ->* Caqti_type.(t2 int string))
+  Caqti_request.Infix.(Caqti_type.unit ->* category_row_type)
     "SELECT id, name FROM categories ORDER BY name"
 
 let count_query =
@@ -64,7 +67,7 @@ let remove_from_person_query =
     "DELETE FROM person_categories WHERE person_id = ? AND category_id = ?"
 
 let get_by_person_query =
-  Caqti_request.Infix.(Caqti_type.int ->* Caqti_type.(t2 int string))
+  Caqti_request.Infix.(Caqti_type.int ->* category_row_type)
     "SELECT c.id, c.name FROM categories c INNER JOIN person_categories pc ON \
      c.id = pc.category_id WHERE pc.person_id = ? ORDER BY c.name"
 

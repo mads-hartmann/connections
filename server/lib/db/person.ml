@@ -1,5 +1,9 @@
 open Lwt.Syntax
 
+(* Row type definitions *)
+let person_row_type = Caqti_type.(t2 int string)
+let person_with_counts_row_type = Caqti_type.(t4 int string int int)
+
 (* Query definitions *)
 let create_table_query =
   Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
@@ -15,11 +19,11 @@ let insert_query =
     "INSERT INTO persons (name) VALUES (?) RETURNING id"
 
 let get_query =
-  Caqti_request.Infix.(Caqti_type.int ->? Caqti_type.(t2 int string))
+  Caqti_request.Infix.(Caqti_type.int ->? person_row_type)
     "SELECT id, name FROM persons WHERE id = ?"
 
 let list_query =
-  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* Caqti_type.(t2 int string))
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* person_row_type)
     "SELECT id, name FROM persons ORDER BY id LIMIT ? OFFSET ?"
 
 let count_query =
@@ -27,8 +31,7 @@ let count_query =
     "SELECT COUNT(*) FROM persons"
 
 let list_filtered_query =
-  Caqti_request.Infix.(
-    Caqti_type.(t3 string int int) ->* Caqti_type.(t2 int string))
+  Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* person_row_type)
     "SELECT id, name FROM persons WHERE name LIKE ? ORDER BY name DESC LIMIT ? \
      OFFSET ?"
 
@@ -37,8 +40,7 @@ let count_filtered_query =
     "SELECT COUNT(*) FROM persons WHERE name LIKE ?"
 
 let list_with_counts_query =
-  Caqti_request.Infix.(
-    Caqti_type.(t2 int int) ->* Caqti_type.(t4 int string int int))
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* person_with_counts_row_type)
     {|
       SELECT
         p.id,
@@ -55,7 +57,7 @@ let list_with_counts_query =
 
 let list_with_counts_filtered_query =
   Caqti_request.Infix.(
-    Caqti_type.(t3 string int int) ->* Caqti_type.(t4 int string int int))
+    Caqti_type.(t3 string int int) ->* person_with_counts_row_type)
     {|
       SELECT
         p.id,

@@ -28,49 +28,35 @@ let create_read_index_query =
   Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
     "CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at)"
 
+(* Article row type: 10 fields split as t2 of (t5, t5) *)
+let article_row_type =
+  Caqti_type.(
+    t2
+      (t5 int int (option string) string (option string))
+      (t5 (option string) (option string) (option string) string (option string)))
+
+(* Upsert input type: 7 fields *)
+let upsert_input_type =
+  Caqti_type.(
+    t7 int (option string) string (option string) (option string)
+      (option string) (option string))
+
 let upsert_query =
-  Caqti_request.Infix.(
-    Caqti_type.(
-      t2 int
-        (t2 (option string)
-           (t2 string
-              (t2 (option string)
-                 (t2 (option string) (t2 (option string) (option string)))))))
-    ->. Caqti_type.unit)
+  Caqti_request.Infix.(upsert_input_type ->. Caqti_type.unit)
     {|
       INSERT OR IGNORE INTO articles (feed_id, title, url, published_at, content, author, image_url)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     |}
 
 let get_query =
-  Caqti_request.Infix.(
-    Caqti_type.int
-    ->? Caqti_type.(
-          t2 int
-            (t2 int
-               (t2 (option string)
-                  (t2 string
-                     (t2 (option string)
-                        (t2 (option string)
-                           (t2 (option string)
-                              (t2 (option string) (t2 string (option string)))))))))))
+  Caqti_request.Infix.(Caqti_type.int ->? article_row_type)
     {|
       SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
       FROM articles WHERE id = ?
     |}
 
 let list_by_feed_query =
-  Caqti_request.Infix.(
-    Caqti_type.(t3 int int int)
-    ->* Caqti_type.(
-          t2 int
-            (t2 int
-               (t2 (option string)
-                  (t2 string
-                     (t2 (option string)
-                        (t2 (option string)
-                           (t2 (option string)
-                              (t2 (option string) (t2 string (option string)))))))))))
+  Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* article_row_type)
     {|
       SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
       FROM articles WHERE feed_id = ? ORDER BY published_at DESC, created_at DESC LIMIT ? OFFSET ?
@@ -81,17 +67,7 @@ let count_by_feed_query =
     "SELECT COUNT(*) FROM articles WHERE feed_id = ?"
 
 let list_all_query =
-  Caqti_request.Infix.(
-    Caqti_type.(t2 int int)
-    ->* Caqti_type.(
-          t2 int
-            (t2 int
-               (t2 (option string)
-                  (t2 string
-                     (t2 (option string)
-                        (t2 (option string)
-                           (t2 (option string)
-                              (t2 (option string) (t2 string (option string)))))))))))
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* article_row_type)
     {|
       SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
       FROM articles ORDER BY published_at DESC, created_at DESC LIMIT ? OFFSET ?
@@ -102,17 +78,7 @@ let count_all_query =
     "SELECT COUNT(*) FROM articles"
 
 let list_unread_query =
-  Caqti_request.Infix.(
-    Caqti_type.(t2 int int)
-    ->* Caqti_type.(
-          t2 int
-            (t2 int
-               (t2 (option string)
-                  (t2 string
-                     (t2 (option string)
-                        (t2 (option string)
-                           (t2 (option string)
-                              (t2 (option string) (t2 string (option string)))))))))))
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* article_row_type)
     {|
       SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
       FROM articles WHERE read_at IS NULL ORDER BY published_at DESC, created_at DESC LIMIT ? OFFSET ?
@@ -141,13 +107,8 @@ let exists_query =
 
 (* Helper to convert DB tuple to Model.Article.t *)
 let tuple_to_article
-    ( id,
-      ( feed_id,
-        ( title,
-          ( url,
-            ( published_at,
-              (content, (author, (image_url, (created_at, read_at)))) ) ) ) ) )
-    =
+    ( (id, feed_id, title, url, published_at),
+      (content, author, image_url, created_at, read_at) ) =
   {
     Model.Article.id;
     feed_id;
@@ -193,7 +154,7 @@ let upsert (input : Model.Article.create_input) =
     input
   in
   let params =
-    (feed_id, (title, (url, (published_at, (content, (author, image_url))))))
+    (feed_id, title, url, published_at, content, author, image_url)
   in
   let* result =
     Caqti_lwt_unix.Pool.use
@@ -225,9 +186,7 @@ let upsert_many (inputs : Model.Article.create_input list) =
                 input
               in
               let params =
-                ( feed_id,
-                  (title, (url, (published_at, (content, (author, image_url)))))
-                )
+                (feed_id, title, url, published_at, content, author, image_url)
               in
               let* exec_result = Db.exec upsert_query params in
               match exec_result with
