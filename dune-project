@@ -12,7 +12,7 @@
  (name connections-server)
  (synopsis "A simple web server for managing connections (people)")
  (depends
-  (ocaml (>= 4.14.0))
+  (ocaml (>= 5.4.0))
   (dune (>= 3.0))
   (dream (>= 1.0.0~alpha5))
   (caqti (>= 2.0.0))
