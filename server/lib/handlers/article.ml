@@ -2,7 +2,6 @@ open Tapak
 open Handler_utils.Syntax
 
 let list_by_feed request feed_id =
-  let feed_id = Int64.to_int feed_id in
   let* feed_result =
     Db.Rss_feed.get ~id:feed_id |> Handler_utils.or_internal_error
   in
@@ -30,9 +29,7 @@ let list_all request =
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)
 
 let get_article _request id =
-  let* result =
-    Db.Article.get ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
-  in
+  let* result = Db.Article.get ~id |> Handler_utils.or_internal_error in
   let* article = result |> Handler_utils.or_not_found "Article not found" in
   Handler_utils.json_response (Model.Article.to_json article)
 
@@ -43,14 +40,12 @@ let mark_read request id =
     |> Handler_utils.or_bad_request
   in
   let* result =
-    Db.Article.mark_read ~id:(Int64.to_int id) ~read
-    |> Handler_utils.or_internal_error
+    Db.Article.mark_read ~id ~read |> Handler_utils.or_internal_error
   in
   let* article = result |> Handler_utils.or_not_found "Article not found" in
   Handler_utils.json_response (Model.Article.to_json article)
 
 let mark_all_read _request feed_id =
-  let feed_id = Int64.to_int feed_id in
   let* feed_result =
     Db.Rss_feed.get ~id:feed_id |> Handler_utils.or_internal_error
   in
@@ -61,20 +56,18 @@ let mark_all_read _request feed_id =
   Handler_utils.json_response (`Assoc [ ("marked_read", `Int count) ])
 
 let delete_article _request id =
-  let* result =
-    Db.Article.delete ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
-  in
+  let* result = Db.Article.delete ~id |> Handler_utils.or_internal_error in
   if result then Response.of_string ~body:"" `No_content
   else Handler_utils.not_found "Article not found"
 
 let routes () =
   let open Tapak.Router in
   [
-    get (s "feeds" / int64 / s "articles") |> request |> into list_by_feed;
-    post (s "feeds" / int64 / s "articles" / s "mark-all-read")
+    get (s "feeds" / int / s "articles") |> request |> into list_by_feed;
+    post (s "feeds" / int / s "articles" / s "mark-all-read")
     |> request |> into mark_all_read;
     get (s "articles") |> request |> into list_all;
-    get (s "articles" / int64) |> request |> into get_article;
-    post (s "articles" / int64 / s "read") |> request |> into mark_read;
-    delete (s "articles" / int64) |> request |> into delete_article;
+    get (s "articles" / int) |> request |> into get_article;
+    post (s "articles" / int / s "read") |> request |> into mark_read;
+    delete (s "articles" / int) |> request |> into delete_article;
   ]

@@ -20,7 +20,6 @@ let create request person_id =
       request
     |> Handler_utils.or_bad_request
   in
-  let person_id = Int64.to_int person_id in
   if body_person_id <> person_id then
     Handler_utils.bad_request
       "person_id in URL does not match person_id in body"
@@ -35,7 +34,6 @@ let create request person_id =
     Handler_utils.json_response ~status:`Created (Model.Rss_feed.to_json feed)
 
 let list_by_person request person_id =
-  let person_id = Int64.to_int person_id in
   let* person_result =
     Db.Person.get ~id:person_id |> Handler_utils.or_internal_error
   in
@@ -51,9 +49,7 @@ let list_by_person request person_id =
   Handler_utils.json_response (Model.Rss_feed.paginated_to_json paginated)
 
 let get_feed _request id =
-  let* result =
-    Db.Rss_feed.get ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
-  in
+  let* result = Db.Rss_feed.get ~id |> Handler_utils.or_internal_error in
   let* feed = result |> Handler_utils.or_not_found "Feed not found" in
   Handler_utils.json_response (Model.Rss_feed.to_json feed)
 
@@ -70,23 +66,19 @@ let update request id =
     |> Handler_utils.or_bad_request
   in
   let* result =
-    Db.Rss_feed.update ~id:(Int64.to_int id) ~url:validated_url ~title
+    Db.Rss_feed.update ~id ~url:validated_url ~title
     |> Handler_utils.or_internal_error
   in
   let* feed = result |> Handler_utils.or_not_found "Feed not found" in
   Handler_utils.json_response (Model.Rss_feed.to_json feed)
 
 let delete_feed _request id =
-  let* result =
-    Db.Rss_feed.delete ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
-  in
+  let* result = Db.Rss_feed.delete ~id |> Handler_utils.or_internal_error in
   if result then Response.of_string ~body:"" `No_content
   else Handler_utils.not_found "Feed not found"
 
 let refresh _request id =
-  let* result =
-    Db.Rss_feed.get ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
-  in
+  let* result = Db.Rss_feed.get ~id |> Handler_utils.or_internal_error in
   let* feed = result |> Handler_utils.or_not_found "Feed not found" in
   let sw, env = get_context () in
   Feed_fetcher.process_feed ~sw ~env feed;
@@ -106,11 +98,11 @@ let list_all request =
 let routes () =
   let open Tapak.Router in
   [
-    post (s "persons" / int64 / s "feeds") |> request |> into create;
-    get (s "persons" / int64 / s "feeds") |> request |> into list_by_person;
+    post (s "persons" / int / s "feeds") |> request |> into create;
+    get (s "persons" / int / s "feeds") |> request |> into list_by_person;
     get (s "feeds") |> request |> into list_all;
-    get (s "feeds" / int64) |> request |> into get_feed;
-    put (s "feeds" / int64) |> request |> into update;
-    delete (s "feeds" / int64) |> request |> into delete_feed;
-    post (s "feeds" / int64 / s "refresh") |> request |> into refresh;
+    get (s "feeds" / int) |> request |> into get_feed;
+    put (s "feeds" / int) |> request |> into update;
+    delete (s "feeds" / int) |> request |> into delete_feed;
+    post (s "feeds" / int / s "refresh") |> request |> into refresh;
   ]

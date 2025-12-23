@@ -12,9 +12,7 @@ let list request =
   Handler_utils.json_response (Model.Category.paginated_to_json response)
 
 let get_category _request id =
-  let* result =
-    Db.Category.get ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
-  in
+  let* result = Db.Category.get ~id |> Handler_utils.or_internal_error in
   let* category = result |> Handler_utils.or_not_found "Category not found" in
   Handler_utils.json_response (Model.Category.to_json category)
 
@@ -33,15 +31,11 @@ let create request =
       (Model.Category.to_json category)
 
 let delete_category _request id =
-  let* result =
-    Db.Category.delete ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
-  in
+  let* result = Db.Category.delete ~id |> Handler_utils.or_internal_error in
   if result then Response.of_string ~body:"" `No_content
   else Handler_utils.not_found "Category not found"
 
 let add_to_person _request person_id category_id =
-  let person_id = Int64.to_int person_id in
-  let category_id = Int64.to_int category_id in
   let* () =
     Db.Category.add_to_person ~person_id ~category_id
     |> Handler_utils.or_internal_error
@@ -49,8 +43,6 @@ let add_to_person _request person_id category_id =
   Response.of_string ~body:"" `No_content
 
 let remove_from_person _request person_id category_id =
-  let person_id = Int64.to_int person_id in
-  let category_id = Int64.to_int category_id in
   let* () =
     Db.Category.remove_from_person ~person_id ~category_id
     |> Handler_utils.or_internal_error
@@ -58,7 +50,6 @@ let remove_from_person _request person_id category_id =
   Response.of_string ~body:"" `No_content
 
 let list_by_person _request person_id =
-  let person_id = Int64.to_int person_id in
   let* categories =
     Db.Category.get_by_person ~person_id |> Handler_utils.or_internal_error
   in
@@ -68,12 +59,12 @@ let routes () =
   let open Tapak.Router in
   [
     get (s "categories") |> request |> into list;
-    get (s "categories" / int64) |> request |> into get_category;
+    get (s "categories" / int) |> request |> into get_category;
     post (s "categories") |> request |> into create;
-    delete (s "categories" / int64) |> request |> into delete_category;
-    get (s "persons" / int64 / s "categories") |> request |> into list_by_person;
-    post (s "persons" / int64 / s "categories" / int64)
+    delete (s "categories" / int) |> request |> into delete_category;
+    get (s "persons" / int / s "categories") |> request |> into list_by_person;
+    post (s "persons" / int / s "categories" / int)
     |> request |> into add_to_person;
-    delete (s "persons" / int64 / s "categories" / int64)
+    delete (s "persons" / int / s "categories" / int)
     |> request |> into remove_from_person;
   ]
