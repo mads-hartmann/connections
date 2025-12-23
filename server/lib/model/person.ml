@@ -13,9 +13,6 @@ type t_with_counts = {
 type with_categories = { id : int; name : string; categories : Category.t list }
 [@@deriving yojson]
 
-type create_request = { name : string } [@@deriving yojson]
-type update_request = { name : string } [@@deriving yojson]
-
 let to_json = yojson_of_t
 let of_json = t_of_yojson
 let with_categories_to_json = yojson_of_with_categories

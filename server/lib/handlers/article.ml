@@ -1,5 +1,6 @@
 open Tapak
 open Handler_utils.Syntax
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 let list_by_feed (pagination : Pagination.Pagination.t) feed_id =
   let* feed_result =
@@ -16,8 +17,8 @@ let list_by_feed (pagination : Pagination.Pagination.t) feed_id =
 let list_all request (pagination : Pagination.Pagination.t) =
   let unread_only = Handler_utils.query "unread" request = Some "true" in
   let* paginated =
-    Db.Article.list_all ~page:pagination.page
-      ~per_page:pagination.per_page ~unread_only
+    Db.Article.list_all ~page:pagination.page ~per_page:pagination.per_page
+      ~unread_only
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)
@@ -27,10 +28,11 @@ let get_article _request id =
   let* article = result |> Handler_utils.or_not_found "Article not found" in
   Handler_utils.json_response (Model.Article.to_json article)
 
+type mark_read_request = { read : bool } [@@deriving yojson]
+
 let mark_read request id =
   let* { read } =
-    Handler_utils.parse_json_body Model.Article.mark_read_request_of_yojson
-      request
+    Handler_utils.parse_json_body mark_read_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
   let* result =

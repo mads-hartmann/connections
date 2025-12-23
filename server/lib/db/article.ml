@@ -141,17 +141,20 @@ let init_table () =
   | Ok () -> ()
 
 (* UPSERT - returns true if inserted, false if duplicate *)
-let upsert (input : Model.Article.create_input) =
+
+type create_input = {
+  feed_id : int;
+  title : string option;
+  url : string;
+  published_at : string option;
+  content : string option;
+  author : string option;
+  image_url : string option;
+}
+
+let upsert (input : create_input) =
   let pool = Pool.get () in
-  let {
-    Model.Article.feed_id;
-    title;
-    url;
-    published_at;
-    content;
-    author;
-    image_url;
-  } =
+  let { feed_id; title; url; published_at; content; author; image_url } =
     input
   in
   let params =
@@ -167,7 +170,7 @@ let upsert (input : Model.Article.create_input) =
   | Ok () -> Ok ()
 
 (* UPSERT MANY - returns count of inserted articles *)
-let upsert_many (inputs : Model.Article.create_input list) =
+let upsert_many inputs =
   let pool = Pool.get () in
   let result =
     Caqti_eio.Pool.use
@@ -176,7 +179,7 @@ let upsert_many (inputs : Model.Article.create_input list) =
           | [] -> Ok count
           | input :: rest -> (
               let {
-                Model.Article.feed_id;
+                feed_id;
                 title;
                 url;
                 published_at;

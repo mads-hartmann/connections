@@ -43,7 +43,7 @@ let test_db_article_upsert () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
   let _, feed = setup_person_and_feed () in
-  let input : Model.Article.create_input =
+  let input : Db.Article.create_input =
     {
       feed_id = feed.id;
       title = Some "Test Article";

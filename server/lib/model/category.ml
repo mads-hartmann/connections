@@ -1,7 +1,6 @@
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 type t = { id : int; name : string } [@@deriving yojson]
-type create_request = { name : string } [@@deriving yojson]
 
 let to_json = yojson_of_t
 let of_json = t_of_yojson

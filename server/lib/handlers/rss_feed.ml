@@ -1,5 +1,6 @@
 open Tapak
 open Handler_utils.Syntax
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 (* Store sw and env for feed processing - set by main *)
 let sw_ref : Eio.Switch.t option ref = ref None
@@ -14,10 +15,16 @@ let get_context () =
   | Some sw, Some env -> (sw, env)
   | _ -> failwith "Handler context not initialized"
 
+type create_request = {
+  person_id : int;
+  url : string;
+  title : string option; [@yojson.option]
+}
+[@@deriving yojson]
+
 let create request person_id =
   let* { person_id = body_person_id; url; title } =
-    Handler_utils.parse_json_body Model.Rss_feed.create_request_of_yojson
-      request
+    Handler_utils.parse_json_body create_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
   if body_person_id <> person_id then
@@ -50,10 +57,15 @@ let get_feed _request id =
   let* feed = result |> Handler_utils.or_not_found "Feed not found" in
   Handler_utils.json_response (Model.Rss_feed.to_json feed)
 
+type update_request = {
+  url : string option; [@yojson.option]
+  title : string option; [@yojson.option]
+}
+[@@deriving yojson]
+
 let update request id =
   let* { url; title } =
-    Handler_utils.parse_json_body Model.Rss_feed.update_request_of_yojson
-      request
+    Handler_utils.parse_json_body update_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
   let* validated_url =
@@ -96,7 +108,9 @@ let routes () =
     get (s "persons" / int / s "feeds")
     |> guard Pagination.Pagination.pagination_guard
     |> into list_by_person;
-    get (s "feeds") |> guard Pagination.Pagination.pagination_guard |> into list_all;
+    get (s "feeds")
+    |> guard Pagination.Pagination.pagination_guard
+    |> into list_all;
     get (s "feeds" / int) |> request |> into get_feed;
     put (s "feeds" / int) |> request |> into update;
     delete (s "feeds" / int) |> request |> into delete_feed;

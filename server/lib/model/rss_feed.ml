@@ -10,19 +10,6 @@ type t = {
 }
 [@@deriving yojson]
 
-type create_request = {
-  person_id : int;
-  url : string;
-  title : string option; [@yojson.option]
-}
-[@@deriving yojson]
-
-type update_request = {
-  url : string option; [@yojson.option]
-  title : string option; [@yojson.option]
-}
-[@@deriving yojson]
-
 let to_json = yojson_of_t
 let of_json = t_of_yojson
 let paginated_to_json response = Shared.Paginated.to_json yojson_of_t response

@@ -1,10 +1,10 @@
 open Tapak
 open Handler_utils.Syntax
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 let list (pagination : Pagination.Pagination.t) =
   let* response =
-    Db.Category.list ~page:pagination.page
-      ~per_page:pagination.per_page ()
+    Db.Category.list ~page:pagination.page ~per_page:pagination.per_page ()
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Category.paginated_to_json response)
@@ -14,10 +14,11 @@ let get_category _request id =
   let* category = result |> Handler_utils.or_not_found "Category not found" in
   Handler_utils.json_response (Model.Category.to_json category)
 
+type create_request = { name : string } [@@deriving yojson]
+
 let create request =
   let* { name } =
-    Handler_utils.parse_json_body Model.Category.create_request_of_yojson
-      request
+    Handler_utils.parse_json_body create_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
   if String.trim name = "" then Handler_utils.bad_request "Name cannot be empty"
@@ -56,7 +57,9 @@ let list_by_person _request person_id =
 let routes () =
   let open Tapak.Router in
   [
-    get (s "categories") |> guard Pagination.Pagination.pagination_guard |> into list;
+    get (s "categories")
+    |> guard Pagination.Pagination.pagination_guard
+    |> into list;
     get (s "categories" / int) |> request |> into get_category;
     post (s "categories") |> request |> into create;
     delete (s "categories" / int) |> request |> into delete_category;

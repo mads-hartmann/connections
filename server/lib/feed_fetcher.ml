@@ -26,7 +26,7 @@ let rss2_enclosure_to_image (enclosure : Syndic.Rss2.enclosure option) :
 
 (* Convert RSS2 item to our article format *)
 let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
-    Model.Article.create_input option =
+    Db.Article.create_input option =
   let title, content = rss2_story_to_title_and_content item.story in
   let url =
     match item.link with
@@ -41,7 +41,7 @@ let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
   | Some url ->
       Some
         {
-          Model.Article.feed_id;
+          feed_id;
           title;
           url;
           published_at = Option.map ptime_to_string item.pubDate;
@@ -52,7 +52,7 @@ let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
 
 (* Convert Atom entry to our article format *)
 let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
-    Model.Article.create_input option =
+    Db.Article.create_input option =
   (* Get URL from links - prefer alternate, fallback to first link *)
   let url =
     let links = entry.links in
@@ -108,7 +108,7 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
       in
       Some
         {
-          Model.Article.feed_id;
+          feed_id;
           title;
           url;
           published_at =
@@ -207,7 +207,7 @@ let fetch_feed_metadata ~sw ~env (url : string) : (feed_metadata, string) result
 
 (* Extract articles from parsed feed *)
 let extract_articles ~feed_id (feed : parsed_feed) :
-    Model.Article.create_input list =
+    Db.Article.create_input list =
   match feed with
   | Rss2 channel ->
       List.filter_map (rss2_item_to_article ~feed_id) channel.items

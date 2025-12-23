@@ -1,5 +1,6 @@
 open Tapak
 open Handler_utils.Syntax
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 let list request (pagination : Pagination.Pagination.t) =
   let query = Handler_utils.query "query" request in
@@ -16,9 +17,11 @@ let get_person _request id =
   let* person = result |> Handler_utils.or_not_found "Person not found" in
   Handler_utils.json_response (Model.Person.to_json person)
 
+type create_request = { name : string } [@@deriving yojson]
+
 let create request =
   let* { name } =
-    Handler_utils.parse_json_body Model.Person.create_request_of_yojson request
+    Handler_utils.parse_json_body create_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
   if String.trim name = "" then Handler_utils.bad_request "Name cannot be empty"
@@ -26,9 +29,11 @@ let create request =
     let* person = Db.Person.create ~name |> Handler_utils.or_internal_error in
     Handler_utils.json_response ~status:`Created (Model.Person.to_json person)
 
+type update_request = { name : string } [@@deriving yojson]
+
 let update request id =
   let* { name } =
-    Handler_utils.parse_json_body Model.Person.update_request_of_yojson request
+    Handler_utils.parse_json_body update_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
   if String.trim name = "" then Handler_utils.bad_request "Name cannot be empty"
