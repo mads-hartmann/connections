@@ -10,7 +10,10 @@ let setup_logging () =
   List.iter
     (fun src ->
       let name = Logs.Src.name src in
-      if List.exists (fun prefix -> String.starts_with ~prefix name) noisy_prefixes
+      if
+        List.exists
+          (fun prefix -> String.starts_with ~prefix name)
+          noisy_prefixes
       then Logs.Src.set_level src (Some Logs.Warning))
     (Logs.Src.list ())
 
