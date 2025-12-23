@@ -5,7 +5,15 @@ module Log = (val Logs.src_log (Logs.Src.create "main") : Logs.LOG)
 let setup_logging () =
   Fmt_tty.setup_std_outputs ();
   Logs.set_level (Some Logs.Info);
-  Logs.set_reporter (Logs_fmt.reporter ())
+  Logs.set_reporter (Logs_fmt.reporter ());
+  (* Silence verbose Piaf/HTTP logging *)
+  let noisy_prefixes = [ "piaf"; "httpun"; "h2"; "gluten"; "ssl" ] in
+  List.iter
+    (fun src ->
+      let name = Logs.Src.name src in
+      if List.exists (fun prefix -> String.starts_with ~prefix name) noisy_prefixes
+      then Logs.Src.set_level src (Some Logs.Warning))
+    (Logs.Src.list ())
 
 let () =
   setup_logging ();
