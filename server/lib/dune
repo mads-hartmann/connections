@@ -6,11 +6,13 @@
   tapak
   caqti
   caqti-eio
+  caqti-eio.unix
   caqti-driver-sqlite3
   yojson
   ppx_yojson_conv_lib
   eio
   eio_main
+  eio.unix
   piaf
   syndic
   logs)

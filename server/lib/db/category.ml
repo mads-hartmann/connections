@@ -72,7 +72,7 @@ let get_by_person_query =
 let init_table () =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         match Db.exec create_table_query () with
         | Error _ as e -> e
@@ -87,7 +87,7 @@ let init_table () =
 let create ~name =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
       pool
   in
@@ -98,7 +98,7 @@ let create ~name =
 let get ~id =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
       pool
   in
@@ -110,7 +110,7 @@ let get ~id =
 let get_by_name ~name =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.find_opt get_by_name_query name)
       pool
@@ -130,7 +130,7 @@ let get_or_create ~name =
 let list_all () =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.collect_list list_all_query ())
       pool
@@ -147,7 +147,7 @@ let list ~page ~per_page () =
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
   let count_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_query ())
       pool
   in
@@ -155,7 +155,7 @@ let list ~page ~per_page () =
   | Error err -> Error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let list_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.collect_list list_query (per_page, offset))
           pool
@@ -171,7 +171,7 @@ let list ~page ~per_page () =
 let delete ~id =
   let pool = Pool.get () in
   let exists_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
@@ -180,7 +180,7 @@ let delete ~id =
   | Ok 0 -> Ok false
   | Ok _ -> (
       let delete_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec delete_query id)
           pool
       in
@@ -191,7 +191,7 @@ let delete ~id =
 let add_to_person ~person_id ~category_id =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.exec add_to_person_query (person_id, category_id))
       pool
@@ -203,7 +203,7 @@ let add_to_person ~person_id ~category_id =
 let remove_from_person ~person_id ~category_id =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.exec remove_from_person_query (person_id, category_id))
       pool
@@ -215,7 +215,7 @@ let remove_from_person ~person_id ~category_id =
 let get_by_person ~person_id =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.collect_list get_by_person_query person_id)
       pool

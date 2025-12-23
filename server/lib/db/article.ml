@@ -124,7 +124,7 @@ let tuple_to_article
 let init_table () =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         match Db.exec create_table_query () with
         | Error _ as e -> e
@@ -158,7 +158,7 @@ let upsert (input : Model.Article.create_input) =
     (feed_id, title, url, published_at, content, author, image_url)
   in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec upsert_query params)
       pool
   in
@@ -170,7 +170,7 @@ let upsert (input : Model.Article.create_input) =
 let upsert_many (inputs : Model.Article.create_input list) =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         let rec loop count = function
           | [] -> Ok count
@@ -207,7 +207,7 @@ let upsert_many (inputs : Model.Article.create_input list) =
 let get ~id =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
       pool
   in
@@ -221,7 +221,7 @@ let list_by_feed ~feed_id ~page ~per_page =
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
   let count_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.find count_by_feed_query feed_id)
       pool
@@ -230,7 +230,7 @@ let list_by_feed ~feed_id ~page ~per_page =
   | Error err -> Error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let list_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.collect_list list_by_feed_query (feed_id, per_page, offset))
           pool
@@ -246,7 +246,7 @@ let list_all ~page ~per_page ~unread_only =
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
   let count_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         if unread_only then Db.find count_unread_query ()
         else Db.find count_all_query ())
@@ -256,7 +256,7 @@ let list_all ~page ~per_page ~unread_only =
   | Error err -> Error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let list_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             if unread_only then
               Db.collect_list list_unread_query (per_page, offset)
@@ -273,7 +273,7 @@ let list_all ~page ~per_page ~unread_only =
 let mark_read ~id ~read =
   let pool = Pool.get () in
   let exists_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
@@ -293,7 +293,7 @@ let mark_read ~id ~read =
         else None
       in
       let update_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.exec mark_read_query (read_at, id))
           pool
@@ -306,7 +306,7 @@ let mark_read ~id ~read =
 let mark_all_read ~feed_id =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.collect_list mark_all_read_query feed_id)
       pool
@@ -319,7 +319,7 @@ let mark_all_read ~feed_id =
 let delete ~id =
   let pool = Pool.get () in
   let exists_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
@@ -328,7 +328,7 @@ let delete ~id =
   | Ok 0 -> Ok false
   | Ok _ -> (
       let delete_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec delete_query id)
           pool
       in

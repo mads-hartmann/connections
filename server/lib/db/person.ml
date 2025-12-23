@@ -86,7 +86,7 @@ let exists_query =
 let init_table () =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec create_table_query ())
       pool
   in
@@ -98,7 +98,7 @@ let init_table () =
 let create ~name =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
       pool
   in
@@ -109,7 +109,7 @@ let create ~name =
 let get ~id =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
       pool
   in
@@ -124,12 +124,12 @@ let list ~page ~per_page ?query () =
   let count_result =
     match query with
     | None ->
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_query ())
           pool
     | Some q ->
         let pattern = "%" ^ q ^ "%" in
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.find count_filtered_query pattern)
           pool
@@ -140,13 +140,13 @@ let list ~page ~per_page ?query () =
       let list_result =
         match query with
         | None ->
-            Caqti_eio_unix.Pool.use
+            Caqti_eio.Pool.use
               (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.collect_list list_query (per_page, offset))
               pool
         | Some q ->
             let pattern = "%" ^ q ^ "%" in
-            Caqti_eio_unix.Pool.use
+            Caqti_eio.Pool.use
               (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.collect_list list_filtered_query (pattern, per_page, offset))
               pool
@@ -162,7 +162,7 @@ let list ~page ~per_page ?query () =
 let update ~id ~name =
   let pool = Pool.get () in
   let exists_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
@@ -171,7 +171,7 @@ let update ~id ~name =
   | Ok 0 -> Ok None
   | Ok _ -> (
       let update_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.exec update_query (name, id))
           pool
@@ -183,7 +183,7 @@ let update ~id ~name =
 let delete ~id =
   let pool = Pool.get () in
   let exists_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
@@ -192,7 +192,7 @@ let delete ~id =
   | Ok 0 -> Ok false
   | Ok _ -> (
       let delete_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec delete_query id)
           pool
       in
@@ -206,12 +206,12 @@ let list_with_counts ~page ~per_page ?query () =
   let count_result =
     match query with
     | None ->
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_query ())
           pool
     | Some q ->
         let pattern = "%" ^ q ^ "%" in
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.find count_filtered_query pattern)
           pool
@@ -222,13 +222,13 @@ let list_with_counts ~page ~per_page ?query () =
       let list_result =
         match query with
         | None ->
-            Caqti_eio_unix.Pool.use
+            Caqti_eio.Pool.use
               (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.collect_list list_with_counts_query (per_page, offset))
               pool
         | Some q ->
             let pattern = "%" ^ q ^ "%" in
-            Caqti_eio_unix.Pool.use
+            Caqti_eio.Pool.use
               (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.collect_list list_with_counts_filtered_query
                   (pattern, per_page, offset))

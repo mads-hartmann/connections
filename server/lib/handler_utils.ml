@@ -2,7 +2,8 @@ open Tapak
 
 let json_response ?(status = `OK) json =
   let body = Yojson.Safe.to_string json in
-  Response.of_string ~body ~content_type:"application/json" status
+  let headers = Piaf.Headers.of_list [ ("content-type", "application/json") ] in
+  Response.of_string ~headers ~body status
 
 let error_response status message =
   json_response ~status (Model.Shared.error_to_json message)
@@ -27,9 +28,14 @@ let validate_url url =
   else Ok url
 
 let parse_query_int name default request =
-  Request.query name request
+  let uri = Request.uri request in
+  Uri.get_query_param uri name
   |> Option.fold ~none:default ~some:(fun v ->
       int_of_string_opt v |> Option.value ~default)
+
+let query name request =
+  let uri = Request.uri request in
+  Uri.get_query_param uri name
 
 (* JSON body parsing helper *)
 let parse_json_body parser request =

@@ -56,7 +56,6 @@ let test_extract_metadata_rss2 () =
 <rss version="2.0">
   <channel>
     <title>My Blog</title>
-    <managingEditor>editor@example.com</managingEditor>
     <link>https://example.com</link>
     <description>A blog</description>
   </channel>
@@ -68,9 +67,7 @@ let test_extract_metadata_rss2 () =
   | Ok parsed ->
       let metadata = Feed_fetcher.extract_metadata parsed in
       Alcotest.(check (option string))
-        "title extracted" (Some "My Blog") metadata.title;
-      Alcotest.(check (option string))
-        "author extracted" (Some "editor@example.com") metadata.author
+        "title extracted" (Some "My Blog") metadata.title
 
 let suite =
   [

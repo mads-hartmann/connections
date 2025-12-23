@@ -81,7 +81,7 @@ let tuple_to_feed (id, person_id, url, title, created_at, last_fetched_at) =
 let init_table () =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         match Db.exec enable_foreign_keys_query () with
         | Error _ as e -> e
@@ -98,7 +98,7 @@ let init_table () =
 let create ~person_id ~url ~title =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.find insert_query (person_id, url, title))
       pool
@@ -110,7 +110,7 @@ let create ~person_id ~url ~title =
   | Ok id -> (
       (* Fetch the complete feed to get timestamps *)
       let get_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
           pool
       in
@@ -123,7 +123,7 @@ let create ~person_id ~url ~title =
 let get ~id =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
       pool
   in
@@ -137,7 +137,7 @@ let list_by_person ~person_id ~page ~per_page =
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
   let count_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.find count_by_person_query person_id)
       pool
@@ -146,7 +146,7 @@ let list_by_person ~person_id ~page ~per_page =
   | Error err -> Error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let list_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.collect_list list_by_person_query (person_id, per_page, offset))
           pool
@@ -161,7 +161,7 @@ let list_by_person ~person_id ~page ~per_page =
 let update ~id ~url ~title =
   let pool = Pool.get () in
   let exists_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
@@ -180,7 +180,7 @@ let update ~id ~url ~title =
             match title with Some _ -> title | None -> current_feed.title
           in
           let update_result =
-            Caqti_eio_unix.Pool.use
+            Caqti_eio.Pool.use
               (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.exec update_query (new_url, new_title, id))
               pool
@@ -196,7 +196,7 @@ let update ~id ~url ~title =
 let delete ~id =
   let pool = Pool.get () in
   let exists_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
@@ -205,7 +205,7 @@ let delete ~id =
   | Ok 0 -> Ok false
   | Ok _ -> (
       let delete_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec delete_query id)
           pool
       in
@@ -217,7 +217,7 @@ let delete ~id =
 let list_all () =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.collect_list list_all_query ())
       pool
@@ -231,7 +231,7 @@ let list_all_paginated ~page ~per_page =
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
   let count_result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_all_query ())
       pool
   in
@@ -239,7 +239,7 @@ let list_all_paginated ~page ~per_page =
   | Error err -> Error (Pool.caqti_error_to_string err)
   | Ok total -> (
       let list_result =
-        Caqti_eio_unix.Pool.use
+        Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.collect_list list_all_paginated_query (per_page, offset))
           pool
@@ -254,7 +254,7 @@ let list_all_paginated ~page ~per_page =
 let update_last_fetched ~id =
   let pool = Pool.get () in
   let result =
-    Caqti_eio_unix.Pool.use
+    Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.exec update_last_fetched_query id)
       pool

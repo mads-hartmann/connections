@@ -1,5 +1,5 @@
 open Tapak
-open Response.Syntax
+open Handler_utils.Syntax
 
 (* Store sw and env for OPML import - set by main *)
 let sw_ref : Eio.Switch.t option ref = ref None
@@ -17,27 +17,27 @@ let get_context () =
 let preview request =
   let body = Request.body request in
   match Body.to_string body with
-  | Error _ -> Response.bad_request "Failed to read request body"
+  | Error _ -> Handler_utils.bad_request "Failed to read request body"
   | Ok body_str ->
       if String.trim body_str = "" then
-        Response.bad_request "Request body cannot be empty"
+        Handler_utils.bad_request "Request body cannot be empty"
       else
         let sw, env = get_context () in
         let result = Opml_import.preview ~sw ~env body_str in
         (match result with
-        | Error msg -> Response.bad_request msg
+        | Error msg -> Handler_utils.bad_request msg
         | Ok response ->
-            Response.json_response
+            Handler_utils.json_response
               (Opml_import.preview_response_to_json response))
 
 let confirm request =
   let* req =
-    Response.parse_json_body Opml_import.confirm_request_of_json request
-    |> Response.or_bad_request
+    Handler_utils.parse_json_body Opml_import.confirm_request_of_json request
+    |> Handler_utils.or_bad_request
   in
   if List.length req.people = 0 then
-    Response.bad_request "No people selected for import"
+    Handler_utils.bad_request "No people selected for import"
   else
-    let* response = Opml_import.confirm req |> Response.or_internal_error in
-    Response.json_response ~status:`Created
+    let* response = Opml_import.confirm req |> Handler_utils.or_internal_error in
+    Handler_utils.json_response ~status:`Created
       (Opml_import.confirm_response_to_json response)

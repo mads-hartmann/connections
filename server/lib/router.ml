@@ -1,8 +1,8 @@
 open Tapak
 
 let not_found _req =
-  Response.of_string ~body:"{\"error\": \"Not found\"}"
-    ~content_type:"application/json" `Not_found
+  let headers = Piaf.Headers.of_list [ ("content-type", "application/json") ] in
+  Response.of_string ~headers ~body:"{\"error\": \"Not found\"}" `Not_found
 
 let build () =
   let open Router in
