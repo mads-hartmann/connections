@@ -1,13 +1,11 @@
 open Tapak
 open Handler_utils.Syntax
 
-let list request =
-  let page = max 1 (Handler_utils.parse_query_int "page" 1 request) in
-  let per_page =
-    min 100 (max 1 (Handler_utils.parse_query_int "per_page" 10 request))
-  in
+let list (pagination : Pagination.pagination) =
   let* response =
-    Db.Category.list ~page ~per_page () |> Handler_utils.or_internal_error
+    Db.Category.list ~page:pagination.Pagination.page
+      ~per_page:pagination.Pagination.per_page ()
+    |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Category.paginated_to_json response)
 
@@ -58,7 +56,9 @@ let list_by_person _request person_id =
 let routes () =
   let open Tapak.Router in
   [
-    get (s "categories") |> request |> into list;
+    get (s "categories")
+    |> guard Pagination.pagination_guard
+    |> into list;
     get (s "categories" / int) |> request |> into get_category;
     post (s "categories") |> request |> into create;
     delete (s "categories" / int) |> request |> into delete_category;

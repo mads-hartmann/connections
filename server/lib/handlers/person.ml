@@ -1,14 +1,11 @@
 open Tapak
 open Handler_utils.Syntax
 
-let list request =
-  let page = max 1 (Handler_utils.parse_query_int "page" 1 request) in
-  let per_page =
-    min 100 (max 1 (Handler_utils.parse_query_int "per_page" 10 request))
-  in
+let list request (pagination : Pagination.pagination) =
   let query = Handler_utils.query "query" request in
   let* paginated =
-    Db.Person.list_with_counts ~page ~per_page ?query ()
+    Db.Person.list_with_counts ~page:pagination.Pagination.page
+      ~per_page:pagination.Pagination.per_page ?query ()
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response
@@ -50,7 +47,9 @@ let delete_person _request id =
 let routes () =
   let open Tapak.Router in
   [
-    get (s "persons") |> request |> into list;
+    get (s "persons")
+    |> guard Pagination.pagination_guard
+    |> request |> into list;
     get (s "persons" / int) |> request |> into get_person;
     post (s "persons") |> request |> into create;
     put (s "persons" / int) |> request |> into update;

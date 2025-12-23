@@ -33,17 +33,14 @@ let create request person_id =
     in
     Handler_utils.json_response ~status:`Created (Model.Rss_feed.to_json feed)
 
-let list_by_person request person_id =
+let list_by_person (pagination : Pagination.pagination) person_id =
   let* person_result =
     Db.Person.get ~id:person_id |> Handler_utils.or_internal_error
   in
   let* _ = person_result |> Handler_utils.or_not_found "Person not found" in
-  let page = max 1 (Handler_utils.parse_query_int "page" 1 request) in
-  let per_page =
-    min 100 (max 1 (Handler_utils.parse_query_int "per_page" 10 request))
-  in
   let* paginated =
-    Db.Rss_feed.list_by_person ~person_id ~page ~per_page
+    Db.Rss_feed.list_by_person ~person_id ~page:pagination.Pagination.page
+      ~per_page:pagination.Pagination.per_page
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Rss_feed.paginated_to_json paginated)
@@ -84,13 +81,10 @@ let refresh _request id =
   Feed_fetcher.process_feed ~sw ~env feed;
   Handler_utils.json_response (`Assoc [ ("message", `String "Feed refreshed") ])
 
-let list_all request =
-  let page = max 1 (Handler_utils.parse_query_int "page" 1 request) in
-  let per_page =
-    min 100 (max 1 (Handler_utils.parse_query_int "per_page" 10 request))
-  in
+let list_all (pagination : Pagination.pagination) =
   let* paginated =
-    Db.Rss_feed.list_all_paginated ~page ~per_page
+    Db.Rss_feed.list_all_paginated ~page:pagination.Pagination.page
+      ~per_page:pagination.Pagination.per_page
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Rss_feed.paginated_to_json paginated)
@@ -99,8 +93,10 @@ let routes () =
   let open Tapak.Router in
   [
     post (s "persons" / int / s "feeds") |> request |> into create;
-    get (s "persons" / int / s "feeds") |> request |> into list_by_person;
-    get (s "feeds") |> request |> into list_all;
+    get (s "persons" / int / s "feeds")
+    |> guard Pagination.pagination_guard
+    |> into list_by_person;
+    get (s "feeds") |> guard Pagination.pagination_guard |> into list_all;
     get (s "feeds" / int) |> request |> into get_feed;
     put (s "feeds" / int) |> request |> into update;
     delete (s "feeds" / int) |> request |> into delete_feed;
