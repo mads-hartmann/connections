@@ -27,7 +27,9 @@ let test_article_to_json () =
   | `Assoc fields ->
       Alcotest.(check bool) "has id field" true (List.mem_assoc "id" fields);
       Alcotest.(check bool) "has url field" true (List.mem_assoc "url" fields);
-      Alcotest.(check bool) "has title field" true (List.mem_assoc "title" fields)
+      Alcotest.(check bool)
+        "has title field" true
+        (List.mem_assoc "title" fields)
   | _ -> Alcotest.fail "expected JSON object"
 
 let json_suite =
@@ -128,7 +130,8 @@ let test_db_article_mark_read () =
 let db_suite =
   [
     Alcotest.test_case "upsert article" `Quick test_db_article_upsert;
-    Alcotest.test_case "list articles by feed" `Quick test_db_article_list_by_feed;
+    Alcotest.test_case "list articles by feed" `Quick
+      test_db_article_list_by_feed;
     Alcotest.test_case "mark article read" `Quick test_db_article_mark_read;
   ]
 

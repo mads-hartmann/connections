@@ -125,7 +125,8 @@ let suite =
       test_first_feed;
     Alcotest.test_case "specific known feeds are present" `Quick
       test_specific_feeds_present;
-    Alcotest.test_case "empty body returns no feeds" `Quick test_parse_empty_body;
+    Alcotest.test_case "empty body returns no feeds" `Quick
+      test_parse_empty_body;
     Alcotest.test_case "nested categories are extracted" `Quick
       test_parse_with_categories;
     Alcotest.test_case "invalid XML returns error" `Quick test_parse_invalid_xml;

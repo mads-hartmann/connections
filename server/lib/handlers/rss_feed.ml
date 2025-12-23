@@ -16,12 +16,14 @@ let get_context () =
 
 let create request person_id =
   let* { person_id = body_person_id; url; title } =
-    Handler_utils.parse_json_body Model.Rss_feed.create_request_of_yojson request
+    Handler_utils.parse_json_body Model.Rss_feed.create_request_of_yojson
+      request
     |> Handler_utils.or_bad_request
   in
   let person_id = Int64.to_int person_id in
   if body_person_id <> person_id then
-    Handler_utils.bad_request "person_id in URL does not match person_id in body"
+    Handler_utils.bad_request
+      "person_id in URL does not match person_id in body"
   else
     let* valid_url =
       Handler_utils.validate_url url |> Handler_utils.or_bad_request
@@ -57,13 +59,14 @@ let get _request id =
 
 let update request id =
   let* { url; title } =
-    Handler_utils.parse_json_body Model.Rss_feed.update_request_of_yojson request
+    Handler_utils.parse_json_body Model.Rss_feed.update_request_of_yojson
+      request
     |> Handler_utils.or_bad_request
   in
   let* validated_url =
     (match url with
-    | None -> Ok None
-    | Some u -> Result.map Option.some (Handler_utils.validate_url u))
+      | None -> Ok None
+      | Some u -> Result.map Option.some (Handler_utils.validate_url u))
     |> Handler_utils.or_bad_request
   in
   let* result =

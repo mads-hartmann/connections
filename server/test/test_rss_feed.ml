@@ -58,7 +58,8 @@ let test_db_rss_feed_list_by_person () =
       | Error msg -> Alcotest.fail ("list failed: " ^ msg)
       | Ok paginated ->
           Alcotest.(check int) "total is 2" 2 paginated.total;
-          Alcotest.(check int) "data length is 2" 2 (List.length paginated.data))
+          Alcotest.(check int) "data length is 2" 2 (List.length paginated.data)
+      )
 
 let test_db_rss_feed_delete () =
   with_eio @@ fun ~sw ~env ->

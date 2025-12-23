@@ -20,7 +20,8 @@ let get _request id =
 
 let create request =
   let* { name } =
-    Handler_utils.parse_json_body Model.Category.create_request_of_yojson request
+    Handler_utils.parse_json_body Model.Category.create_request_of_yojson
+      request
     |> Handler_utils.or_bad_request
   in
   if String.trim name = "" then Handler_utils.bad_request "Name cannot be empty"

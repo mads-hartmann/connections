@@ -13,8 +13,7 @@ let setup_test_db ~sw ~stdenv =
 (* Helper to run tests within Eio context *)
 let with_eio f =
   Eio_main.run @@ fun env ->
-  Eio.Switch.run @@ fun sw ->
-  f ~sw ~env
+  Eio.Switch.run @@ fun sw -> f ~sw ~env
 
 (* Helper to create a person and feed for article tests *)
 let setup_person_and_feed () =

@@ -43,11 +43,11 @@ let fetch_with_timeout ~sw ~env ~clock url =
   let done_flag = ref false in
   Eio.Fiber.both
     (fun () ->
-      if not !done_flag then (
+      if not !done_flag then
         let r = Feed_fetcher.fetch_feed_metadata ~sw ~env url in
         if not !done_flag then (
           result := r;
-          done_flag := true)))
+          done_flag := true))
     (fun () ->
       Eio.Time.sleep clock fetch_timeout_seconds;
       if not !done_flag then done_flag := true);
@@ -69,11 +69,7 @@ let process_entries ~sw ~env (entries : Opml_parser.feed_entry list) :
     (entry, result)
   in
   (* Process entries in parallel with fiber list *)
-  let results =
-    Eio.Fiber.List.map
-      (fun entry -> fetch_one entry)
-      entries
-  in
+  let results = Eio.Fiber.List.map (fun entry -> fetch_one entry) entries in
   (* Separate successes and errors *)
   let successes, errors =
     List.partition_map
@@ -134,8 +130,8 @@ let process_entries ~sw ~env (entries : Opml_parser.feed_entry list) :
   ({ people; errors } : preview_response)
 
 (* Parse OPML and generate preview *)
-let preview ~sw ~env (opml_content : string) :
-    (preview_response, string) result =
+let preview ~sw ~env (opml_content : string) : (preview_response, string) result
+    =
   match Opml_parser.parse opml_content with
   | Error msg -> Error msg
   | Ok parse_result ->

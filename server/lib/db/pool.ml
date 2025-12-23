@@ -1,7 +1,8 @@
 let caqti_error_to_string err = Format.asprintf "%a" Caqti_error.pp err
 
 (* Database connection pool *)
-let pool_ref : (Caqti_eio.connection, Caqti_error.t) Caqti_eio.Pool.t option ref =
+let pool_ref : (Caqti_eio.connection, Caqti_error.t) Caqti_eio.Pool.t option ref
+    =
   ref None
 
 let get () =
@@ -14,7 +15,9 @@ let init ~sw ~(stdenv : Eio_unix.Stdenv.base) db_path =
   let uri = Uri.of_string ("sqlite3:" ^ db_path) in
   let caqti_stdenv : Caqti_eio.stdenv =
     object
-      method net = (Eio.Stdenv.net stdenv :> [`Generic] Eio.Net.ty Eio.Resource.t)
+      method net =
+        (Eio.Stdenv.net stdenv :> [ `Generic ] Eio.Net.ty Eio.Resource.t)
+
       method clock = Eio.Stdenv.clock stdenv
       method mono_clock = Eio.Stdenv.mono_clock stdenv
     end

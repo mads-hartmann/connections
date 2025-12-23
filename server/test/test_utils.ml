@@ -16,8 +16,8 @@ let test_validate_url_empty () =
 
 let test_validate_url_no_scheme () =
   let result = Handler_utils.validate_url "example.com" in
-  Alcotest.(check bool) "URL without scheme is invalid" true
-    (Result.is_error result)
+  Alcotest.(check bool)
+    "URL without scheme is invalid" true (Result.is_error result)
 
 let test_validate_url_ftp () =
   let result = Handler_utils.validate_url "ftp://example.com" in

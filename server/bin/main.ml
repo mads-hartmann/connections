@@ -1,5 +1,4 @@
 open Connections_server
-
 module Log = (val Logs.src_log (Logs.Src.create "main") : Logs.LOG)
 
 let setup_logging () =
@@ -38,7 +37,8 @@ let () =
   Handlers.Import.set_context ~sw ~env;
   (* Start background RSS feed scheduler *)
   Scheduler.start ~sw ~env;
-  Log.info (fun m -> m "Starting server on port %d with database %s" port db_path);
+  Log.info (fun m ->
+      m "Starting server on port %d with database %s" port db_path);
   (* Build and run the Tapak server *)
   let app = Router.build () in
   let address = `Tcp (Eio.Net.Ipaddr.V4.any, port) in
