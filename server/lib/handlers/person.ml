@@ -1,11 +1,11 @@
 open Tapak
 open Handler_utils.Syntax
 
-let list request (pagination : Pagination.pagination) =
+let list request (pagination : Pagination.Pagination.t) =
   let query = Handler_utils.query "query" request in
   let* paginated =
-    Db.Person.list_with_counts ~page:pagination.Pagination.page
-      ~per_page:pagination.Pagination.per_page ?query ()
+    Db.Person.list_with_counts ~page:pagination.page
+      ~per_page:pagination.per_page ?query ()
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response
@@ -48,7 +48,7 @@ let routes () =
   let open Tapak.Router in
   [
     get (s "persons")
-    |> guard Pagination.pagination_guard
+    |> guard Pagination.Pagination.pagination_guard
     |> request |> into list;
     get (s "persons" / int) |> request |> into get_person;
     post (s "persons") |> request |> into create;

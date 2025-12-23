@@ -1,7 +1,7 @@
 open Tapak
 open Handler_utils.Syntax
 
-let list_by_feed (pagination : Pagination.pagination) feed_id =
+let list_by_feed (pagination : Pagination.Pagination.t) feed_id =
   let* feed_result =
     Db.Rss_feed.get ~id:feed_id |> Handler_utils.or_internal_error
   in
@@ -13,11 +13,11 @@ let list_by_feed (pagination : Pagination.pagination) feed_id =
   in
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)
 
-let list_all request (pagination : Pagination.pagination) =
+let list_all request (pagination : Pagination.Pagination.t) =
   let unread_only = Handler_utils.query "unread" request = Some "true" in
   let* paginated =
-    Db.Article.list_all ~page:pagination.Pagination.page
-      ~per_page:pagination.Pagination.per_page ~unread_only
+    Db.Article.list_all ~page:pagination.page
+      ~per_page:pagination.per_page ~unread_only
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)
@@ -58,12 +58,12 @@ let routes () =
   let open Tapak.Router in
   [
     get (s "feeds" / int / s "articles")
-    |> guard Pagination.pagination_guard
+    |> guard Pagination.Pagination.pagination_guard
     |> into list_by_feed;
     post (s "feeds" / int / s "articles" / s "mark-all-read")
     |> request |> into mark_all_read;
     get (s "articles")
-    |> guard Pagination.pagination_guard
+    |> guard Pagination.Pagination.pagination_guard
     |> request |> into list_all;
     get (s "articles" / int) |> request |> into get_article;
     post (s "articles" / int / s "read") |> request |> into mark_read;

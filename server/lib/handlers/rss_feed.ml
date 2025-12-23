@@ -33,14 +33,14 @@ let create request person_id =
     in
     Handler_utils.json_response ~status:`Created (Model.Rss_feed.to_json feed)
 
-let list_by_person (pagination : Pagination.pagination) person_id =
+let list_by_person (pagination : Pagination.Pagination.t) person_id =
   let* person_result =
     Db.Person.get ~id:person_id |> Handler_utils.or_internal_error
   in
   let* _ = person_result |> Handler_utils.or_not_found "Person not found" in
   let* paginated =
-    Db.Rss_feed.list_by_person ~person_id ~page:pagination.Pagination.page
-      ~per_page:pagination.Pagination.per_page
+    Db.Rss_feed.list_by_person ~person_id ~page:pagination.page
+      ~per_page:pagination.per_page
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Rss_feed.paginated_to_json paginated)
@@ -81,10 +81,10 @@ let refresh _request id =
   Feed_fetcher.process_feed ~sw ~env feed;
   Handler_utils.json_response (`Assoc [ ("message", `String "Feed refreshed") ])
 
-let list_all (pagination : Pagination.pagination) =
+let list_all (pagination : Pagination.Pagination.t) =
   let* paginated =
-    Db.Rss_feed.list_all_paginated ~page:pagination.Pagination.page
-      ~per_page:pagination.Pagination.per_page
+    Db.Rss_feed.list_all_paginated ~page:pagination.page
+      ~per_page:pagination.per_page
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Rss_feed.paginated_to_json paginated)
@@ -94,9 +94,9 @@ let routes () =
   [
     post (s "persons" / int / s "feeds") |> request |> into create;
     get (s "persons" / int / s "feeds")
-    |> guard Pagination.pagination_guard
+    |> guard Pagination.Pagination.pagination_guard
     |> into list_by_person;
-    get (s "feeds") |> guard Pagination.pagination_guard |> into list_all;
+    get (s "feeds") |> guard Pagination.Pagination.pagination_guard |> into list_all;
     get (s "feeds" / int) |> request |> into get_feed;
     put (s "feeds" / int) |> request |> into update;
     delete (s "feeds" / int) |> request |> into delete_feed;

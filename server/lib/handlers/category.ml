@@ -1,10 +1,10 @@
 open Tapak
 open Handler_utils.Syntax
 
-let list (pagination : Pagination.pagination) =
+let list (pagination : Pagination.Pagination.t) =
   let* response =
-    Db.Category.list ~page:pagination.Pagination.page
-      ~per_page:pagination.Pagination.per_page ()
+    Db.Category.list ~page:pagination.page
+      ~per_page:pagination.per_page ()
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Category.paginated_to_json response)
@@ -56,9 +56,7 @@ let list_by_person _request person_id =
 let routes () =
   let open Tapak.Router in
   [
-    get (s "categories")
-    |> guard Pagination.pagination_guard
-    |> into list;
+    get (s "categories") |> guard Pagination.Pagination.pagination_guard |> into list;
     get (s "categories" / int) |> request |> into get_category;
     post (s "categories") |> request |> into create;
     delete (s "categories" / int) |> request |> into delete_category;
