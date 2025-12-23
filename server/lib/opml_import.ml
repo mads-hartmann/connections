@@ -1,4 +1,3 @@
-open Lwt.Syntax
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 (* Shared types for preview and confirm *)
@@ -39,41 +38,42 @@ let max_concurrent_fetches = 5
 let fetch_timeout_seconds = 10.0
 
 (* Fetch a single feed with timeout *)
-let fetch_with_timeout url =
-  let timeout =
-    let* () = Lwt_unix.sleep fetch_timeout_seconds in
-    Lwt.return_error "Timeout"
-  in
-  let fetch = Feed_fetcher.fetch_feed_metadata url in
-  Lwt.pick [ timeout; fetch ]
+let fetch_with_timeout ~sw ~env ~clock url =
+  let result = ref (Error "Timeout") in
+  let done_flag = ref false in
+  Eio.Fiber.both
+    (fun () ->
+      if not !done_flag then (
+        let r = Feed_fetcher.fetch_feed_metadata ~sw ~env url in
+        if not !done_flag then (
+          result := r;
+          done_flag := true)))
+    (fun () ->
+      Eio.Time.sleep clock fetch_timeout_seconds;
+      if not !done_flag then done_flag := true);
+  !result
 
 (* Process OPML entries: fetch metadata and group by author *)
-let process_entries (entries : Opml_parser.feed_entry list) :
-    preview_response Lwt.t =
+let process_entries ~sw ~env (entries : Opml_parser.feed_entry list) :
+    preview_response =
+  let clock = Eio.Stdenv.clock env in
+  let semaphore = Eio.Semaphore.make max_concurrent_fetches in
   (* Fetch all feeds with limited concurrency *)
-  let semaphore = Lwt_mutex.create () in
-  let active_count = ref 0 in
   let fetch_one entry =
-    (* Wait for slot *)
-    let rec wait_for_slot () =
-      let* () = Lwt_mutex.lock semaphore in
-      if !active_count >= max_concurrent_fetches then (
-        Lwt_mutex.unlock semaphore;
-        let* () = Lwt_unix.sleep 0.1 in
-        wait_for_slot ())
-      else (
-        incr active_count;
-        Lwt_mutex.unlock semaphore;
-        Lwt.return_unit)
+    Eio.Semaphore.acquire semaphore;
+    let result =
+      try fetch_with_timeout ~sw ~env ~clock entry.Opml_parser.url
+      with exn -> Error (Printexc.to_string exn)
     in
-    let* () = wait_for_slot () in
-    let* result = fetch_with_timeout entry.Opml_parser.url in
-    let* () = Lwt_mutex.lock semaphore in
-    decr active_count;
-    Lwt_mutex.unlock semaphore;
-    Lwt.return (entry, result)
+    Eio.Semaphore.release semaphore;
+    (entry, result)
   in
-  let* results = Lwt_list.map_p fetch_one entries in
+  (* Process entries in parallel with fiber list *)
+  let results =
+    Eio.Fiber.List.map
+      (fun entry -> fetch_one entry)
+      entries
+  in
   (* Separate successes and errors *)
   let successes, errors =
     List.partition_map
@@ -131,22 +131,22 @@ let process_entries (entries : Opml_parser.feed_entry list) :
   in
   (* Sort by name *)
   let people = List.sort (fun a b -> String.compare a.name b.name) people in
-  Lwt.return ({ people; errors } : preview_response)
+  ({ people; errors } : preview_response)
 
 (* Parse OPML and generate preview *)
-let preview (opml_content : string) : (preview_response, string) result Lwt.t =
+let preview ~sw ~env (opml_content : string) :
+    (preview_response, string) result =
   match Opml_parser.parse opml_content with
-  | Error msg -> Lwt.return_error msg
+  | Error msg -> Error msg
   | Ok parse_result ->
       if List.length parse_result.feeds = 0 then
-        Lwt.return_error "No feeds found in OPML file"
+        Error "No feeds found in OPML file"
       else
-        let* response = process_entries parse_result.feeds in
-        Lwt.return_ok response
+        let response = process_entries ~sw ~env parse_result.feeds in
+        Ok response
 
 (* Confirm import - create people, feeds, and categories *)
-let confirm (request : confirm_request) :
-    (confirm_response, string) result Lwt.t =
+let confirm (request : confirm_request) : (confirm_response, string) result =
   let created_people = ref 0 in
   let created_feeds = ref 0 in
   let created_categories = ref 0 in
@@ -154,81 +154,67 @@ let confirm (request : confirm_request) :
   (* Helper to get or create category *)
   let get_or_create_category name =
     match Hashtbl.find_opt category_cache name with
-    | Some id -> Lwt.return_ok id
+    | Some id -> Ok id
     | None -> (
-        let* result = Db.Category.get_or_create ~name in
+        let result = Db.Category.get_or_create ~name in
         match result with
-        | Error msg -> Lwt.return_error msg
+        | Error msg -> Error msg
         | Ok category ->
             Hashtbl.add category_cache name category.id;
             incr created_categories;
-            Lwt.return_ok category.id)
+            Ok category.id)
   in
   (* Process each person *)
-  let* results =
-    Lwt_list.map_s
-      (fun (person : person_info) ->
+  let rec process_people = function
+    | [] -> Ok ()
+    | (person : person_info) :: rest -> (
         (* Create person *)
-        let* person_result = Db.Person.create ~name:person.name in
+        let person_result = Db.Person.create ~name:person.name in
         match person_result with
-        | Error msg -> Lwt.return_error msg
-        | Ok created_person ->
+        | Error msg -> Error msg
+        | Ok created_person -> (
             incr created_people;
             (* Create feeds for this person *)
-            let* feed_results =
-              Lwt_list.map_s
-                (fun (feed : feed_info) ->
-                  let* feed_result =
+            let rec create_feeds = function
+              | [] -> Ok ()
+              | (feed : feed_info) :: rest -> (
+                  let feed_result =
                     Db.Rss_feed.create ~person_id:created_person.id
                       ~url:feed.url ~title:feed.title
                   in
                   match feed_result with
-                  | Error msg -> Lwt.return_error msg
+                  | Error msg -> Error msg
                   | Ok _ ->
                       incr created_feeds;
-                      Lwt.return_ok ())
-                person.feeds
+                      create_feeds rest)
             in
-            (* Check for feed errors *)
-            let feed_errors =
-              List.filter_map
-                (function Error msg -> Some msg | Ok () -> None)
-                feed_results
-            in
-            if List.length feed_errors > 0 then
-              Lwt.return_error (String.concat "; " feed_errors)
-            else
-              (* Add categories to person *)
-              let* cat_results =
-                Lwt_list.map_s
-                  (fun cat_name ->
-                    let* cat_id_result = get_or_create_category cat_name in
-                    match cat_id_result with
-                    | Error msg -> Lwt.return_error msg
-                    | Ok cat_id ->
-                        Db.Category.add_to_person ~person_id:created_person.id
-                          ~category_id:cat_id)
-                  person.categories
-              in
-              let cat_errors =
-                List.filter_map
-                  (function Error msg -> Some msg | Ok () -> None)
-                  cat_results
-              in
-              if List.length cat_errors > 0 then
-                Lwt.return_error (String.concat "; " cat_errors)
-              else Lwt.return_ok ())
-      request.people
+            match create_feeds person.feeds with
+            | Error msg -> Error msg
+            | Ok () -> (
+                (* Add categories to person *)
+                let rec add_categories = function
+                  | [] -> Ok ()
+                  | cat_name :: rest -> (
+                      match get_or_create_category cat_name with
+                      | Error msg -> Error msg
+                      | Ok cat_id -> (
+                          match
+                            Db.Category.add_to_person
+                              ~person_id:created_person.id ~category_id:cat_id
+                          with
+                          | Error msg -> Error msg
+                          | Ok () -> add_categories rest))
+                in
+                match add_categories person.categories with
+                | Error msg -> Error msg
+                | Ok () -> process_people rest)))
   in
-  (* Check for any errors *)
-  let errors =
-    List.filter_map (function Error msg -> Some msg | Ok () -> None) results
-  in
-  if List.length errors > 0 then Lwt.return_error (String.concat "; " errors)
-  else
-    Lwt.return_ok
-      {
-        created_people = !created_people;
-        created_feeds = !created_feeds;
-        created_categories = !created_categories;
-      }
+  match process_people request.people with
+  | Error msg -> Error msg
+  | Ok () ->
+      Ok
+        {
+          created_people = !created_people;
+          created_feeds = !created_feeds;
+          created_categories = !created_categories;
+        }
