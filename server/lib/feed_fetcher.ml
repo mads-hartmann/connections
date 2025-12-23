@@ -1,4 +1,4 @@
-open Lwt.Syntax
+module Log = (val Logs.src_log (Logs.Src.create "feed_fetcher") : Logs.LOG)
 
 (* Format a Ptime to SQLite datetime string *)
 let ptime_to_string (ptime : Ptime.t) : string =
@@ -120,21 +120,24 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
           image_url;
         }
 
-(* Fetch URL content *)
-let fetch_url (url : string) : (string, string) result Lwt.t =
-  Lwt.catch
-    (fun () ->
-      let* response, body = Cohttp_lwt_unix.Client.get (Uri.of_string url) in
-      let status = Cohttp.Response.status response in
-      if Cohttp.Code.is_success (Cohttp.Code.code_of_status status) then
-        let* body_str = Cohttp_lwt.Body.to_string body in
-        Lwt.return_ok body_str
-      else
-        Lwt.return_error
-          (Printf.sprintf "HTTP %d" (Cohttp.Code.code_of_status status)))
-    (fun exn ->
-      Lwt.return_error
-        (Printf.sprintf "Fetch error: %s" (Printexc.to_string exn)))
+(* Fetch URL content using Piaf *)
+let fetch_url ~sw ~env (url : string) : (string, string) result =
+  try
+    let uri = Uri.of_string url in
+    match Piaf.Client.Oneshot.get ~sw env uri with
+    | Error err ->
+        Error (Format.asprintf "Fetch error: %a" Piaf.Error.pp_hum err)
+    | Ok response ->
+        let status = response.Piaf.Response.status in
+        if Piaf.Status.is_successful status then
+          match Piaf.Body.to_string response.body with
+          | Ok body_str -> Ok body_str
+          | Error err ->
+              Error
+                (Format.asprintf "Body read error: %a" Piaf.Error.pp_hum err)
+        else Error (Printf.sprintf "HTTP %d" (Piaf.Status.to_code status))
+  with exn ->
+    Error (Printf.sprintf "Fetch error: %s" (Printexc.to_string exn))
 
 (* Parse feed content - tries RSS2 first, then Atom *)
 type parsed_feed = Rss2 of Syndic.Rss2.channel | Atom of Syndic.Atom.feed
@@ -192,14 +195,15 @@ let extract_metadata (feed : parsed_feed) : feed_metadata =
   { author; title }
 
 (* Fetch feed and extract metadata only - for OPML import *)
-let fetch_feed_metadata (url : string) : (feed_metadata, string) result Lwt.t =
-  let* fetch_result = fetch_url url in
+let fetch_feed_metadata ~sw ~env (url : string) : (feed_metadata, string) result
+    =
+  let fetch_result = fetch_url ~sw ~env url in
   match fetch_result with
-  | Error msg -> Lwt.return_error msg
+  | Error msg -> Error msg
   | Ok content -> (
       match parse_feed content with
-      | Error msg -> Lwt.return_error msg
-      | Ok parsed_feed -> Lwt.return_ok (extract_metadata parsed_feed))
+      | Error msg -> Error msg
+      | Ok parsed_feed -> Ok (extract_metadata parsed_feed))
 
 (* Extract articles from parsed feed *)
 let extract_articles ~feed_id (feed : parsed_feed) :
@@ -210,45 +214,40 @@ let extract_articles ~feed_id (feed : parsed_feed) :
   | Atom feed -> List.filter_map (atom_entry_to_article ~feed_id) feed.entries
 
 (* Process a single feed: fetch, parse, store articles *)
-let process_feed (feed : Model.Rss_feed.t) : unit Lwt.t =
-  Dream.info (fun log -> log "Fetching feed %d: %s" feed.id feed.url);
-  let* fetch_result = fetch_url feed.url in
+let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
+  Log.info (fun m -> m "Fetching feed %d: %s" feed.id feed.url);
+  let fetch_result = fetch_url ~sw ~env feed.url in
   match fetch_result with
   | Error msg ->
-      Dream.error (fun log ->
-          log "Failed to fetch feed %d (%s): %s" feed.id feed.url msg);
-      Lwt.return_unit
+      Log.err (fun m ->
+          m "Failed to fetch feed %d (%s): %s" feed.id feed.url msg)
   | Ok content -> (
       match parse_feed content with
       | Error msg ->
-          Dream.error (fun log ->
-              log "Failed to parse feed %d (%s): %s" feed.id feed.url msg);
-          Lwt.return_unit
+          Log.err (fun m ->
+              m "Failed to parse feed %d (%s): %s" feed.id feed.url msg)
       | Ok parsed_feed ->
           let articles = extract_articles ~feed_id:feed.id parsed_feed in
-          let* insert_result = Db.Article.upsert_many articles in
+          let insert_result = Db.Article.upsert_many articles in
           (match insert_result with
           | Error msg ->
-              Dream.error (fun log ->
-                  log "Failed to store articles for feed %d: %s" feed.id msg)
+              Log.err (fun m ->
+                  m "Failed to store articles for feed %d: %s" feed.id msg)
           | Ok count ->
-              Dream.info (fun log ->
-                  log "Processed %d articles for feed %d" count feed.id));
+              Log.info (fun m ->
+                  m "Processed %d articles for feed %d" count feed.id));
           (* Update last_fetched_at on the feed *)
-          let* _ = Db.Rss_feed.update_last_fetched ~id:feed.id in
-          Lwt.return_unit)
+          let _ = Db.Rss_feed.update_last_fetched ~id:feed.id in
+          ())
 
 (* Fetch all feeds - called by scheduler *)
-let fetch_all_feeds () : unit Lwt.t =
-  Dream.info (fun log -> log "Starting scheduled feed fetch");
-  let* result = Db.Rss_feed.list_all () in
+let fetch_all_feeds ~sw ~env () : unit =
+  Log.info (fun m -> m "Starting scheduled feed fetch");
+  let result = Db.Rss_feed.list_all () in
   match result with
-  | Error msg ->
-      Dream.error (fun log -> log "Failed to list feeds: %s" msg);
-      Lwt.return_unit
+  | Error msg -> Log.err (fun m -> m "Failed to list feeds: %s" msg)
   | Ok feeds ->
       (* Process feeds sequentially to avoid overwhelming the system *)
-      let* () = Lwt_list.iter_s process_feed feeds in
-      Dream.info (fun log ->
-          log "Completed scheduled feed fetch (%d feeds)" (List.length feeds));
-      Lwt.return_unit
+      List.iter (process_feed ~sw ~env) feeds;
+      Log.info (fun m ->
+          m "Completed scheduled feed fetch (%d feeds)" (List.length feeds))

@@ -1,4 +1,4 @@
-open Lwt.Syntax
+module Log = (val Logs.src_log (Logs.Src.create "scheduler") : Logs.LOG)
 
 (* Configuration *)
 let fetch_interval_seconds = 3600.0 (* 1 hour *)
@@ -7,39 +7,35 @@ let fetch_interval_seconds = 3600.0 (* 1 hour *)
 let running = ref true
 let stop () = running := false
 
-(* Sleep that can be interrupted by stop() *)
-let rec interruptible_sleep seconds =
-  if (not !running) || seconds <= 0.0 then Lwt.return_unit
-  else
-    let check_interval = 1.0 in
-    let sleep_time = min check_interval seconds in
-    let* () = Lwt_unix.sleep sleep_time in
-    interruptible_sleep (seconds -. sleep_time)
-
 (* Main scheduler loop *)
-let rec run_loop () =
-  if not !running then Lwt.return_unit
-  else
-    let* () =
-      Lwt.catch
-        (fun () -> Feed_fetcher.fetch_all_feeds ())
-        (fun exn ->
-          Dream.error (fun log ->
-              log "Scheduler error: %s" (Printexc.to_string exn));
-          Lwt.return_unit)
+let rec run_loop ~sw ~env ~clock () =
+  if not !running then ()
+  else (
+    (try Feed_fetcher.fetch_all_feeds ~sw ~env ()
+     with exn ->
+       Log.err (fun m -> m "Scheduler error: %s" (Printexc.to_string exn)));
+    (* Sleep, checking running flag periodically for faster shutdown *)
+    let rec interruptible_sleep remaining =
+      if (not !running) || remaining <= 0.0 then ()
+      else
+        let sleep_time = min 1.0 remaining in
+        Eio.Time.sleep clock sleep_time;
+        interruptible_sleep (remaining -. sleep_time)
     in
-    (* Sleep, but check running flag periodically for faster shutdown *)
-    let* () = interruptible_sleep fetch_interval_seconds in
-    run_loop ()
+    interruptible_sleep fetch_interval_seconds;
+    run_loop ~sw ~env ~clock ())
 
-(* Start the scheduler - returns immediately, runs in background *)
-let start () =
-  Dream.info (fun log ->
-      log "Starting RSS feed scheduler (interval: %g seconds)"
+(* Start the scheduler as a daemon fiber - runs in background *)
+let start ~sw ~env =
+  let clock = Eio.Stdenv.clock env in
+  Log.info (fun m ->
+      m "Starting RSS feed scheduler (interval: %g seconds)"
         fetch_interval_seconds);
   running := true;
-  (* Run first fetch after a brief delay, then continue on interval *)
-  Lwt.async (fun () ->
-      let* () = Lwt_unix.sleep 5.0 in
+  (* Fork a daemon fiber that runs the scheduler loop *)
+  Eio.Fiber.fork_daemon ~sw (fun () ->
       (* Brief delay for server startup *)
-      run_loop ())
+      Eio.Time.sleep clock 5.0;
+      run_loop ~sw ~env ~clock ();
+      (* Return `Stop_daemon when done *)
+      `Stop_daemon)

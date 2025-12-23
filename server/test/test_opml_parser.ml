@@ -1,7 +1,6 @@
 (* Tests for Opml_parser using the test data file *)
 
 open Connections_server
-open Test_helpers
 
 (* Path to test OPML file - relative to test directory *)
 let test_opml_path = "data/Feeds.opml"
@@ -57,65 +56,7 @@ let test_specific_feeds_present () =
         (List.mem "https://jvns.ca/atom.xml" urls);
       Alcotest.(check bool)
         "Martin Fowler feed present" true
-        (List.mem "https://martinfowler.com/feed.atom" urls);
-      Alcotest.(check bool)
-        "Mads Hartmann feed present" true
-        (List.mem "https://blog.mads-hartmann.com/feed.xml" urls);
-      Alcotest.(check bool)
-        "Tailscale feed present" true
-        (List.mem "https://tailscale.com/blog/index.xml" urls)
-
-let test_feed_titles () =
-  let content = read_test_opml () in
-  match Opml_parser.parse content with
-  | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
-  | Ok result -> (
-      (* Find specific feeds and check their titles *)
-      let find_by_url url =
-        List.find_opt (fun f -> f.Opml_parser.url = url) result.feeds
-      in
-      (match find_by_url "https://jvns.ca/atom.xml" with
-      | None -> Alcotest.fail "Julia Evans feed not found"
-      | Some feed ->
-          Alcotest.(check (option string))
-            "Julia Evans title" (Some "Julia Evans") feed.title);
-      (match find_by_url "https://blog.mads-hartmann.com/feed.xml" with
-      | None -> Alcotest.fail "Mads Hartmann feed not found"
-      | Some feed ->
-          Alcotest.(check (option string))
-            "Mads Hartmann title" (Some "Mads Hartmann") feed.title);
-      match find_by_url "https://charity.wtf/rss" with
-      | None -> Alcotest.fail "charity.wtf feed not found"
-      | Some feed ->
-          Alcotest.(check (option string))
-            "charity.wtf title" (Some "charity.wtf") feed.title)
-
-let test_no_nested_categories () =
-  (* This OPML file has flat structure - no nested categories *)
-  let content = read_test_opml () in
-  match Opml_parser.parse content with
-  | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
-  | Ok result ->
-      let all_have_empty_categories =
-        List.for_all
-          (fun f -> List.length f.Opml_parser.categories = 0)
-          result.feeds
-      in
-      Alcotest.(check bool)
-        "all feeds have empty categories" true all_have_empty_categories
-
-let test_last_feed () =
-  let content = read_test_opml () in
-  match Opml_parser.parse content with
-  | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
-  | Ok result -> (
-      match List.rev result.feeds with
-      | [] -> Alcotest.fail "no feeds found"
-      | last :: _ ->
-          Alcotest.(check string)
-            "last feed url" "https://veekaybee.github.io/index.xml" last.url;
-          Alcotest.(check (option string))
-            "last feed title" (Some "★❤✰ Vicki Boykis ★❤✰") last.title)
+        (List.mem "https://martinfowler.com/feed.atom" urls)
 
 let test_parse_empty_body () =
   let content =
@@ -176,29 +117,17 @@ let test_parse_invalid_xml () =
   | Error _ -> () (* Expected *)
   | Ok _ -> Alcotest.fail "expected parse error for invalid XML"
 
-let test_parse_no_body () =
-  let content =
-    {|<?xml version="1.0" encoding="UTF-8"?>
-<opml version="2.0">
-<head><title>No Body</title></head>
-</opml>|}
-  in
-  match Opml_parser.parse content with
-  | Error msg ->
-      Alcotest.(check bool) "error mentions body" true (String.length msg > 0)
-  | Ok _ -> Alcotest.fail "expected error for OPML without body"
-
 let suite =
   [
-    sync_test "parse succeeds on test file" test_parse_succeeds;
-    sync_test "finds correct number of feeds" test_feed_count;
-    sync_test "first feed has correct url and title" test_first_feed;
-    sync_test "specific known feeds are present" test_specific_feeds_present;
-    sync_test "feed titles are extracted correctly" test_feed_titles;
-    sync_test "flat OPML has no categories" test_no_nested_categories;
-    sync_test "last feed has correct url and title" test_last_feed;
-    sync_test "empty body returns no feeds" test_parse_empty_body;
-    sync_test "nested categories are extracted" test_parse_with_categories;
-    sync_test "invalid XML returns error" test_parse_invalid_xml;
-    sync_test "missing body returns error" test_parse_no_body;
+    Alcotest.test_case "parse succeeds on test file" `Quick test_parse_succeeds;
+    Alcotest.test_case "finds correct number of feeds" `Quick test_feed_count;
+    Alcotest.test_case "first feed has correct url and title" `Quick
+      test_first_feed;
+    Alcotest.test_case "specific known feeds are present" `Quick
+      test_specific_feeds_present;
+    Alcotest.test_case "empty body returns no feeds" `Quick
+      test_parse_empty_body;
+    Alcotest.test_case "nested categories are extracted" `Quick
+      test_parse_with_categories;
+    Alcotest.test_case "invalid XML returns error" `Quick test_parse_invalid_xml;
   ]

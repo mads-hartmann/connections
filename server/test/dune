@@ -3,10 +3,9 @@
  (libraries
   connections_server
   alcotest
-  alcotest-lwt
-  lwt
-  lwt.unix
+  eio
+  eio_main
   yojson
-  dream)
+  tapak)
  (deps
   (source_tree data)))

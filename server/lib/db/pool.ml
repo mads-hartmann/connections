@@ -1,8 +1,8 @@
 let caqti_error_to_string err = Format.asprintf "%a" Caqti_error.pp err
 
 (* Database connection pool *)
-let pool_ref :
-    (Caqti_lwt.connection, Caqti_error.t) Caqti_lwt_unix.Pool.t option ref =
+let pool_ref : (Caqti_eio.connection, Caqti_error.t) Caqti_eio.Pool.t option ref
+    =
   ref None
 
 let get () =
@@ -11,12 +11,19 @@ let get () =
   | None -> failwith "Database not initialized"
 
 (* Initialize database connection *)
-let init db_path =
+let init ~sw ~(stdenv : Eio_unix.Stdenv.base) db_path =
   let uri = Uri.of_string ("sqlite3:" ^ db_path) in
-  match Caqti_lwt_unix.connect_pool uri with
+  let caqti_stdenv : Caqti_eio.stdenv =
+    object
+      method net =
+        (Eio.Stdenv.net stdenv :> [ `Generic ] Eio.Net.ty Eio.Resource.t)
+
+      method clock = Eio.Stdenv.clock stdenv
+      method mono_clock = Eio.Stdenv.mono_clock stdenv
+    end
+  in
+  match Caqti_eio_unix.connect_pool ~sw ~stdenv:caqti_stdenv uri with
   | Error err ->
-      Lwt.fail_with
+      failwith
         (Format.asprintf "Database connection error: %a" Caqti_error.pp err)
-  | Ok pool ->
-      pool_ref := Some pool;
-      Lwt.return_unit
+  | Ok pool -> pool_ref := Some pool

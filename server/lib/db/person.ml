@@ -1,5 +1,3 @@
-open Lwt.Syntax
-
 (* Row type definitions *)
 let person_row_type = Caqti_type.(t2 int string)
 let person_with_counts_row_type = Caqti_type.(t4 int string int int)
@@ -87,159 +85,157 @@ let exists_query =
 
 let init_table () =
   let pool = Pool.get () in
-  let* result =
-    Caqti_lwt_unix.Pool.use
-      (fun (module Db : Caqti_lwt.CONNECTION) -> Db.exec create_table_query ())
+  let result =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec create_table_query ())
       pool
   in
   match result with
   | Error err ->
-      Lwt.fail_with
-        (Format.asprintf "Table creation error: %a" Caqti_error.pp err)
-  | Ok () -> Lwt.return_unit
+      failwith (Format.asprintf "Table creation error: %a" Caqti_error.pp err)
+  | Ok () -> ()
 
 let create ~name =
   let pool = Pool.get () in
-  let* result =
-    Caqti_lwt_unix.Pool.use
-      (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find insert_query name)
+  let result =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
-  | Ok id -> Lwt.return_ok { Model.Person.id; name }
+  | Error err -> Error (Pool.caqti_error_to_string err)
+  | Ok id -> Ok { Model.Person.id; name }
 
 let get ~id =
   let pool = Pool.get () in
-  let* result =
-    Caqti_lwt_unix.Pool.use
-      (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find_opt get_query id)
+  let result =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
       pool
   in
   match result with
-  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
-  | Ok None -> Lwt.return_ok None
-  | Ok (Some (id, name)) -> Lwt.return_ok (Some { Model.Person.id; name })
+  | Error err -> Error (Pool.caqti_error_to_string err)
+  | Ok None -> Ok None
+  | Ok (Some (id, name)) -> Ok (Some { Model.Person.id; name })
 
 let list ~page ~per_page ?query () =
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
-  let* count_result =
+  let count_result =
     match query with
     | None ->
-        Caqti_lwt_unix.Pool.use
-          (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find count_query ())
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_query ())
           pool
     | Some q ->
         let pattern = "%" ^ q ^ "%" in
-        Caqti_lwt_unix.Pool.use
-          (fun (module Db : Caqti_lwt.CONNECTION) ->
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.find count_filtered_query pattern)
           pool
   in
   match count_result with
-  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
+  | Error err -> Error (Pool.caqti_error_to_string err)
   | Ok total -> (
-      let* list_result =
+      let list_result =
         match query with
         | None ->
-            Caqti_lwt_unix.Pool.use
-              (fun (module Db : Caqti_lwt.CONNECTION) ->
+            Caqti_eio.Pool.use
+              (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.collect_list list_query (per_page, offset))
               pool
         | Some q ->
             let pattern = "%" ^ q ^ "%" in
-            Caqti_lwt_unix.Pool.use
-              (fun (module Db : Caqti_lwt.CONNECTION) ->
+            Caqti_eio.Pool.use
+              (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.collect_list list_filtered_query (pattern, per_page, offset))
               pool
       in
       match list_result with
-      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
+      | Error err -> Error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let data =
             List.map (fun (id, name) -> { Model.Person.id; name }) rows
           in
-          Lwt.return_ok
-            (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+          Ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
 
 let update ~id ~name =
   let pool = Pool.get () in
-  let* exists_result =
-    Caqti_lwt_unix.Pool.use
-      (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find exists_query id)
+  let exists_result =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
   match exists_result with
-  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
-  | Ok 0 -> Lwt.return_ok None
+  | Error err -> Error (Pool.caqti_error_to_string err)
+  | Ok 0 -> Ok None
   | Ok _ -> (
-      let* update_result =
-        Caqti_lwt_unix.Pool.use
-          (fun (module Db : Caqti_lwt.CONNECTION) ->
+      let update_result =
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.exec update_query (name, id))
           pool
       in
       match update_result with
-      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
-      | Ok () -> Lwt.return_ok (Some { Model.Person.id; name }))
+      | Error err -> Error (Pool.caqti_error_to_string err)
+      | Ok () -> Ok (Some { Model.Person.id; name }))
 
 let delete ~id =
   let pool = Pool.get () in
-  let* exists_result =
-    Caqti_lwt_unix.Pool.use
-      (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find exists_query id)
+  let exists_result =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
   match exists_result with
-  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
-  | Ok 0 -> Lwt.return_ok false
+  | Error err -> Error (Pool.caqti_error_to_string err)
+  | Ok 0 -> Ok false
   | Ok _ -> (
-      let* delete_result =
-        Caqti_lwt_unix.Pool.use
-          (fun (module Db : Caqti_lwt.CONNECTION) -> Db.exec delete_query id)
+      let delete_result =
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec delete_query id)
           pool
       in
       match delete_result with
-      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
-      | Ok () -> Lwt.return_ok true)
+      | Error err -> Error (Pool.caqti_error_to_string err)
+      | Ok () -> Ok true)
 
 let list_with_counts ~page ~per_page ?query () =
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
-  let* count_result =
+  let count_result =
     match query with
     | None ->
-        Caqti_lwt_unix.Pool.use
-          (fun (module Db : Caqti_lwt.CONNECTION) -> Db.find count_query ())
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_query ())
           pool
     | Some q ->
         let pattern = "%" ^ q ^ "%" in
-        Caqti_lwt_unix.Pool.use
-          (fun (module Db : Caqti_lwt.CONNECTION) ->
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.find count_filtered_query pattern)
           pool
   in
   match count_result with
-  | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
+  | Error err -> Error (Pool.caqti_error_to_string err)
   | Ok total -> (
-      let* list_result =
+      let list_result =
         match query with
         | None ->
-            Caqti_lwt_unix.Pool.use
-              (fun (module Db : Caqti_lwt.CONNECTION) ->
+            Caqti_eio.Pool.use
+              (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.collect_list list_with_counts_query (per_page, offset))
               pool
         | Some q ->
             let pattern = "%" ^ q ^ "%" in
-            Caqti_lwt_unix.Pool.use
-              (fun (module Db : Caqti_lwt.CONNECTION) ->
+            Caqti_eio.Pool.use
+              (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.collect_list list_with_counts_filtered_query
                   (pattern, per_page, offset))
               pool
       in
       match list_result with
-      | Error err -> Lwt.return_error (Pool.caqti_error_to_string err)
+      | Error err -> Error (Pool.caqti_error_to_string err)
       | Ok rows ->
           let data =
             List.map
@@ -247,5 +243,4 @@ let list_with_counts ~page ~per_page ?query () =
                 { Model.Person.id; name; feed_count; article_count })
               rows
           in
-          Lwt.return_ok
-            (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+          Ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))

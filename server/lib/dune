@@ -3,14 +3,18 @@
 (library
  (name connections_server)
  (libraries
-  dream
+  tapak
   caqti
-  caqti-lwt
+  caqti-eio
+  caqti-eio.unix
   caqti-driver-sqlite3
   yojson
   ppx_yojson_conv_lib
-  lwt
+  eio
+  eio_main
+  eio.unix
+  piaf
   syndic
-  cohttp-lwt-unix)
+  logs)
  (preprocess
   (pps ppx_yojson_conv)))

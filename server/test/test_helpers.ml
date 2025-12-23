@@ -1,35 +1,30 @@
 (* Shared test helpers *)
 
-open Lwt.Syntax
 open Connections_server
 
-(* Helper to wrap synchronous tests for Alcotest_lwt *)
-let sync_test name f =
-  Alcotest_lwt.test_case name `Quick (fun _sw () ->
-      f ();
-      Lwt.return_unit)
+(* Setup in-memory database for tests - requires Eio context *)
+let setup_test_db ~sw ~stdenv =
+  Db.Pool.init ~sw ~stdenv ":memory:";
+  Db.Person.init_table ();
+  Db.Rss_feed.init_table ();
+  Db.Article.init_table ();
+  Db.Category.init_table ()
 
-(* Helper to run Lwt tests *)
-let lwt_test name f = Alcotest_lwt.test_case name `Quick (fun _sw () -> f ())
-
-(* Setup in-memory database for tests *)
-let setup_test_db () =
-  let* () = Db.Pool.init ":memory:" in
-  let* () = Db.Person.init_table () in
-  let* () = Db.Rss_feed.init_table () in
-  let* () = Db.Article.init_table () in
-  Lwt.return_unit
+(* Helper to run tests within Eio context *)
+let with_eio f =
+  Eio_main.run @@ fun env ->
+  Eio.Switch.run @@ fun sw -> f ~sw ~env
 
 (* Helper to create a person and feed for article tests *)
 let setup_person_and_feed () =
-  let* person_result = Db.Person.create ~name:"Article Owner" in
+  let person_result = Db.Person.create ~name:"Article Owner" in
   match person_result with
   | Error msg -> Alcotest.fail ("create person failed: " ^ msg)
   | Ok person -> (
-      let* feed_result =
+      let feed_result =
         Db.Rss_feed.create ~person_id:person.id
           ~url:"https://example.com/feed.xml" ~title:(Some "Test Feed")
       in
       match feed_result with
       | Error msg -> Alcotest.fail ("create feed failed: " ^ msg)
-      | Ok feed -> Lwt.return (person, feed))
+      | Ok feed -> (person, feed))
