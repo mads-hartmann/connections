@@ -29,7 +29,7 @@ let list_all request =
   in
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)
 
-let get _request id =
+let get_article _request id =
   let* result =
     Db.Article.get ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
   in
@@ -60,9 +60,21 @@ let mark_all_read _request feed_id =
   in
   Handler_utils.json_response (`Assoc [ ("marked_read", `Int count) ])
 
-let delete _request id =
+let delete_article _request id =
   let* result =
     Db.Article.delete ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
   in
   if result then Response.of_string ~body:"" `No_content
   else Handler_utils.not_found "Article not found"
+
+let routes () =
+  let open Tapak.Router in
+  [
+    get (s "feeds" / int64 / s "articles") |> request |> into list_by_feed;
+    post (s "feeds" / int64 / s "articles" / s "mark-all-read")
+    |> request |> into mark_all_read;
+    get (s "articles") |> request |> into list_all;
+    get (s "articles" / int64) |> request |> into get_article;
+    post (s "articles" / int64 / s "read") |> request |> into mark_read;
+    delete (s "articles" / int64) |> request |> into delete_article;
+  ]

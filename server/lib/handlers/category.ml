@@ -11,7 +11,7 @@ let list request =
   in
   Handler_utils.json_response (Model.Category.paginated_to_json response)
 
-let get _request id =
+let get_category _request id =
   let* result =
     Db.Category.get ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
   in
@@ -32,7 +32,7 @@ let create request =
     Handler_utils.json_response ~status:`Created
       (Model.Category.to_json category)
 
-let delete _request id =
+let delete_category _request id =
   let* result =
     Db.Category.delete ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
   in
@@ -63,3 +63,17 @@ let list_by_person _request person_id =
     Db.Category.get_by_person ~person_id |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Category.list_to_json categories)
+
+let routes () =
+  let open Tapak.Router in
+  [
+    get (s "categories") |> request |> into list;
+    get (s "categories" / int64) |> request |> into get_category;
+    post (s "categories") |> request |> into create;
+    delete (s "categories" / int64) |> request |> into delete_category;
+    get (s "persons" / int64 / s "categories") |> request |> into list_by_person;
+    post (s "persons" / int64 / s "categories" / int64)
+    |> request |> into add_to_person;
+    delete (s "persons" / int64 / s "categories" / int64)
+    |> request |> into remove_from_person;
+  ]

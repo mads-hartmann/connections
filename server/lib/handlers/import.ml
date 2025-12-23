@@ -43,3 +43,10 @@ let confirm request =
     in
     Handler_utils.json_response ~status:`Created
       (Opml_import.confirm_response_to_json response)
+
+let routes () =
+  let open Tapak.Router in
+  [
+    post (s "import" / s "opml" / s "preview") |> request |> into preview;
+    post (s "import" / s "opml" / s "confirm") |> request |> into confirm;
+  ]

@@ -50,7 +50,7 @@ let list_by_person request person_id =
   in
   Handler_utils.json_response (Model.Rss_feed.paginated_to_json paginated)
 
-let get _request id =
+let get_feed _request id =
   let* result =
     Db.Rss_feed.get ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
   in
@@ -76,7 +76,7 @@ let update request id =
   let* feed = result |> Handler_utils.or_not_found "Feed not found" in
   Handler_utils.json_response (Model.Rss_feed.to_json feed)
 
-let delete _request id =
+let delete_feed _request id =
   let* result =
     Db.Rss_feed.delete ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
   in
@@ -102,3 +102,15 @@ let list_all request =
     |> Handler_utils.or_internal_error
   in
   Handler_utils.json_response (Model.Rss_feed.paginated_to_json paginated)
+
+let routes () =
+  let open Tapak.Router in
+  [
+    post (s "persons" / int64 / s "feeds") |> request |> into create;
+    get (s "persons" / int64 / s "feeds") |> request |> into list_by_person;
+    get (s "feeds") |> request |> into list_all;
+    get (s "feeds" / int64) |> request |> into get_feed;
+    put (s "feeds" / int64) |> request |> into update;
+    delete (s "feeds" / int64) |> request |> into delete_feed;
+    post (s "feeds" / int64 / s "refresh") |> request |> into refresh;
+  ]

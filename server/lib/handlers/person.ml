@@ -14,7 +14,7 @@ let list request =
   Handler_utils.json_response
     (Model.Person.paginated_with_counts_to_json paginated)
 
-let get _request id =
+let get_person _request id =
   let* result =
     Db.Person.get ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
   in
@@ -45,9 +45,19 @@ let update request id =
     let* person = result |> Handler_utils.or_not_found "Person not found" in
     Handler_utils.json_response (Model.Person.to_json person)
 
-let delete _request id =
+let delete_person _request id =
   let* result =
     Db.Person.delete ~id:(Int64.to_int id) |> Handler_utils.or_internal_error
   in
   if result then Response.of_string ~body:"" `No_content
   else Handler_utils.not_found "Person not found"
+
+let routes () =
+  let open Tapak.Router in
+  [
+    get (s "persons") |> request |> into list;
+    get (s "persons" / int64) |> request |> into get_person;
+    post (s "persons") |> request |> into create;
+    put (s "persons" / int64) |> request |> into update;
+    delete (s "persons" / int64) |> request |> into delete_person;
+  ]
