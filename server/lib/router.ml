@@ -13,5 +13,6 @@ let build () =
          Handlers.Article.routes ();
          Handlers.Category.routes ();
          Handlers.Import.routes ();
+         Handlers.Metadata.routes ();
        ])
     ()

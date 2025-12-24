@@ -43,8 +43,8 @@ let fetch_html ~sw ~env (url : string) : (string, string) result =
   with exn ->
     Error (Printf.sprintf "Fetch error: %s" (Printexc.to_string exn))
 
-(* Extract metadata from already-fetched HTML *)
-let extract ~url ~html : t =
+(* Internal extraction that returns both merged and raw data *)
+let extract_full_internal ~url ~html =
   let base_url = Uri.of_string url in
   let soup = Soup.parse html in
 
@@ -80,7 +80,25 @@ let extract ~url ~html : t =
 
   let site = Merge.merge_site ~opengraph ~html_meta in
 
-  { url; feeds; author; content; site; raw_json_ld = json_ld.raw }
+  let merged =
+    { url; feeds; author; content; site; raw_json_ld = json_ld.raw }
+  in
+  ( merged,
+    {
+      Json.merged;
+      raw_html_meta = html_meta;
+      raw_opengraph = opengraph;
+      raw_twitter = twitter;
+      raw_json_ld = json_ld;
+      raw_microformats = microformats;
+    } )
+
+(* Extract metadata from already-fetched HTML *)
+let extract ~url ~html : t = fst (extract_full_internal ~url ~html)
+
+(* Extract with full response including individual extractor data *)
+let extract_full ~url ~html : Json.full_response =
+  snd (extract_full_internal ~url ~html)
 
 (* Fetch URL and extract all metadata *)
 let fetch ~sw ~env (url : string) : (t, string) result =
@@ -95,3 +113,22 @@ let fetch ~sw ~env (url : string) : (t, string) result =
           m "Extracted metadata: %d feeds, author=%b" (List.length result.feeds)
             (Option.is_some result.author));
       Ok result
+
+(* Fetch URL and extract with full response *)
+let fetch_full ~sw ~env (url : string) : (Json.full_response, string) result =
+  Log.info (fun m -> m "Fetching full metadata for %s" url);
+  match fetch_html ~sw ~env url with
+  | Error e ->
+      Log.err (fun m -> m "Failed to fetch %s: %s" url e);
+      Error e
+  | Ok html ->
+      let result = extract_full ~url ~html in
+      Log.info (fun m ->
+          m "Extracted full metadata: %d feeds, author=%b"
+            (List.length result.merged.feeds)
+            (Option.is_some result.merged.author));
+      Ok result
+
+(* JSON serialization *)
+let to_json = Json.to_json
+let full_response_to_json = Json.full_response_to_json

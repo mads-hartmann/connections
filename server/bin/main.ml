@@ -35,9 +35,10 @@ let () =
   Db.Rss_feed.init_table ();
   Db.Article.init_table ();
   Db.Category.init_table ();
-  (* Set handler contexts for feed refresh and OPML import *)
+  (* Set handler contexts for feed refresh, OPML import, and URL metadata *)
   Handlers.Rss_feed.set_context ~sw ~env;
   Handlers.Import.set_context ~sw ~env;
+  Handlers.Metadata.set_context ~sw ~env;
   (* Start background RSS feed scheduler *)
   Scheduler.start ~sw ~env;
   Log.info (fun m ->
