@@ -55,10 +55,17 @@ let extract ~url ~html : t =
   let microformats = Extract_microformats.extract ~base_url soup in
 
   (* Merge with priority *)
+  (* Get JSON-LD person: prefer standalone Person, fallback to article author *)
+  let json_ld_person =
+    match List.nth_opt json_ld.persons 0 with
+    | Some p -> Some p
+    | None ->
+        Option.bind (List.nth_opt json_ld.articles 0) (fun a -> a.author)
+  in
   let author =
     Merge.merge_author
       ~microformats:(List.nth_opt microformats.cards 0)
-      ~json_ld:(List.nth_opt json_ld.persons 0)
+      ~json_ld:json_ld_person
       ~opengraph:opengraph.author
       ~twitter:twitter.creator
       ~html_meta:html_meta.author
