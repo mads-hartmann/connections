@@ -15,6 +15,8 @@
   eio.unix
   piaf
   syndic
-  logs)
+  logs
+  lambdasoup
+  uri)
  (preprocess
   (pps ppx_yojson_conv)))
