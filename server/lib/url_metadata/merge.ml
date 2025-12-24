@@ -5,10 +5,8 @@
 let first_some options = List.find_opt Option.is_some options |> Option.join
 
 let merge_author ~(microformats : Extract_microformats.h_card option)
-    ~(json_ld : Extract_json_ld.person option)
-    ~(opengraph : string option)
-    ~(twitter : string option)
-    ~(html_meta : string option)
+    ~(json_ld : Extract_json_ld.person option) ~(opengraph : string option)
+    ~(twitter : string option) ~(html_meta : string option)
     ~(rel_me : string list) : Types.Author.t option =
   let from_microformats =
     Option.map
@@ -20,7 +18,7 @@ let merge_author ~(microformats : Extract_microformats.h_card option)
           photo = mf.photo;
           bio = mf.note;
           location =
-            (match mf.locality, mf.country with
+            (match (mf.locality, mf.country) with
             | Some loc, Some country -> Some (loc ^ ", " ^ country)
             | Some loc, None -> Some loc
             | None, Some country -> Some country
@@ -73,10 +71,9 @@ let merge_author ~(microformats : Extract_microformats.h_card option)
 
 let merge_content ~(microformats : Extract_microformats.h_entry option)
     ~(json_ld : Extract_json_ld.article option)
-    ~(opengraph : Extract_opengraph.t)
-    ~(twitter : Extract_twitter.t)
-    ~(html_meta : Extract_html_meta.t)
-    ~(author : Types.Author.t option) : Types.Content.t =
+    ~(opengraph : Extract_opengraph.t) ~(twitter : Extract_twitter.t)
+    ~(html_meta : Extract_html_meta.t) ~(author : Types.Author.t option) :
+    Types.Content.t =
   let title =
     first_some
       [
@@ -115,11 +112,7 @@ let merge_content ~(microformats : Extract_microformats.h_entry option)
   in
   let image =
     first_some
-      [
-        Option.bind json_ld (fun a -> a.image);
-        opengraph.image;
-        twitter.image;
-      ]
+      [ Option.bind json_ld (fun a -> a.image); opengraph.image; twitter.image ]
   in
   let tags =
     match microformats with
@@ -127,7 +120,16 @@ let merge_content ~(microformats : Extract_microformats.h_entry option)
     | _ -> opengraph.tags
   in
   let content_type = opengraph.og_type in
-  { title; description; published_at; modified_at; author; image; tags; content_type }
+  {
+    title;
+    description;
+    published_at;
+    modified_at;
+    author;
+    image;
+    tags;
+    content_type;
+  }
 
 let merge_site ~(opengraph : Extract_opengraph.t)
     ~(html_meta : Extract_html_meta.t) : Types.Site.t =

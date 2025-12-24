@@ -53,8 +53,7 @@ let has_class cls node =
 
 (* Find first child element with class *)
 let find_class cls node =
-  Soup.descendants node
-  |> Soup.elements
+  Soup.descendants node |> Soup.elements
   |> Soup.filter (has_class cls)
   |> Soup.first
 
@@ -102,8 +101,8 @@ let extract_categories node =
   find_all_class "p-category" node
   |> Soup.to_list
   |> List.filter_map (fun el ->
-         let text = Soup.trimmed_texts el |> String.concat " " in
-         if String.length text > 0 then Some text else None)
+      let text = Soup.trimmed_texts el |> String.concat " " in
+      if String.length text > 0 then Some text else None)
 
 (* Parse an h-card element *)
 let parse_h_card ~base_url node : h_card =
@@ -136,12 +135,11 @@ let extract_rel_me ~base_url soup =
   Soup.select "a[rel~=me]" soup
   |> Soup.to_list
   |> List.filter_map (fun node ->
-         Option.map (Util.resolve_url ~base_url) (Soup.attribute "href" node))
+      Option.map (Util.resolve_url ~base_url) (Soup.attribute "href" node))
 
 let extract ~base_url soup : t =
   let cards =
-    Soup.select ".h-card" soup
-    |> Soup.to_list
+    Soup.select ".h-card" soup |> Soup.to_list
     |> List.map (parse_h_card ~base_url)
   in
   let entries =

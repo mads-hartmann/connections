@@ -36,7 +36,7 @@ let build_property_map soup =
     Soup.select "meta[property^='article:']" soup |> Soup.to_list
   in
   let extract_pair node =
-    match Soup.attribute "property" node, Soup.attribute "content" node with
+    match (Soup.attribute "property" node, Soup.attribute "content" node) with
     | Some prop, Some content -> Some (prop, content)
     | _ -> None
   in

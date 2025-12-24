@@ -37,9 +37,11 @@ let fetch_html ~sw ~env (url : string) : (string, string) result =
           match Piaf.Body.to_string response.body with
           | Ok body_str -> Ok body_str
           | Error err ->
-              Error (Format.asprintf "Body read error: %a" Piaf.Error.pp_hum err)
+              Error
+                (Format.asprintf "Body read error: %a" Piaf.Error.pp_hum err)
         else Error (Printf.sprintf "HTTP %d" (Piaf.Status.to_code status))
-  with exn -> Error (Printf.sprintf "Fetch error: %s" (Printexc.to_string exn))
+  with exn ->
+    Error (Printf.sprintf "Fetch error: %s" (Printexc.to_string exn))
 
 (* Extract metadata from already-fetched HTML *)
 let extract ~url ~html : t =
@@ -59,16 +61,13 @@ let extract ~url ~html : t =
   let json_ld_person =
     match List.nth_opt json_ld.persons 0 with
     | Some p -> Some p
-    | None ->
-        Option.bind (List.nth_opt json_ld.articles 0) (fun a -> a.author)
+    | None -> Option.bind (List.nth_opt json_ld.articles 0) (fun a -> a.author)
   in
   let author =
     Merge.merge_author
       ~microformats:(List.nth_opt microformats.cards 0)
-      ~json_ld:json_ld_person
-      ~opengraph:opengraph.author
-      ~twitter:twitter.creator
-      ~html_meta:html_meta.author
+      ~json_ld:json_ld_person ~opengraph:opengraph.author
+      ~twitter:twitter.creator ~html_meta:html_meta.author
       ~rel_me:microformats.rel_me
   in
 
@@ -93,7 +92,6 @@ let fetch ~sw ~env (url : string) : (t, string) result =
   | Ok html ->
       let result = extract ~url ~html in
       Log.info (fun m ->
-          m "Extracted metadata: %d feeds, author=%b"
-            (List.length result.feeds)
+          m "Extracted metadata: %d feeds, author=%b" (List.length result.feeds)
             (Option.is_some result.author));
       Ok result

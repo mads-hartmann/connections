@@ -185,7 +185,8 @@ let test_extract_twitter () =
   Alcotest.(check (option string))
     "Twitter title" (Some "Twitter Title") result.content.title;
   Alcotest.(check (option string))
-    "Twitter description" (Some "Twitter Description") result.content.description;
+    "Twitter description" (Some "Twitter Description")
+    result.content.description;
   Alcotest.(check (option string))
     "Twitter image" (Some "https://example.com/twitter-image.jpg")
     result.content.image
@@ -197,9 +198,11 @@ let test_extract_json_ld () =
   Alcotest.(check (option string))
     "JSON-LD headline" (Some "JSON-LD Headline") result.content.title;
   Alcotest.(check (option string))
-    "JSON-LD description" (Some "JSON-LD description") result.content.description;
+    "JSON-LD description" (Some "JSON-LD description")
+    result.content.description;
   Alcotest.(check (option string))
-    "JSON-LD published" (Some "2024-01-20T09:00:00Z") result.content.published_at;
+    "JSON-LD published" (Some "2024-01-20T09:00:00Z")
+    result.content.published_at;
   Alcotest.(check (option string))
     "JSON-LD modified" (Some "2024-01-21T14:30:00Z") result.content.modified_at;
   Alcotest.(check int) "1 raw JSON-LD block" 1 (List.length result.raw_json_ld);
@@ -212,7 +215,8 @@ let test_extract_json_ld () =
       Alcotest.(check (option string))
         "author url" (Some "https://example.com/jane") author.url;
       Alcotest.(check int)
-        "2 social profiles" 2 (List.length author.social_profiles)
+        "2 social profiles" 2
+        (List.length author.social_profiles)
 
 let test_extract_microformats () =
   let result =
@@ -223,7 +227,8 @@ let test_extract_microformats () =
   Alcotest.(check (option string))
     "h-entry summary" (Some "Entry summary text") result.content.description;
   Alcotest.(check (option string))
-    "h-entry published" (Some "2024-02-01T08:00:00Z") result.content.published_at;
+    "h-entry published" (Some "2024-02-01T08:00:00Z")
+    result.content.published_at;
   Alcotest.(check int) "2 categories" 2 (List.length result.content.tags);
   (* Check author from h-card *)
   match result.author with
@@ -240,7 +245,8 @@ let test_extract_microformats () =
       Alcotest.(check (option string))
         "author location" (Some "San Francisco, USA") author.location;
       Alcotest.(check int)
-        "2 rel-me links" 2 (List.length author.social_profiles)
+        "2 rel-me links" 2
+        (List.length author.social_profiles)
 
 let test_extract_html_meta () =
   let result =
@@ -251,7 +257,8 @@ let test_extract_html_meta () =
   Alcotest.(check (option string))
     "HTML description" (Some "Meta description") result.content.description;
   Alcotest.(check (option string))
-    "canonical URL" (Some "https://example.com/canonical") result.site.canonical_url;
+    "canonical URL" (Some "https://example.com/canonical")
+    result.site.canonical_url;
   Alcotest.(check (option string))
     "favicon" (Some "https://example.com/favicon.ico") result.site.favicon;
   Alcotest.(check (option string))
@@ -282,9 +289,7 @@ let test_relative_url_resolution () =
 <body></body>
 </html>|}
   in
-  let result =
-    Url_metadata.extract ~url:"https://example.com/blog/" ~html
-  in
+  let result = Url_metadata.extract ~url:"https://example.com/blog/" ~html in
   let feed = List.nth result.feeds 0 in
   Alcotest.(check string)
     "feed URL resolved" "https://example.com/feed.xml" feed.url;

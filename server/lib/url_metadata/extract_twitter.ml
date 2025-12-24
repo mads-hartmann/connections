@@ -23,7 +23,7 @@ let empty =
 let build_property_map soup =
   let tags = Soup.select "meta[name^='twitter:']" soup |> Soup.to_list in
   let extract_pair node =
-    match Soup.attribute "name" node, Soup.attribute "content" node with
+    match (Soup.attribute "name" node, Soup.attribute "content" node) with
     | Some name, Some content -> Some (name, content)
     | _ -> None
   in

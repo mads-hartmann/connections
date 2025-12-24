@@ -7,14 +7,15 @@ module Feed = struct
     | Json_feed -> Format.fprintf fmt "JSON Feed"
 
   let equal_format a b =
-    match a, b with
+    match (a, b) with
     | Rss, Rss | Atom, Atom | Json_feed, Json_feed -> true
     | _ -> false
 
   type t = { url : string; title : string option; format : format }
 
   let pp fmt t =
-    Format.fprintf fmt "@[<hov 2>{ url = %S;@ title = %a;@ format = %a }@]" t.url
+    Format.fprintf fmt "@[<hov 2>{ url = %S;@ title = %a;@ format = %a }@]"
+      t.url
       (Format.pp_print_option Format.pp_print_string)
       t.title pp_format t.format
 
@@ -47,11 +48,8 @@ module Author = struct
     }
 
   let is_empty t =
-    Option.is_none t.name
-    && Option.is_none t.url
-    && Option.is_none t.email
-    && Option.is_none t.photo
-    && Option.is_none t.bio
+    Option.is_none t.name && Option.is_none t.url && Option.is_none t.email
+    && Option.is_none t.photo && Option.is_none t.bio
     && Option.is_none t.location
     && List.length t.social_profiles = 0
 
@@ -62,7 +60,8 @@ module Author = struct
       email = (match a.email with Some _ -> a.email | None -> b.email);
       photo = (match a.photo with Some _ -> a.photo | None -> b.photo);
       bio = (match a.bio with Some _ -> a.bio | None -> b.bio);
-      location = (match a.location with Some _ -> a.location | None -> b.location);
+      location =
+        (match a.location with Some _ -> a.location | None -> b.location);
       social_profiles =
         (match a.social_profiles with [] -> b.social_profiles | l -> l);
     }
@@ -123,8 +122,8 @@ module Content = struct
   let pp fmt t =
     Format.fprintf fmt
       "@[<hov 2>{ title = %a;@ description = %a;@ published_at = %a;@ \
-       modified_at = %a;@ author = %a;@ image = %a;@ tags = [%a];@ content_type \
-       = %a }@]"
+       modified_at = %a;@ author = %a;@ image = %a;@ tags = [%a];@ \
+       content_type = %a }@]"
       (Format.pp_print_option Format.pp_print_string)
       t.title
       (Format.pp_print_option Format.pp_print_string)
@@ -173,8 +172,8 @@ module Site = struct
 
   let pp fmt t =
     Format.fprintf fmt
-      "@[<hov 2>{ name = %a;@ canonical_url = %a;@ favicon = %a;@ locale = %a;@ \
-       webmention_endpoint = %a }@]"
+      "@[<hov 2>{ name = %a;@ canonical_url = %a;@ favicon = %a;@ locale = \
+       %a;@ webmention_endpoint = %a }@]"
       (Format.pp_print_option Format.pp_print_string)
       t.name
       (Format.pp_print_option Format.pp_print_string)

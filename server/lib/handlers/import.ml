@@ -32,7 +32,8 @@ let preview request =
 
 let confirm request =
   let* req =
-    Handler_utils.parse_json_body Opml.Opml_import.confirm_request_of_json request
+    Handler_utils.parse_json_body Opml.Opml_import.confirm_request_of_json
+      request
     |> Handler_utils.or_bad_request
   in
   if List.length req.people = 0 then

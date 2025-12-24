@@ -69,9 +69,7 @@ let get_string_list key json =
   | `Assoc fields -> (
       match List.assoc_opt key fields with
       | Some (`List items) ->
-          List.filter_map
-            (function `String s -> Some s | _ -> None)
-            items
+          List.filter_map (function `String s -> Some s | _ -> None) items
       | Some (`String s) -> [ s ]
       | _ -> [])
   | _ -> []
@@ -101,7 +99,7 @@ let extract_image json =
           | `Assoc fields -> (
               match List.assoc_opt "image" fields with
               | Some (`List (`String url :: _)) -> Some url
-              | Some (`List (`Assoc _ as img :: _)) -> get_string "url" img
+              | Some (`List ((`Assoc _ as img) :: _)) -> get_string "url" img
               | _ -> None)
           | _ -> None))
 
@@ -123,7 +121,7 @@ let parse_author json =
       match List.assoc_opt "author" fields with
       | Some (`String name) -> Some { empty_person with name = Some name }
       | Some (`Assoc _ as author_obj) -> Some (parse_person author_obj)
-      | Some (`List (`Assoc _ as author_obj :: _)) ->
+      | Some (`List ((`Assoc _ as author_obj) :: _)) ->
           Some (parse_person author_obj)
       | Some (`List (`String name :: _)) ->
           Some { empty_person with name = Some name }
