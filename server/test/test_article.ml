@@ -56,7 +56,8 @@ let test_db_article_upsert () =
   in
   let result = Db.Article.upsert input in
   match result with
-  | Error msg -> Alcotest.fail ("upsert failed: " ^ msg)
+  | Error err ->
+      Alcotest.fail (Format.asprintf "upsert failed: %a" Caqti_error.pp err)
   | Ok () -> ()
 
 let test_db_article_list_by_feed () =
@@ -89,7 +90,8 @@ let test_db_article_list_by_feed () =
   in
   let result = Db.Article.list_by_feed ~feed_id:feed.id ~page:1 ~per_page:10 in
   match result with
-  | Error msg -> Alcotest.fail ("list failed: " ^ msg)
+  | Error err ->
+      Alcotest.fail (Format.asprintf "list failed: %a" Caqti_error.pp err)
   | Ok paginated ->
       Alcotest.(check int) "total is 2" 2 paginated.total;
       Alcotest.(check int) "data length is 2" 2 (List.length paginated.data)
@@ -115,12 +117,15 @@ let test_db_article_mark_read () =
     Db.Article.list_by_feed ~feed_id:feed.id ~page:1 ~per_page:10
   in
   match list_result with
-  | Error msg -> Alcotest.fail ("list failed: " ^ msg)
+  | Error err ->
+      Alcotest.fail (Format.asprintf "list failed: %a" Caqti_error.pp err)
   | Ok paginated -> (
       let article = List.hd paginated.data in
       let mark_result = Db.Article.mark_read ~id:article.id ~read:true in
       match mark_result with
-      | Error msg -> Alcotest.fail ("mark_read failed: " ^ msg)
+      | Error err ->
+          Alcotest.fail
+            (Format.asprintf "mark_read failed: %a" Caqti_error.pp err)
       | Ok None -> Alcotest.fail "article not found"
       | Ok (Some updated) ->
           Alcotest.(check bool)

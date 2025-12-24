@@ -2,6 +2,8 @@
 
 open Connections_server
 
+let caqti_err err = Format.asprintf "%a" Caqti_error.pp err
+
 (* Setup in-memory database for tests - requires Eio context *)
 let setup_test_db ~sw ~stdenv =
   Db.Pool.init ~sw ~stdenv ":memory:";
@@ -19,12 +21,13 @@ let with_eio f =
 let setup_person_and_feed () =
   let person_result = Db.Person.create ~name:"Article Owner" in
   match person_result with
-  | Error msg -> Alcotest.fail ("create person failed: " ^ msg)
+  | Error err -> Alcotest.fail ("create person failed: " ^ caqti_err err)
   | Ok person -> (
       let feed_result =
         Db.Rss_feed.create ~person_id:person.id
           ~url:"https://example.com/feed.xml" ~title:(Some "Test Feed")
       in
       match feed_result with
-      | Error msg -> Alcotest.fail ("create feed failed: " ^ msg)
-      | Ok feed -> (person, feed))
+      | Error err -> Alcotest.fail ("create feed failed: " ^ caqti_err err)
+      | Ok None -> Alcotest.fail "create feed returned None"
+      | Ok (Some feed) -> (person, feed))

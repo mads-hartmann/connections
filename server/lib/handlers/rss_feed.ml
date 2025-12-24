@@ -35,26 +35,22 @@ let create request person_id =
       Handler_utils.validate_url url |> Handler_utils.or_bad_request
     in
     let* feed =
-      Db.Rss_feed.create ~person_id ~url:valid_url ~title
-      |> Handler_utils.or_internal_error
+      Service.Rss_feed.create ~person_id ~url:valid_url ~title
+      |> Handler_utils.or_feed_error
     in
     Handler_utils.json_response ~status:`Created (Model.Rss_feed.to_json feed)
 
 let list_by_person (pagination : Pagination.Pagination.t) person_id =
-  let* person_result =
-    Db.Person.get ~id:person_id |> Handler_utils.or_internal_error
-  in
-  let* _ = person_result |> Handler_utils.or_not_found "Person not found" in
+  let* _ = Service.Person.get ~id:person_id |> Handler_utils.or_person_error in
   let* paginated =
-    Db.Rss_feed.list_by_person ~person_id ~page:pagination.page
+    Service.Rss_feed.list_by_person ~person_id ~page:pagination.page
       ~per_page:pagination.per_page
-    |> Handler_utils.or_internal_error
+    |> Handler_utils.or_feed_error
   in
   Handler_utils.json_response (Model.Rss_feed.paginated_to_json paginated)
 
 let get_feed _request id =
-  let* result = Db.Rss_feed.get ~id |> Handler_utils.or_internal_error in
-  let* feed = result |> Handler_utils.or_not_found "Feed not found" in
+  let* feed = Service.Rss_feed.get ~id |> Handler_utils.or_feed_error in
   Handler_utils.json_response (Model.Rss_feed.to_json feed)
 
 type update_request = {
@@ -74,30 +70,27 @@ let update request id =
       | Some u -> Result.map Option.some (Handler_utils.validate_url u))
     |> Handler_utils.or_bad_request
   in
-  let* result =
-    Db.Rss_feed.update ~id ~url:validated_url ~title
-    |> Handler_utils.or_internal_error
+  let* feed =
+    Service.Rss_feed.update ~id ~url:validated_url ~title
+    |> Handler_utils.or_feed_error
   in
-  let* feed = result |> Handler_utils.or_not_found "Feed not found" in
   Handler_utils.json_response (Model.Rss_feed.to_json feed)
 
 let delete_feed _request id =
-  let* result = Db.Rss_feed.delete ~id |> Handler_utils.or_internal_error in
-  if result then Response.of_string ~body:"" `No_content
-  else Handler_utils.not_found "Feed not found"
+  let* () = Service.Rss_feed.delete ~id |> Handler_utils.or_feed_error in
+  Response.of_string ~body:"" `No_content
 
 let refresh _request id =
-  let* result = Db.Rss_feed.get ~id |> Handler_utils.or_internal_error in
-  let* feed = result |> Handler_utils.or_not_found "Feed not found" in
+  let* feed = Service.Rss_feed.get ~id |> Handler_utils.or_feed_error in
   let sw, env = get_context () in
   Feed_fetcher.process_feed ~sw ~env feed;
   Handler_utils.json_response (`Assoc [ ("message", `String "Feed refreshed") ])
 
 let list_all (pagination : Pagination.Pagination.t) =
   let* paginated =
-    Db.Rss_feed.list_all_paginated ~page:pagination.page
+    Service.Rss_feed.list_all_paginated ~page:pagination.page
       ~per_page:pagination.per_page
-    |> Handler_utils.or_internal_error
+    |> Handler_utils.or_feed_error
   in
   Handler_utils.json_response (Model.Rss_feed.paginated_to_json paginated)
 

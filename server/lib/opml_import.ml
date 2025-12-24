@@ -141,6 +141,8 @@ let preview ~sw ~env (opml_content : string) : (preview_response, string) result
         let response = process_entries ~sw ~env parse_result.feeds in
         Ok response
 
+let caqti_err err = Format.asprintf "%a" Caqti_error.pp err
+
 (* Confirm import - create people, feeds, and categories *)
 let confirm (request : confirm_request) : (confirm_response, string) result =
   let created_people = ref 0 in
@@ -154,7 +156,7 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
     | None -> (
         let result = Db.Category.get_or_create ~name in
         match result with
-        | Error msg -> Error msg
+        | Error err -> Error (caqti_err err)
         | Ok category ->
             Hashtbl.add category_cache name category.id;
             incr created_categories;
@@ -167,7 +169,7 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
         (* Create person *)
         let person_result = Db.Person.create ~name:person.name in
         match person_result with
-        | Error msg -> Error msg
+        | Error err -> Error (caqti_err err)
         | Ok created_person -> (
             incr created_people;
             (* Create feeds for this person *)
@@ -179,7 +181,7 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
                       ~url:feed.url ~title:feed.title
                   in
                   match feed_result with
-                  | Error msg -> Error msg
+                  | Error err -> Error (caqti_err err)
                   | Ok _ ->
                       incr created_feeds;
                       create_feeds rest)
@@ -198,7 +200,7 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
                             Db.Category.add_to_person
                               ~person_id:created_person.id ~category_id:cat_id
                           with
-                          | Error msg -> Error msg
+                          | Error err -> Error (caqti_err err)
                           | Ok () -> add_categories rest))
                 in
                 match add_categories person.categories with

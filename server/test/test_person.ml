@@ -51,12 +51,14 @@ let json_suite =
    Database Tests
    ============================================ *)
 
+let caqti_err err = Format.asprintf "%a" Caqti_error.pp err
+
 let test_db_person_create () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
   let result = Db.Person.create ~name:"Test Person" in
   match result with
-  | Error msg -> Alcotest.fail ("create failed: " ^ msg)
+  | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok person ->
       Alcotest.(check string) "name matches" "Test Person" person.name;
       Alcotest.(check bool) "id is positive" true (person.id > 0)
@@ -66,11 +68,11 @@ let test_db_person_get () =
   setup_test_db ~sw ~stdenv:env;
   let create_result = Db.Person.create ~name:"Get Test" in
   match create_result with
-  | Error msg -> Alcotest.fail ("create failed: " ^ msg)
+  | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok created -> (
       let get_result = Db.Person.get ~id:created.id in
       match get_result with
-      | Error msg -> Alcotest.fail ("get failed: " ^ msg)
+      | Error err -> Alcotest.fail ("get failed: " ^ caqti_err err)
       | Ok None -> Alcotest.fail "person not found"
       | Ok (Some person) ->
           Alcotest.(check int) "id matches" created.id person.id;
@@ -84,7 +86,7 @@ let test_db_person_list () =
   let _ = Db.Person.create ~name:"Charlie" in
   let result = Db.Person.list ~page:1 ~per_page:10 () in
   match result with
-  | Error msg -> Alcotest.fail ("list failed: " ^ msg)
+  | Error err -> Alcotest.fail ("list failed: " ^ caqti_err err)
   | Ok paginated ->
       Alcotest.(check int) "total is 3" 3 paginated.total;
       Alcotest.(check int) "data length is 3" 3 (List.length paginated.data)
@@ -94,13 +96,13 @@ let test_db_person_update () =
   setup_test_db ~sw ~stdenv:env;
   let create_result = Db.Person.create ~name:"Original Name" in
   match create_result with
-  | Error msg -> Alcotest.fail ("create failed: " ^ msg)
+  | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok created -> (
       let update_result =
         Db.Person.update ~id:created.id ~name:"Updated Name"
       in
       match update_result with
-      | Error msg -> Alcotest.fail ("update failed: " ^ msg)
+      | Error err -> Alcotest.fail ("update failed: " ^ caqti_err err)
       | Ok None -> Alcotest.fail "person not found for update"
       | Ok (Some updated) ->
           Alcotest.(check string) "name updated" "Updated Name" updated.name)
@@ -110,16 +112,17 @@ let test_db_person_delete () =
   setup_test_db ~sw ~stdenv:env;
   let create_result = Db.Person.create ~name:"To Delete" in
   match create_result with
-  | Error msg -> Alcotest.fail ("create failed: " ^ msg)
+  | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok created -> (
       let delete_result = Db.Person.delete ~id:created.id in
       match delete_result with
-      | Error msg -> Alcotest.fail ("delete failed: " ^ msg)
+      | Error err -> Alcotest.fail ("delete failed: " ^ caqti_err err)
       | Ok false -> Alcotest.fail "delete returned false"
       | Ok true -> (
           let get_result = Db.Person.get ~id:created.id in
           match get_result with
-          | Error msg -> Alcotest.fail ("get after delete failed: " ^ msg)
+          | Error err ->
+              Alcotest.fail ("get after delete failed: " ^ caqti_err err)
           | Ok None -> ()
           | Ok (Some _) -> Alcotest.fail "person still exists after delete"))
 

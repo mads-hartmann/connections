@@ -160,133 +160,103 @@ let upsert (input : create_input) =
   let params =
     (feed_id, title, url, published_at, content, author, image_url)
   in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec upsert_query params)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok () -> Ok ()
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec upsert_query params)
+    pool
 
 (* UPSERT MANY - returns count of inserted articles *)
 let upsert_many inputs =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        let rec loop count = function
-          | [] -> Ok count
-          | input :: rest -> (
-              let {
-                feed_id;
-                title;
-                url;
-                published_at;
-                content;
-                author;
-                image_url;
-              } =
-                input
-              in
-              let params =
-                (feed_id, title, url, published_at, content, author, image_url)
-              in
-              let exec_result = Db.exec upsert_query params in
-              match exec_result with
-              | Error err -> Error err
-              | Ok () ->
-                  (* SQLite changes() would tell us if row was inserted, but we approximate *)
-                  loop (count + 1) rest)
-        in
-        loop 0 inputs)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok count -> Ok count
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      let rec loop count = function
+        | [] -> Ok count
+        | input :: rest -> (
+            let {
+              feed_id;
+              title;
+              url;
+              published_at;
+              content;
+              author;
+              image_url;
+            } =
+              input
+            in
+            let params =
+              (feed_id, title, url, published_at, content, author, image_url)
+            in
+            match Db.exec upsert_query params with
+            | Error err -> Error err
+            | Ok () -> loop (count + 1) rest)
+      in
+      loop 0 inputs)
+    pool
 
 (* GET *)
 let get ~id =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok None -> Ok None
-  | Ok (Some tuple) -> Ok (Some (tuple_to_article tuple))
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
+    pool
+  |> Result.map (Option.map tuple_to_article)
 
 (* LIST BY FEED with pagination *)
 let list_by_feed ~feed_id ~page ~per_page =
+  let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
-  let count_result =
+  let* total =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.find count_by_feed_query feed_id)
       pool
   in
-  match count_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok total -> (
-      let list_result =
-        Caqti_eio.Pool.use
-          (fun (module Db : Caqti_eio.CONNECTION) ->
-            Db.collect_list list_by_feed_query (feed_id, per_page, offset))
-          pool
-      in
-      match list_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok rows ->
-          let data = List.map tuple_to_article rows in
-          Ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+  let+ rows =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        Db.collect_list list_by_feed_query (feed_id, per_page, offset))
+      pool
+  in
+  let data = List.map tuple_to_article rows in
+  Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
 (* LIST ALL with pagination and optional unread filter *)
 let list_all ~page ~per_page ~unread_only =
+  let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
-  let count_result =
+  let* total =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         if unread_only then Db.find count_unread_query ()
         else Db.find count_all_query ())
       pool
   in
-  match count_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok total -> (
-      let list_result =
-        Caqti_eio.Pool.use
-          (fun (module Db : Caqti_eio.CONNECTION) ->
-            if unread_only then
-              Db.collect_list list_unread_query (per_page, offset)
-            else Db.collect_list list_all_query (per_page, offset))
-          pool
-      in
-      match list_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok rows ->
-          let data = List.map tuple_to_article rows in
-          Ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+  let+ rows =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        if unread_only then Db.collect_list list_unread_query (per_page, offset)
+        else Db.collect_list list_all_query (per_page, offset))
+      pool
+  in
+  let data = List.map tuple_to_article rows in
+  Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
 (* MARK READ/UNREAD *)
 let mark_read ~id ~read =
+  let open Result.Syntax in
   let pool = Pool.get () in
-  let exists_result =
+  let* exists =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
-  match exists_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok 0 -> Ok None
-  | Ok _ -> (
+  match exists with
+  | 0 -> Ok None
+  | _ ->
       let read_at =
         if read then
-          (* Get current timestamp in SQLite format *)
           let now = Unix.gettimeofday () in
           let tm = Unix.gmtime now in
           Some
@@ -295,46 +265,38 @@ let mark_read ~id ~read =
                tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec)
         else None
       in
-      let update_result =
+      let* () =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.exec mark_read_query (read_at, id))
           pool
       in
-      match update_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok () -> get ~id)
+      get ~id
 
 (* MARK ALL READ for a feed *)
 let mark_all_read ~feed_id =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.collect_list mark_all_read_query feed_id)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok ids -> Ok (List.length ids)
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.collect_list mark_all_read_query feed_id)
+    pool
+  |> Result.map List.length
 
 (* DELETE *)
 let delete ~id =
+  let open Result.Syntax in
   let pool = Pool.get () in
-  let exists_result =
+  let* exists =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
-  match exists_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok 0 -> Ok false
-  | Ok _ -> (
-      let delete_result =
+  match exists with
+  | 0 -> Ok false
+  | _ ->
+      let+ () =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec delete_query id)
           pool
       in
-      match delete_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok () -> Ok true)
+      true

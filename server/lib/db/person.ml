@@ -83,6 +83,11 @@ let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
     "SELECT COUNT(*) FROM persons WHERE id = ?"
 
+let tuple_to_person (id, name) = { Model.Person.id; name }
+
+let tuple_to_person_with_counts (id, name, feed_count, article_count) =
+  { Model.Person.id; name; feed_count; article_count }
+
 let init_table () =
   let pool = Pool.get () in
   let result =
@@ -97,150 +102,117 @@ let init_table () =
 
 let create ~name =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok id -> Ok { Model.Person.id; name }
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
+    pool
+  |> Result.map (fun id -> { Model.Person.id; name })
 
 let get ~id =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok None -> Ok None
-  | Ok (Some (id, name)) -> Ok (Some { Model.Person.id; name })
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
+    pool
+  |> Result.map (Option.map tuple_to_person)
 
 let list ~page ~per_page ?query () =
+  let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
-  let count_result =
-    match query with
+  let pattern = Option.map (fun q -> "%" ^ q ^ "%") query in
+  let* total =
+    match pattern with
     | None ->
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_query ())
           pool
-    | Some q ->
-        let pattern = "%" ^ q ^ "%" in
+    | Some p ->
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
-            Db.find count_filtered_query pattern)
+            Db.find count_filtered_query p)
           pool
   in
-  match count_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok total -> (
-      let list_result =
-        match query with
-        | None ->
-            Caqti_eio.Pool.use
-              (fun (module Db : Caqti_eio.CONNECTION) ->
-                Db.collect_list list_query (per_page, offset))
-              pool
-        | Some q ->
-            let pattern = "%" ^ q ^ "%" in
-            Caqti_eio.Pool.use
-              (fun (module Db : Caqti_eio.CONNECTION) ->
-                Db.collect_list list_filtered_query (pattern, per_page, offset))
-              pool
-      in
-      match list_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok rows ->
-          let data =
-            List.map (fun (id, name) -> { Model.Person.id; name }) rows
-          in
-          Ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+  let+ rows =
+    match pattern with
+    | None ->
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.collect_list list_query (per_page, offset))
+          pool
+    | Some p ->
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.collect_list list_filtered_query (p, per_page, offset))
+          pool
+  in
+  let data = List.map tuple_to_person rows in
+  Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
 let update ~id ~name =
+  let open Result.Syntax in
   let pool = Pool.get () in
-  let exists_result =
+  let* exists =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
-  match exists_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok 0 -> Ok None
-  | Ok _ -> (
-      let update_result =
+  match exists with
+  | 0 -> Ok None
+  | _ ->
+      let+ () =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.exec update_query (name, id))
           pool
       in
-      match update_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok () -> Ok (Some { Model.Person.id; name }))
+      Some { Model.Person.id; name }
 
 let delete ~id =
+  let open Result.Syntax in
   let pool = Pool.get () in
-  let exists_result =
+  let* exists =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
-  match exists_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok 0 -> Ok false
-  | Ok _ -> (
-      let delete_result =
+  match exists with
+  | 0 -> Ok false
+  | _ ->
+      let+ () =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec delete_query id)
           pool
       in
-      match delete_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok () -> Ok true)
+      true
 
 let list_with_counts ~page ~per_page ?query () =
+  let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
-  let count_result =
-    match query with
+  let pattern = Option.map (fun q -> "%" ^ q ^ "%") query in
+  let* total =
+    match pattern with
     | None ->
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_query ())
           pool
-    | Some q ->
-        let pattern = "%" ^ q ^ "%" in
+    | Some p ->
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
-            Db.find count_filtered_query pattern)
+            Db.find count_filtered_query p)
           pool
   in
-  match count_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok total -> (
-      let list_result =
-        match query with
-        | None ->
-            Caqti_eio.Pool.use
-              (fun (module Db : Caqti_eio.CONNECTION) ->
-                Db.collect_list list_with_counts_query (per_page, offset))
-              pool
-        | Some q ->
-            let pattern = "%" ^ q ^ "%" in
-            Caqti_eio.Pool.use
-              (fun (module Db : Caqti_eio.CONNECTION) ->
-                Db.collect_list list_with_counts_filtered_query
-                  (pattern, per_page, offset))
-              pool
-      in
-      match list_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok rows ->
-          let data =
-            List.map
-              (fun (id, name, feed_count, article_count) ->
-                { Model.Person.id; name; feed_count; article_count })
-              rows
-          in
-          Ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+  let+ rows =
+    match pattern with
+    | None ->
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.collect_list list_with_counts_query (per_page, offset))
+          pool
+    | Some p ->
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.collect_list list_with_counts_filtered_query (p, per_page, offset))
+          pool
+  in
+  let data = List.map tuple_to_person_with_counts rows in
+  Model.Shared.Paginated.make ~data ~page ~per_page ~total
