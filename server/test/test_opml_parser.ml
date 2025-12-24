@@ -1,4 +1,4 @@
-(* Tests for Opml_parser using the test data file *)
+(* Tests for Opml.Opml_parser using the test data file *)
 
 open Connections_server
 
@@ -15,7 +15,7 @@ let read_test_opml () =
 
 let test_parse_succeeds () =
   let content = read_test_opml () in
-  match Opml_parser.parse content with
+  match Opml.Opml_parser.parse content with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
   | Ok result ->
       Alcotest.(check bool)
@@ -24,7 +24,7 @@ let test_parse_succeeds () =
 
 let test_feed_count () =
   let content = read_test_opml () in
-  match Opml_parser.parse content with
+  match Opml.Opml_parser.parse content with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
   | Ok result ->
       (* The file has 196 outline elements with xmlUrl attributes *)
@@ -32,7 +32,7 @@ let test_feed_count () =
 
 let test_first_feed () =
   let content = read_test_opml () in
-  match Opml_parser.parse content with
+  match Opml.Opml_parser.parse content with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
   | Ok result -> (
       match result.feeds with
@@ -46,10 +46,10 @@ let test_first_feed () =
 
 let test_specific_feeds_present () =
   let content = read_test_opml () in
-  match Opml_parser.parse content with
+  match Opml.Opml_parser.parse content with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
   | Ok result ->
-      let urls = List.map (fun f -> f.Opml_parser.url) result.feeds in
+      let urls = List.map (fun f -> f.Opml.Opml_parser.url) result.feeds in
       (* Check some known feeds are present *)
       Alcotest.(check bool)
         "Julia Evans feed present" true
@@ -67,7 +67,7 @@ let test_parse_empty_body () =
 </body>
 </opml>|}
   in
-  match Opml_parser.parse content with
+  match Opml.Opml_parser.parse content with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
   | Ok result ->
       Alcotest.(check int)
@@ -89,12 +89,12 @@ let test_parse_with_categories () =
 </body>
 </opml>|}
   in
-  match Opml_parser.parse content with
+  match Opml.Opml_parser.parse content with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
   | Ok result -> (
       Alcotest.(check int) "should have 3 feeds" 3 (List.length result.feeds);
       let find_by_url url =
-        List.find_opt (fun f -> f.Opml_parser.url = url) result.feeds
+        List.find_opt (fun f -> f.Opml.Opml_parser.url = url) result.feeds
       in
       (match find_by_url "https://example.com/feed1.xml" with
       | None -> Alcotest.fail "feed1 not found"
@@ -113,7 +113,7 @@ let test_parse_with_categories () =
 
 let test_parse_invalid_xml () =
   let content = "not valid xml at all" in
-  match Opml_parser.parse content with
+  match Opml.Opml_parser.parse content with
   | Error _ -> () (* Expected *)
   | Ok _ -> Alcotest.fail "expected parse error for invalid XML"
 

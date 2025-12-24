@@ -23,26 +23,26 @@ let preview request =
         Handler_utils.bad_request "Request body cannot be empty"
       else
         let sw, env = get_context () in
-        let result = Opml_import.preview ~sw ~env body_str in
+        let result = Opml.Opml_import.preview ~sw ~env body_str in
         match result with
         | Error msg -> Handler_utils.bad_request msg
         | Ok response ->
             Handler_utils.json_response
-              (Opml_import.preview_response_to_json response))
+              (Opml.Opml_import.preview_response_to_json response))
 
 let confirm request =
   let* req =
-    Handler_utils.parse_json_body Opml_import.confirm_request_of_json request
+    Handler_utils.parse_json_body Opml.Opml_import.confirm_request_of_json request
     |> Handler_utils.or_bad_request
   in
   if List.length req.people = 0 then
     Handler_utils.bad_request "No people selected for import"
   else
     let* response =
-      Opml_import.confirm req |> Handler_utils.or_internal_error
+      Opml.Opml_import.confirm req |> Handler_utils.or_internal_error
     in
     Handler_utils.json_response ~status:`Created
-      (Opml_import.confirm_response_to_json response)
+      (Opml.Opml_import.confirm_response_to_json response)
 
 let routes () =
   let open Tapak.Router in
