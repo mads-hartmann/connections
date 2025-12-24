@@ -230,9 +230,10 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
           let articles = extract_articles ~feed_id:feed.id parsed_feed in
           let insert_result = Db.Article.upsert_many articles in
           (match insert_result with
-          | Error msg ->
+          | Error err ->
               Log.err (fun m ->
-                  m "Failed to store articles for feed %d: %s" feed.id msg)
+                  m "Failed to store articles for feed %d: %a" feed.id
+                    Caqti_error.pp err)
           | Ok count ->
               Log.info (fun m ->
                   m "Processed %d articles for feed %d" count feed.id));
@@ -245,7 +246,8 @@ let fetch_all_feeds ~sw ~env () : unit =
   Log.info (fun m -> m "Starting scheduled feed fetch");
   let result = Db.Rss_feed.list_all () in
   match result with
-  | Error msg -> Log.err (fun m -> m "Failed to list feeds: %s" msg)
+  | Error err ->
+      Log.err (fun m -> m "Failed to list feeds: %a" Caqti_error.pp err)
   | Ok feeds ->
       (* Process feeds sequentially to avoid overwhelming the system *)
       List.iter (process_feed ~sw ~env) feeds;

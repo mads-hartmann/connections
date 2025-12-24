@@ -3,29 +3,25 @@ open Handler_utils.Syntax
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 let list_by_feed (pagination : Pagination.Pagination.t) feed_id =
-  let* feed_result =
-    Db.Rss_feed.get ~id:feed_id |> Handler_utils.or_internal_error
-  in
-  let* _ = feed_result |> Handler_utils.or_not_found "Feed not found" in
+  let* _ = Service.Rss_feed.get ~id:feed_id |> Handler_utils.or_feed_error in
   let* paginated =
-    Db.Article.list_by_feed ~feed_id ~page:pagination.page
+    Service.Article.list_by_feed ~feed_id ~page:pagination.page
       ~per_page:pagination.per_page
-    |> Handler_utils.or_internal_error
+    |> Handler_utils.or_article_error
   in
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)
 
 let list_all request (pagination : Pagination.Pagination.t) =
   let unread_only = Handler_utils.query "unread" request = Some "true" in
   let* paginated =
-    Db.Article.list_all ~page:pagination.page ~per_page:pagination.per_page
+    Service.Article.list_all ~page:pagination.page ~per_page:pagination.per_page
       ~unread_only
-    |> Handler_utils.or_internal_error
+    |> Handler_utils.or_article_error
   in
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)
 
 let get_article _request id =
-  let* result = Db.Article.get ~id |> Handler_utils.or_internal_error in
-  let* article = result |> Handler_utils.or_not_found "Article not found" in
+  let* article = Service.Article.get ~id |> Handler_utils.or_article_error in
   Handler_utils.json_response (Model.Article.to_json article)
 
 type mark_read_request = { read : bool } [@@deriving yojson]
@@ -35,26 +31,21 @@ let mark_read request id =
     Handler_utils.parse_json_body mark_read_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
-  let* result =
-    Db.Article.mark_read ~id ~read |> Handler_utils.or_internal_error
+  let* article =
+    Service.Article.mark_read ~id ~read |> Handler_utils.or_article_error
   in
-  let* article = result |> Handler_utils.or_not_found "Article not found" in
   Handler_utils.json_response (Model.Article.to_json article)
 
 let mark_all_read _request feed_id =
-  let* feed_result =
-    Db.Rss_feed.get ~id:feed_id |> Handler_utils.or_internal_error
-  in
-  let* _ = feed_result |> Handler_utils.or_not_found "Feed not found" in
+  let* _ = Service.Rss_feed.get ~id:feed_id |> Handler_utils.or_feed_error in
   let* count =
-    Db.Article.mark_all_read ~feed_id |> Handler_utils.or_internal_error
+    Service.Article.mark_all_read ~feed_id |> Handler_utils.or_article_error
   in
   Handler_utils.json_response (`Assoc [ ("marked_read", `Int count) ])
 
 let delete_article _request id =
-  let* result = Db.Article.delete ~id |> Handler_utils.or_internal_error in
-  if result then Response.of_string ~body:"" `No_content
-  else Handler_utils.not_found "Article not found"
+  let* () = Service.Article.delete ~id |> Handler_utils.or_article_error in
+  Response.of_string ~body:"" `No_content
 
 let routes () =
   let open Tapak.Router in

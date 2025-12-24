@@ -96,169 +96,126 @@ let init_table () =
 
 (* CREATE *)
 let create ~person_id ~url ~title =
+  let open Result.Syntax in
   let pool = Pool.get () in
-  let result =
+  let* id =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.find insert_query (person_id, url, title))
       pool
   in
-  match result with
-  | Error err ->
-      let err_msg = Pool.caqti_error_to_string err in
-      Error err_msg
-  | Ok id -> (
-      (* Fetch the complete feed to get timestamps *)
-      let get_result =
-        Caqti_eio.Pool.use
-          (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
-          pool
-      in
-      match get_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok None -> Error "Failed to retrieve created feed"
-      | Ok (Some tuple) -> Ok (tuple_to_feed tuple))
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
+    pool
+  |> Result.map (Option.map tuple_to_feed)
 
 (* GET *)
 let get ~id =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok None -> Ok None
-  | Ok (Some tuple) -> Ok (Some (tuple_to_feed tuple))
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
+    pool
+  |> Result.map (Option.map tuple_to_feed)
 
 (* LIST with pagination *)
 let list_by_person ~person_id ~page ~per_page =
+  let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
-  let count_result =
+  let* total =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.find count_by_person_query person_id)
       pool
   in
-  match count_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok total -> (
-      let list_result =
-        Caqti_eio.Pool.use
-          (fun (module Db : Caqti_eio.CONNECTION) ->
-            Db.collect_list list_by_person_query (person_id, per_page, offset))
-          pool
-      in
-      match list_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok rows ->
-          let data = List.map tuple_to_feed rows in
-          Ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+  let+ rows =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        Db.collect_list list_by_person_query (person_id, per_page, offset))
+      pool
+  in
+  let data = List.map tuple_to_feed rows in
+  Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
 (* UPDATE - handles partial updates *)
 let update ~id ~url ~title =
+  let open Result.Syntax in
   let pool = Pool.get () in
-  let exists_result =
+  let* exists =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
-  match exists_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok 0 -> Ok None
-  | Ok _ -> (
-      (* Get current feed to merge with updates *)
-      let get_result = get ~id in
-      match get_result with
-      | Error err -> Error err
-      | Ok None -> Ok None
-      | Ok (Some current_feed) -> (
+  match exists with
+  | 0 -> Ok None
+  | _ -> (
+      let* current_feed_opt = get ~id in
+      match current_feed_opt with
+      | None -> Ok None
+      | Some current_feed ->
           let new_url = Option.value url ~default:current_feed.url in
           let new_title =
             match title with Some _ -> title | None -> current_feed.title
           in
-          let update_result =
+          let+ () =
             Caqti_eio.Pool.use
               (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.exec update_query (new_url, new_title, id))
               pool
           in
-          match update_result with
-          | Error err ->
-              let err_msg = Pool.caqti_error_to_string err in
-              Error err_msg
-          | Ok () ->
-              Ok (Some { current_feed with url = new_url; title = new_title })))
+          Some { current_feed with url = new_url; title = new_title })
 
 (* DELETE *)
 let delete ~id =
+  let open Result.Syntax in
   let pool = Pool.get () in
-  let exists_result =
+  let* exists =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
-  match exists_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok 0 -> Ok false
-  | Ok _ -> (
-      let delete_result =
+  match exists with
+  | 0 -> Ok false
+  | _ ->
+      let+ () =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec delete_query id)
           pool
       in
-      match delete_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok () -> Ok true)
+      true
 
 (* LIST ALL - no pagination, for scheduler *)
 let list_all () =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.collect_list list_all_query ())
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok rows -> Ok (List.map tuple_to_feed rows)
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.collect_list list_all_query ())
+    pool
+  |> Result.map (List.map tuple_to_feed)
 
 (* LIST ALL with pagination *)
 let list_all_paginated ~page ~per_page =
+  let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
-  let count_result =
+  let* total =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_all_query ())
       pool
   in
-  match count_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok total -> (
-      let list_result =
-        Caqti_eio.Pool.use
-          (fun (module Db : Caqti_eio.CONNECTION) ->
-            Db.collect_list list_all_paginated_query (per_page, offset))
-          pool
-      in
-      match list_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok rows ->
-          let data = List.map tuple_to_feed rows in
-          Ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+  let+ rows =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        Db.collect_list list_all_paginated_query (per_page, offset))
+      pool
+  in
+  let data = List.map tuple_to_feed rows in
+  Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
 (* UPDATE LAST FETCHED timestamp *)
 let update_last_fetched ~id =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.exec update_last_fetched_query id)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok () -> Ok ()
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.exec update_last_fetched_query id)
+    pool

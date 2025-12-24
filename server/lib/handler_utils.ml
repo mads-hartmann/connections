@@ -61,3 +61,45 @@ end
 let or_bad_request result = Result.map_error bad_request result
 let or_internal_error result = Result.map_error internal_error result
 let or_not_found msg = function Some x -> Ok x | None -> Error (not_found msg)
+
+(* Convert Caqti_error.t to response *)
+let or_db_error result =
+  Result.map_error
+    (fun err -> internal_error (Format.asprintf "%a" Caqti_error.pp err))
+    result
+
+(* Convert Service.Article.Error.t to response *)
+let or_article_error result =
+  Result.map_error
+    (function
+      | Service.Article.Error.Not_found -> not_found "Article not found"
+      | Service.Article.Error.Database err ->
+          internal_error (Format.asprintf "%a" Caqti_error.pp err))
+    result
+
+(* Convert Service.Rss_feed.Error.t to response *)
+let or_feed_error result =
+  Result.map_error
+    (function
+      | Service.Rss_feed.Error.Not_found -> not_found "Feed not found"
+      | Service.Rss_feed.Error.Database err ->
+          internal_error (Format.asprintf "%a" Caqti_error.pp err))
+    result
+
+(* Convert Service.Person.Error.t to response *)
+let or_person_error result =
+  Result.map_error
+    (function
+      | Service.Person.Error.Not_found -> not_found "Person not found"
+      | Service.Person.Error.Database err ->
+          internal_error (Format.asprintf "%a" Caqti_error.pp err))
+    result
+
+(* Convert Service.Category.Error.t to response *)
+let or_category_error result =
+  Result.map_error
+    (function
+      | Service.Category.Error.Not_found -> not_found "Category not found"
+      | Service.Category.Error.Database err ->
+          internal_error (Format.asprintf "%a" Caqti_error.pp err))
+    result

@@ -69,6 +69,8 @@ let get_by_person_query =
     "SELECT c.id, c.name FROM categories c INNER JOIN person_categories pc ON \
      c.id = pc.category_id WHERE pc.person_id = ? ORDER BY c.name"
 
+let tuple_to_category (id, name) = { Model.Category.id; name }
+
 let init_table () =
   let pool = Pool.get () in
   let result =
@@ -86,144 +88,93 @@ let init_table () =
 
 let create ~name =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok id -> Ok { Model.Category.id; name }
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
+    pool
+  |> Result.map (fun id -> { Model.Category.id; name })
 
 let get ~id =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok None -> Ok None
-  | Ok (Some (id, name)) -> Ok (Some { Model.Category.id; name })
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
+    pool
+  |> Result.map (Option.map tuple_to_category)
 
 let get_by_name ~name =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.find_opt get_by_name_query name)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok None -> Ok None
-  | Ok (Some (id, name)) -> Ok (Some { Model.Category.id; name })
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.find_opt get_by_name_query name)
+    pool
+  |> Result.map (Option.map tuple_to_category)
 
 let get_or_create ~name =
-  let existing = get_by_name ~name in
-  match existing with
-  | Error err -> Error err
-  | Ok (Some category) -> Ok category
-  | Ok None -> create ~name
+  let open Result.Syntax in
+  let* existing = get_by_name ~name in
+  match existing with Some category -> Ok category | None -> create ~name
 
 let list_all () =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.collect_list list_all_query ())
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok rows ->
-      let categories =
-        List.map (fun (id, name) -> { Model.Category.id; name }) rows
-      in
-      Ok categories
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.collect_list list_all_query ())
+    pool
+  |> Result.map (List.map tuple_to_category)
 
 let list ~page ~per_page () =
+  let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
-  let count_result =
+  let* total =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_query ())
       pool
   in
-  match count_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok total -> (
-      let list_result =
-        Caqti_eio.Pool.use
-          (fun (module Db : Caqti_eio.CONNECTION) ->
-            Db.collect_list list_query (per_page, offset))
-          pool
-      in
-      match list_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok rows ->
-          let data =
-            List.map (fun (id, name) -> { Model.Category.id; name }) rows
-          in
-          Ok (Model.Shared.Paginated.make ~data ~page ~per_page ~total))
+  let+ rows =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        Db.collect_list list_query (per_page, offset))
+      pool
+  in
+  let data = List.map tuple_to_category rows in
+  Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
 let delete ~id =
+  let open Result.Syntax in
   let pool = Pool.get () in
-  let exists_result =
+  let* exists =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
       pool
   in
-  match exists_result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok 0 -> Ok false
-  | Ok _ -> (
-      let delete_result =
+  match exists with
+  | 0 -> Ok false
+  | _ ->
+      let+ () =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec delete_query id)
           pool
       in
-      match delete_result with
-      | Error err -> Error (Pool.caqti_error_to_string err)
-      | Ok () -> Ok true)
+      true
 
 let add_to_person ~person_id ~category_id =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.exec add_to_person_query (person_id, category_id))
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok () -> Ok ()
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.exec add_to_person_query (person_id, category_id))
+    pool
 
 let remove_from_person ~person_id ~category_id =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.exec remove_from_person_query (person_id, category_id))
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok () -> Ok ()
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.exec remove_from_person_query (person_id, category_id))
+    pool
 
 let get_by_person ~person_id =
   let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.collect_list get_by_person_query person_id)
-      pool
-  in
-  match result with
-  | Error err -> Error (Pool.caqti_error_to_string err)
-  | Ok rows ->
-      let categories =
-        List.map (fun (id, name) -> { Model.Category.id; name }) rows
-      in
-      Ok categories
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.collect_list get_by_person_query person_id)
+    pool
+  |> Result.map (List.map tuple_to_category)

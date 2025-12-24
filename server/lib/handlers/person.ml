@@ -5,16 +5,15 @@ open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 let list request (pagination : Pagination.Pagination.t) =
   let query = Handler_utils.query "query" request in
   let* paginated =
-    Db.Person.list_with_counts ~page:pagination.page
+    Service.Person.list_with_counts ~page:pagination.page
       ~per_page:pagination.per_page ?query ()
-    |> Handler_utils.or_internal_error
+    |> Handler_utils.or_person_error
   in
   Handler_utils.json_response
     (Model.Person.paginated_with_counts_to_json paginated)
 
 let get_person _request id =
-  let* result = Db.Person.get ~id |> Handler_utils.or_internal_error in
-  let* person = result |> Handler_utils.or_not_found "Person not found" in
+  let* person = Service.Person.get ~id |> Handler_utils.or_person_error in
   Handler_utils.json_response (Model.Person.to_json person)
 
 type create_request = { name : string } [@@deriving yojson]
@@ -26,7 +25,9 @@ let create request =
   in
   if String.trim name = "" then Handler_utils.bad_request "Name cannot be empty"
   else
-    let* person = Db.Person.create ~name |> Handler_utils.or_internal_error in
+    let* person =
+      Service.Person.create ~name |> Handler_utils.or_person_error
+    in
     Handler_utils.json_response ~status:`Created (Model.Person.to_json person)
 
 type update_request = { name : string } [@@deriving yojson]
@@ -38,16 +39,14 @@ let update request id =
   in
   if String.trim name = "" then Handler_utils.bad_request "Name cannot be empty"
   else
-    let* result =
-      Db.Person.update ~id ~name |> Handler_utils.or_internal_error
+    let* person =
+      Service.Person.update ~id ~name |> Handler_utils.or_person_error
     in
-    let* person = result |> Handler_utils.or_not_found "Person not found" in
     Handler_utils.json_response (Model.Person.to_json person)
 
 let delete_person _request id =
-  let* result = Db.Person.delete ~id |> Handler_utils.or_internal_error in
-  if result then Response.of_string ~body:"" `No_content
-  else Handler_utils.not_found "Person not found"
+  let* () = Service.Person.delete ~id |> Handler_utils.or_person_error in
+  Response.of_string ~body:"" `No_content
 
 let routes () =
   let open Tapak.Router in

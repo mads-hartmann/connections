@@ -3,20 +3,23 @@
 open Connections_server
 open Test_helpers
 
+let caqti_err err = Format.asprintf "%a" Caqti_error.pp err
+
 let test_db_rss_feed_create () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
   let person_result = Db.Person.create ~name:"Feed Owner" in
   match person_result with
-  | Error msg -> Alcotest.fail ("create person failed: " ^ msg)
+  | Error err -> Alcotest.fail ("create person failed: " ^ caqti_err err)
   | Ok person -> (
       let result =
         Db.Rss_feed.create ~person_id:person.id
           ~url:"https://example.com/feed.xml" ~title:(Some "Test Feed")
       in
       match result with
-      | Error msg -> Alcotest.fail ("create feed failed: " ^ msg)
-      | Ok feed ->
+      | Error err -> Alcotest.fail ("create feed failed: " ^ caqti_err err)
+      | Ok None -> Alcotest.fail "create feed returned None"
+      | Ok (Some feed) ->
           Alcotest.(check string)
             "url matches" "https://example.com/feed.xml" feed.url;
           Alcotest.(check (option string))
@@ -30,7 +33,7 @@ let test_db_rss_feed_get () =
   let _ = person in
   let result = Db.Rss_feed.get ~id:feed.id in
   match result with
-  | Error msg -> Alcotest.fail ("get failed: " ^ msg)
+  | Error err -> Alcotest.fail ("get failed: " ^ caqti_err err)
   | Ok None -> Alcotest.fail "feed not found"
   | Ok (Some found) ->
       Alcotest.(check int) "id matches" feed.id found.id;
@@ -41,7 +44,7 @@ let test_db_rss_feed_list_by_person () =
   setup_test_db ~sw ~stdenv:env;
   let person_result = Db.Person.create ~name:"Feed Owner" in
   match person_result with
-  | Error msg -> Alcotest.fail ("create person failed: " ^ msg)
+  | Error err -> Alcotest.fail ("create person failed: " ^ caqti_err err)
   | Ok person -> (
       let _ =
         Db.Rss_feed.create ~person_id:person.id ~url:"https://feed1.com/rss"
@@ -55,7 +58,7 @@ let test_db_rss_feed_list_by_person () =
         Db.Rss_feed.list_by_person ~person_id:person.id ~page:1 ~per_page:10
       in
       match result with
-      | Error msg -> Alcotest.fail ("list failed: " ^ msg)
+      | Error err -> Alcotest.fail ("list failed: " ^ caqti_err err)
       | Ok paginated ->
           Alcotest.(check int) "total is 2" 2 paginated.total;
           Alcotest.(check int) "data length is 2" 2 (List.length paginated.data)
@@ -68,12 +71,12 @@ let test_db_rss_feed_delete () =
   let _ = person in
   let result = Db.Rss_feed.delete ~id:feed.id in
   match result with
-  | Error msg -> Alcotest.fail ("delete failed: " ^ msg)
+  | Error err -> Alcotest.fail ("delete failed: " ^ caqti_err err)
   | Ok false -> Alcotest.fail "delete returned false"
   | Ok true -> (
       let get_result = Db.Rss_feed.get ~id:feed.id in
       match get_result with
-      | Error msg -> Alcotest.fail ("get after delete failed: " ^ msg)
+      | Error err -> Alcotest.fail ("get after delete failed: " ^ caqti_err err)
       | Ok None -> ()
       | Ok (Some _) -> Alcotest.fail "feed still exists after delete")
 
