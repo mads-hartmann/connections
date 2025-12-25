@@ -2,19 +2,31 @@
 
 API backed by SQlite.
 
-It's written in OCaml (>= 5.4.0) and takes advantage of the new effects system which has influenced the library selection. It uses [tapak](https://github.com/syaiful6/tapak) as the web framework.
+It's written in OCaml (>= 5.4.0) and takes advantage of the new effects system which has influenced the library selection.
 
-TODO: Finish with the rest of the libraries and what they're used for.
+| Library | Purpose |
+|---------|---------|
+| [tapak](https://github.com/syaiful6/tapak) | Web framework built on Piaf with effect-based routing |
+| [piaf](https://github.com/anmonteiro/piaf) | HTTP client/server using effects |
+| [caqti](https://github.com/paurkedal/ocaml-caqti) | Database abstraction layer |
+| [caqti-driver-sqlite3](https://github.com/paurkedal/ocaml-caqti) | SQLite driver for Caqti |
+| [caqti-eio](https://github.com/paurkedal/ocaml-caqti) | Eio integration for Caqti |
+| [eio](https://github.com/ocaml-multicore/eio) | Effect-based I/O for OCaml 5 |
+| [yojson](https://github.com/ocaml-community/yojson) | JSON parsing and serialization |
+| [ppx_yojson_conv](https://github.com/janestreet/ppx_yojson_conv) | PPX for deriving JSON converters |
+| [syndic](https://github.com/Cumulus/Syndic) | RSS/Atom feed parsing |
+| [lambdasoup](https://github.com/aantron/lambdasoup) | HTML parsing for metadata extraction |
+| [cmdliner](https://github.com/dbuenzli/cmdliner) | Command-line argument parsing |
+| [logs](https://github.com/dbuenzli/logs) | Logging infrastructure |
+| [alcotest](https://github.com/mirage/alcotest) | Testing framework |
 
 ## Configuration
 
-TODO: Convert this into a table that includes a merging of the CLI options and the ENV VAR options
-
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8080` | Port to run the server on |
-| `DB_PATH` | `connections.db` | Path to SQLite database file |
+| Option | Env Variable | Default | Description |
+|--------|--------------|---------|-------------|
+| `-p`, `--port` | `PORT` | `8080` | Port to listen on |
+| `--db` | `DB_PATH` | `connections.db` | Path to SQLite database file |
+| `--no-scheduler` | - | `false` | Disable background RSS feed scheduler |
 
 ## Development
 
@@ -37,6 +49,14 @@ opam install . --deps-only
 
 ## Tests
 
-TODO: Write about the other kinds of test there are 
+Run all tests with `dune test`. The test suite includes:
 
-- E2E tests start the server with `server/test/data/test.db` and compare API responses against JSON snapshots in `server/test/data/snapshots/` - this is only meant as regression tests that are helpful when I refactor the code.
+- **Unit tests** - JSON serialization, URL validation, feed parsing
+- **Database tests** - CRUD operations for persons, feeds, articles using in-memory SQLite
+- **E2E tests** - Start the server with `server/test/data/test.db` and compare API responses against JSON snapshots in `server/test/data/snapshots/`
+
+To update E2E snapshots after intentional API changes:
+
+```bash
+dune exec server/bin/update_snapshots.exe
+```
