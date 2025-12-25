@@ -27,3 +27,33 @@ let init ~sw ~(stdenv : Eio_unix.Stdenv.base) db_path =
       failwith
         (Format.asprintf "Database connection error: %a" Caqti_error.pp err)
   | Ok pool -> pool_ref := Some pool
+
+(* Apply database schema from embedded SQL *)
+let apply_schema () =
+  let pool = get () in
+  let schema = Schema_sql.content in
+  (* Split schema into individual statements and execute each *)
+  let statements =
+    String.split_on_char ';' schema
+    |> List.map String.trim
+    |> List.filter (fun s -> String.length s > 0)
+  in
+  let exec_statement stmt =
+    let query =
+      Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit) stmt
+    in
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec query ())
+      pool
+  in
+  let rec apply = function
+    | [] -> ()
+    | stmt :: rest -> (
+        match exec_statement stmt with
+        | Error err ->
+            failwith
+              (Format.asprintf "Schema application error: %a\nStatement: %s"
+                 Caqti_error.pp err stmt)
+        | Ok () -> apply rest)
+  in
+  apply statements

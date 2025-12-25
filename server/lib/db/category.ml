@@ -1,28 +1,6 @@
 (* Row type definitions *)
 let category_row_type = Caqti_type.(t2 int string)
 
-(* Query definitions *)
-let create_table_query =
-  Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
-    {|
-      CREATE TABLE IF NOT EXISTS categories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE
-      )
-    |}
-
-let create_junction_table_query =
-  Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
-    {|
-      CREATE TABLE IF NOT EXISTS person_categories (
-        person_id INTEGER NOT NULL,
-        category_id INTEGER NOT NULL,
-        PRIMARY KEY (person_id, category_id),
-        FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE,
-        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-      )
-    |}
-
 let insert_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
     "INSERT INTO categories (name) VALUES (?) RETURNING id"
@@ -70,21 +48,6 @@ let get_by_person_query =
      c.id = pc.category_id WHERE pc.person_id = ? ORDER BY c.name"
 
 let tuple_to_category (id, name) = { Model.Category.id; name }
-
-let init_table () =
-  let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        match Db.exec create_table_query () with
-        | Error _ as e -> e
-        | Ok () -> Db.exec create_junction_table_query ())
-      pool
-  in
-  match result with
-  | Error err ->
-      failwith (Format.asprintf "Table creation error: %a" Caqti_error.pp err)
-  | Ok () -> ()
 
 let create ~name =
   let pool = Pool.get () in

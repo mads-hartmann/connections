@@ -2,16 +2,6 @@
 let person_row_type = Caqti_type.(t2 int string)
 let person_with_counts_row_type = Caqti_type.(t4 int string int int)
 
-(* Query definitions *)
-let create_table_query =
-  Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
-    {|
-      CREATE TABLE IF NOT EXISTS persons (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL
-      )
-    |}
-
 let insert_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
     "INSERT INTO persons (name) VALUES (?) RETURNING id"
@@ -87,18 +77,6 @@ let tuple_to_person (id, name) = { Model.Person.id; name }
 
 let tuple_to_person_with_counts (id, name, feed_count, article_count) =
   { Model.Person.id; name; feed_count; article_count }
-
-let init_table () =
-  let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec create_table_query ())
-      pool
-  in
-  match result with
-  | Error err ->
-      failwith (Format.asprintf "Table creation error: %a" Caqti_error.pp err)
-  | Ok () -> ()
 
 let create ~name =
   let pool = Pool.get () in

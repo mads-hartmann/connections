@@ -1,31 +1,3 @@
-(* Query definitions *)
-let create_table_query =
-  Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
-    {|
-      CREATE TABLE IF NOT EXISTS articles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        feed_id INTEGER NOT NULL,
-        title TEXT,
-        url TEXT NOT NULL,
-        published_at TEXT,
-        content TEXT,
-        author TEXT,
-        image_url TEXT,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        read_at TEXT,
-        FOREIGN KEY (feed_id) REFERENCES rss_feeds(id) ON DELETE CASCADE,
-        UNIQUE(feed_id, url)
-      )
-    |}
-
-let create_feed_index_query =
-  Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
-    "CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id)"
-
-let create_read_index_query =
-  Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
-    "CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at)"
-
 (* Article row type: 10 fields split as t2 of (t5, t5) *)
 let article_row_type =
   Caqti_type.(
@@ -119,26 +91,6 @@ let tuple_to_article
     created_at;
     read_at;
   }
-
-(* Initialize table *)
-let init_table () =
-  let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        match Db.exec create_table_query () with
-        | Error _ as e -> e
-        | Ok () -> (
-            match Db.exec create_feed_index_query () with
-            | Error _ as e -> e
-            | Ok () -> Db.exec create_read_index_query ()))
-      pool
-  in
-  match result with
-  | Error err ->
-      failwith
-        (Format.asprintf "Article table creation error: %a" Caqti_error.pp err)
-  | Ok () -> ()
 
 (* UPSERT - returns true if inserted, false if duplicate *)
 

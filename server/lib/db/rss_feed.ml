@@ -2,26 +2,6 @@
 let rss_feed_row_type =
   Caqti_type.(t6 int int string (option string) string (option string))
 
-(* Query definitions *)
-let create_table_query =
-  Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
-    {|
-      CREATE TABLE IF NOT EXISTS rss_feeds (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        person_id INTEGER NOT NULL,
-        url TEXT NOT NULL,
-        title TEXT,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        last_fetched_at TEXT,
-        FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE RESTRICT,
-        UNIQUE(person_id, url)
-      )
-    |}
-
-let enable_foreign_keys_query =
-  Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit)
-    "PRAGMA foreign_keys = ON"
-
 let insert_query =
   Caqti_request.Infix.(
     Caqti_type.(t3 int string (option string)) ->! Caqti_type.int)
@@ -76,23 +56,6 @@ let update_last_fetched_query =
 (* Helper to convert DB tuple to Model.Rss_feed.t *)
 let tuple_to_feed (id, person_id, url, title, created_at, last_fetched_at) =
   { Model.Rss_feed.id; person_id; url; title; created_at; last_fetched_at }
-
-(* Initialize table *)
-let init_table () =
-  let pool = Pool.get () in
-  let result =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        match Db.exec enable_foreign_keys_query () with
-        | Error _ as e -> e
-        | Ok () -> Db.exec create_table_query ())
-      pool
-  in
-  match result with
-  | Error err ->
-      failwith
-        (Format.asprintf "RssFeed table creation error: %a" Caqti_error.pp err)
-  | Ok () -> ()
 
 (* CREATE *)
 let create ~person_id ~url ~title =

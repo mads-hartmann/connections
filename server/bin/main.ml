@@ -31,10 +31,7 @@ let () =
   in
   (* Initialize database *)
   Db.Pool.init ~sw ~stdenv:env db_path;
-  Db.Person.init_table ();
-  Db.Rss_feed.init_table ();
-  Db.Article.init_table ();
-  Db.Category.init_table ();
+  Db.Pool.apply_schema ();
   (* Set handler contexts for feed refresh, OPML import, and URL metadata *)
   Handlers.Rss_feed.set_context ~sw ~env;
   Handlers.Import.set_context ~sw ~env;
