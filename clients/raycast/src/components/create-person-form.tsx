@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Form, showToast, Toast, useNavigation } from "@raycast/api";
+import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
 import { useState } from "react";
 import * as Metadata from "../api/metadata";
 
