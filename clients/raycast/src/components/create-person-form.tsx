@@ -202,10 +202,11 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
 
       {/* Feeds Section with Checkboxes */}
       {metadata.merged.feeds.length > 0 ? (
-        metadata.merged.feeds.map((feed) => (
+        metadata.merged.feeds.map((feed, index) => (
           <Form.Checkbox
             key={feed.url}
             id={`feed_${feed.url}`}
+            title={index === 0 ? "Feeds" : ""}
             label={`${feed.title || "Untitled"} (${feed.format})`}
             defaultValue={true}
             info={feed.url}
