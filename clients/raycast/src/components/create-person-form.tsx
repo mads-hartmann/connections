@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
+import { Action, ActionPanel, Form, showToast, Toast, useNavigation } from "@raycast/api";
 import { useState } from "react";
 import * as Metadata from "../api/metadata";
 
@@ -127,8 +127,9 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
   const author = metadata.merged.author;
   const site = metadata.merged.site;
 
-  async function handleSubmit(values: { name: string; feeds: string[] }) {
-    if (!values.name.trim()) {
+  async function handleSubmit(values: Record<string, unknown>) {
+    const name = values.name as string;
+    if (!name.trim()) {
       showToast({
         style: Toast.Style.Failure,
         title: "Name required",
@@ -139,8 +140,9 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
 
     setIsCreating(true);
     try {
-      const feedsToCreate = metadata.merged.feeds.filter((f) => values.feeds.includes(f.url));
-      await createPerson(values.name.trim(), feedsToCreate);
+      // Collect selected feeds from checkbox values
+      const feedsToCreate = metadata.merged.feeds.filter((f) => values[`feed_${f.url}`] === true);
+      await createPerson(name.trim(), feedsToCreate);
       showToast({
         style: Toast.Style.Success,
         title: "Person created",
@@ -198,32 +200,19 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
 
       <Form.Separator />
 
-      {/* Feeds Section with TagPicker for multi-select */}
+      {/* Feeds Section with Checkboxes */}
       {metadata.merged.feeds.length > 0 ? (
-        <Form.TagPicker
-          id="feeds"
-          title="Feeds"
-          defaultValue={metadata.merged.feeds.map((f) => f.url)}
-          info={`${metadata.merged.feeds.length} feed(s) discovered. Deselect any you don't want to subscribe to.`}
-        >
-          {metadata.merged.feeds.map((feed) => (
-            <Form.TagPicker.Item
-              key={feed.url}
-              value={feed.url}
-              title={feed.title || "Untitled"}
-              icon={getFeedIcon(feed.format)}
-            />
-          ))}
-        </Form.TagPicker>
+        metadata.merged.feeds.map((feed) => (
+          <Form.Checkbox
+            key={feed.url}
+            id={`feed_${feed.url}`}
+            label={`${feed.title || "Untitled"} (${feed.format})`}
+            defaultValue={true}
+            info={feed.url}
+          />
+        ))
       ) : (
         <Form.Description title="Feeds" text="No RSS/Atom feeds discovered at this URL." />
-      )}
-
-      {/* Show feed URLs for reference */}
-      {metadata.merged.feeds.length > 0 && (
-        <Form.Description
-          text={metadata.merged.feeds.map((f) => `• ${f.title || "Untitled"} (${f.format})\n  ${f.url}`).join("\n")}
-        />
       )}
 
       {/* Site info if different from name */}
@@ -232,15 +221,4 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
   );
 }
 
-function getFeedIcon(format: string): Icon {
-  switch (format) {
-    case "rss":
-      return Icon.Livestream;
-    case "atom":
-      return Icon.Globe;
-    case "json_feed":
-      return Icon.Code;
-    default:
-      return Icon.Document;
-  }
-}
+
