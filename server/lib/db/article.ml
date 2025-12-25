@@ -25,6 +25,13 @@ let get_query =
       FROM articles WHERE id = ?
     |}
 
+let get_by_feed_url_query =
+  Caqti_request.Infix.(Caqti_type.(t2 int string) ->? article_row_type)
+    {|
+      SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
+      FROM articles WHERE feed_id = ? AND url = ?
+    |}
+
 let list_by_feed_query =
   Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* article_row_type)
     {|
@@ -150,6 +157,15 @@ let get ~id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
+    pool
+  |> Result.map (Option.map tuple_to_article)
+
+(* GET by feed_id and url *)
+let get_by_feed_url ~feed_id ~url =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.find_opt get_by_feed_url_query (feed_id, url))
     pool
   |> Result.map (Option.map tuple_to_article)
 
