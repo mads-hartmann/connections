@@ -65,6 +65,48 @@ let count_unread_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
     "SELECT COUNT(*) FROM articles WHERE read_at IS NULL"
 
+let list_by_tag_query =
+  Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
+    {|
+      SELECT DISTINCT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at
+      FROM articles a
+      INNER JOIN article_tags at ON a.id = at.article_id
+      INNER JOIN tags t ON at.tag_id = t.id
+      WHERE t.name = ?
+      ORDER BY a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?
+    |}
+
+let count_by_tag_query =
+  Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
+    {|
+      SELECT COUNT(DISTINCT a.id)
+      FROM articles a
+      INNER JOIN article_tags at ON a.id = at.article_id
+      INNER JOIN tags t ON at.tag_id = t.id
+      WHERE t.name = ?
+    |}
+
+let list_by_tag_unread_query =
+  Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
+    {|
+      SELECT DISTINCT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at
+      FROM articles a
+      INNER JOIN article_tags at ON a.id = at.article_id
+      INNER JOIN tags t ON at.tag_id = t.id
+      WHERE t.name = ? AND a.read_at IS NULL
+      ORDER BY a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?
+    |}
+
+let count_by_tag_unread_query =
+  Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
+    {|
+      SELECT COUNT(DISTINCT a.id)
+      FROM articles a
+      INNER JOIN article_tags at ON a.id = at.article_id
+      INNER JOIN tags t ON at.tag_id = t.id
+      WHERE t.name = ? AND a.read_at IS NULL
+    |}
+
 let mark_read_query =
   Caqti_request.Infix.(Caqti_type.(t2 (option string) int) ->. Caqti_type.unit)
     "UPDATE articles SET read_at = ? WHERE id = ?"
@@ -221,17 +263,39 @@ let list_all ~page ~per_page ~unread_only =
   let data = List.map tuple_to_article rows in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
-(* LIST ALL with tags - eager loads tags for all articles *)
-let list_all_with_tags ~page ~per_page ~unread_only =
+(* LIST BY TAG with pagination and optional unread filter *)
+let list_by_tag ~tag ~page ~per_page ~unread_only =
   let open Result.Syntax in
-  let* paginated = list_all ~page ~per_page ~unread_only in
+  let pool = Pool.get () in
+  let offset = (page - 1) * per_page in
+  let* total =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        if unread_only then Db.find count_by_tag_unread_query tag
+        else Db.find count_by_tag_query tag)
+      pool
+  in
+  let+ rows =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        if unread_only then
+          Db.collect_list list_by_tag_unread_query (tag, per_page, offset)
+        else Db.collect_list list_by_tag_query (tag, per_page, offset))
+      pool
+  in
+  let data = List.map tuple_to_article rows in
+  Model.Shared.Paginated.make ~data ~page ~per_page ~total
+
+(* Helper to add tags to a paginated result *)
+let add_tags_to_paginated paginated =
+  let open Result.Syntax in
   let article_ids =
-    List.map (fun (a : Model.Article.t) -> a.id) paginated.data
+    List.map (fun (a : Model.Article.t) -> a.id) paginated.Model.Shared.Paginated.data
   in
   if List.length article_ids = 0 then
     Ok
-      (Model.Shared.Paginated.make ~data:[] ~page ~per_page
-         ~total:paginated.total)
+      (Model.Shared.Paginated.make ~data:[] ~page:paginated.page
+         ~per_page:paginated.per_page ~total:paginated.total)
   else
     let+ tags_by_article = Tag.get_by_article_ids ~article_ids in
     let data =
@@ -245,7 +309,20 @@ let list_all_with_tags ~page ~per_page ~unread_only =
           Model.Article.add_tags article tags)
         paginated.data
     in
-    Model.Shared.Paginated.make ~data ~page ~per_page ~total:paginated.total
+    Model.Shared.Paginated.make ~data ~page:paginated.page
+      ~per_page:paginated.per_page ~total:paginated.total
+
+(* LIST ALL with tags - eager loads tags for all articles *)
+let list_all_with_tags ~page ~per_page ~unread_only =
+  let open Result.Syntax in
+  let* paginated = list_all ~page ~per_page ~unread_only in
+  add_tags_to_paginated paginated
+
+(* LIST BY TAG with tags - eager loads tags for all articles *)
+let list_by_tag_with_tags ~tag ~page ~per_page ~unread_only =
+  let open Result.Syntax in
+  let* paginated = list_by_tag ~tag ~page ~per_page ~unread_only in
+  add_tags_to_paginated paginated
 
 (* MARK READ/UNREAD *)
 let mark_read ~id ~read =
