@@ -18,13 +18,28 @@ let setup_logging () =
       then Logs.Src.set_level src (Some Logs.Warning))
     (Logs.Src.list ())
 
-let run db_path port no_scheduler =
+let find_schema_path () =
+  (* Look for schema.sql in common locations *)
+  let candidates = [
+    "server/lib/db/schema.sql";
+    "../server/lib/db/schema.sql";
+    "lib/db/schema.sql";
+  ] in
+  match List.find_opt Sys.file_exists candidates with
+  | Some path -> path
+  | None -> failwith "Could not find schema.sql"
+
+let run db_path schema_path port no_scheduler =
   setup_logging ();
   Eio_main.run @@ fun env ->
   Eio.Switch.run @@ fun sw ->
   (* Initialize database *)
+  let schema = match schema_path with
+    | Some path -> path
+    | None -> find_schema_path ()
+  in
   Db.Pool.init ~sw ~stdenv:env db_path;
-  Db.Pool.apply_schema ();
+  Db.Pool.apply_schema ~schema_path:schema;
   (* Set handler contexts for feed refresh, OPML import, and URL metadata *)
   Handlers.Rss_feed.set_context ~sw ~env;
   Handlers.Import.set_context ~sw ~env;
@@ -48,6 +63,10 @@ let db_path =
   let env = Cmd.Env.info "DB_PATH" in
   Arg.(value & opt string "connections.db" & info [ "db" ] ~env ~docv:"PATH" ~doc)
 
+let schema_path =
+  let doc = "Path to the schema.sql file. If not specified, searches common locations." in
+  Arg.(value & opt (some string) None & info [ "schema" ] ~docv:"PATH" ~doc)
+
 let port =
   let doc = "Port to listen on." in
   let env = Cmd.Env.info "PORT" in
@@ -60,6 +79,6 @@ let no_scheduler =
 let run_cmd =
   let doc = "Connections server for managing people and their RSS feeds" in
   let info = Cmd.info "connections-server" ~doc in
-  Cmd.v info Term.(const run $ db_path $ port $ no_scheduler)
+  Cmd.v info Term.(const run $ db_path $ schema_path $ port $ no_scheduler)
 
 let () = exit (Cmd.eval run_cmd)

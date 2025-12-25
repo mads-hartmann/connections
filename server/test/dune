@@ -1,7 +1,15 @@
+(library
+ (name e2e_helpers)
+ (modules e2e_helpers)
+ (libraries eio eio_main piaf yojson unix))
+
 (test
  (name test_main)
+ (modules test_main test_helpers test_utils test_person test_rss_feed
+          test_article test_feed_fetcher test_opml_parser test_e2e)
  (libraries
   connections_server
+  e2e_helpers
   alcotest
   eio
   eio_main

@@ -6,4 +6,4 @@
 
 (executable
  (name update_snapshots)
- (libraries eio eio_main piaf yojson unix))
+ (libraries e2e_helpers eio eio_main unix))

@@ -28,13 +28,13 @@ let init ~sw ~(stdenv : Eio_unix.Stdenv.base) db_path =
         (Format.asprintf "Database connection error: %a" Caqti_error.pp err)
   | Ok pool -> pool_ref := Some pool
 
-(* Apply database schema from embedded SQL *)
-let apply_schema () =
+(* Execute SQL statements from a string.
+   SQLite/Caqti doesn't support multi-statement execution in prepared statements,
+   so we split on semicolons and execute each statement individually. *)
+let exec_sql sql =
   let pool = get () in
-  let schema = Schema_sql.content in
-  (* Split schema into individual statements and execute each *)
   let statements =
-    String.split_on_char ';' schema
+    String.split_on_char ';' sql
     |> List.map String.trim
     |> List.filter (fun s -> String.length s > 0)
   in
@@ -52,8 +52,15 @@ let apply_schema () =
         match exec_statement stmt with
         | Error err ->
             failwith
-              (Format.asprintf "Schema application error: %a\nStatement: %s"
+              (Format.asprintf "SQL execution error: %a\nStatement: %s"
                  Caqti_error.pp err stmt)
         | Ok () -> apply rest)
   in
   apply statements
+
+(* Apply database schema from schema.sql file *)
+let apply_schema ~schema_path =
+  if not (Sys.file_exists schema_path) then
+    failwith (Printf.sprintf "Schema file not found: %s" schema_path);
+  let schema = In_channel.with_open_text schema_path In_channel.input_all in
+  exec_sql schema
