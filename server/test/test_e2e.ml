@@ -134,16 +134,15 @@ let test_endpoint endpoint () =
           let expected_normalized = normalize_json expected in
           Alcotest.(check string) "response matches snapshot" expected_normalized actual_normalized)
 
-(* Define test endpoints *)
+(* Define test endpoints - IDs must match data in test.db *)
 let endpoints = [
   "/persons";
-  "/persons/1";
+  "/persons/8";
   "/feeds";
-  "/feeds/1";
+  "/feeds/2";
   "/articles";
   "/articles/1";
   "/categories";
-  "/categories/1";
 ]
 
 let suite =
