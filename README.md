@@ -1,6 +1,6 @@
 # Connections
 
-This is my attempt and building this:
+This is my attempt at building this:
 
 > I want this weird hybrid of an app that's somewhere between an RSS reader and a Contacts app. I want to be able to organise my social graph and also snoop in on everyone and what they're up to.
 
