@@ -7,19 +7,19 @@ CREATE TABLE IF NOT EXISTS persons (
   name TEXT NOT NULL
 );
 
--- Categories table
-CREATE TABLE IF NOT EXISTS categories (
+-- Tags table
+CREATE TABLE IF NOT EXISTS tags (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE
 );
 
--- Person-Category junction table
-CREATE TABLE IF NOT EXISTS person_categories (
+-- Person-Tag junction table
+CREATE TABLE IF NOT EXISTS person_tags (
   person_id INTEGER NOT NULL,
-  category_id INTEGER NOT NULL,
-  PRIMARY KEY (person_id, category_id),
+  tag_id INTEGER NOT NULL,
+  PRIMARY KEY (person_id, tag_id),
   FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE,
-  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
 -- RSS feeds table
@@ -32,6 +32,15 @@ CREATE TABLE IF NOT EXISTS rss_feeds (
   last_fetched_at TEXT,
   FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE RESTRICT,
   UNIQUE(person_id, url)
+);
+
+-- Feed-Tag junction table
+CREATE TABLE IF NOT EXISTS feed_tags (
+  feed_id INTEGER NOT NULL,
+  tag_id INTEGER NOT NULL,
+  PRIMARY KEY (feed_id, tag_id),
+  FOREIGN KEY (feed_id) REFERENCES rss_feeds(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
 -- Articles table
@@ -50,6 +59,23 @@ CREATE TABLE IF NOT EXISTS articles (
   UNIQUE(feed_id, url)
 );
 
+-- Article-Tag junction table
+CREATE TABLE IF NOT EXISTS article_tags (
+  article_id INTEGER NOT NULL,
+  tag_id INTEGER NOT NULL,
+  PRIMARY KEY (article_id, tag_id),
+  FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+
 -- Indexes for articles table
 CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id);
 CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at);
+
+-- Indexes for tag lookups
+CREATE INDEX IF NOT EXISTS idx_person_tags_person_id ON person_tags(person_id);
+CREATE INDEX IF NOT EXISTS idx_person_tags_tag_id ON person_tags(tag_id);
+CREATE INDEX IF NOT EXISTS idx_feed_tags_feed_id ON feed_tags(feed_id);
+CREATE INDEX IF NOT EXISTS idx_feed_tags_tag_id ON feed_tags(tag_id);
+CREATE INDEX IF NOT EXISTS idx_article_tags_article_id ON article_tags(article_id);
+CREATE INDEX IF NOT EXISTS idx_article_tags_tag_id ON article_tags(tag_id);
