@@ -1,0 +1,167 @@
+{
+  "data": [
+    {
+      "id": 44,
+      "person_id": 48,
+      "url": "https://blog.mads-hartmann.com/feed.xml",
+      "title": "Mads Hartmann",
+      "created_at": "2025-12-25 19:26:18"
+    },
+    {
+      "id": 43,
+      "person_id": 47,
+      "url": "https://anil.recoil.org/news.xml",
+      "title": "anil.recoil.org",
+      "created_at": "2025-12-14 20:17:36",
+      "last_fetched_at": "2025-12-25 19:23:53"
+    },
+    {
+      "id": 2,
+      "person_id": 8,
+      "url": "https://adam.herokuapp.com/feed",
+      "title": "a tornado of razorblades",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:39"
+    },
+    {
+      "id": 3,
+      "person_id": 9,
+      "url": "https://alexjreid.dev/index.xml",
+      "title": "Alex Reid",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:39"
+    },
+    {
+      "id": 4,
+      "person_id": 10,
+      "url": "https://fasterthanli.me/index.xml",
+      "title": "fasterthanli.me",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:39"
+    },
+    {
+      "id": 5,
+      "person_id": 11,
+      "url": "https://andydote.co.uk/rss",
+      "title": "Andy Dote",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:40"
+    },
+    {
+      "id": 6,
+      "person_id": 12,
+      "url": "https://arkadiyt.com/atom.xml",
+      "title": "Arkadiy Tetelman",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:40"
+    },
+    {
+      "id": 7,
+      "person_id": 13,
+      "url": "https://metaredux.com/feed",
+      "title": "Meta Redux",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:40"
+    },
+    {
+      "id": 8,
+      "person_id": 14,
+      "url": "https://caseyhandmer.wordpress.com/feed/",
+      "title": "Casey Handmer's blog",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:41"
+    },
+    {
+      "id": 9,
+      "person_id": 15,
+      "url": "https://blog.thestateofme.com/feed/",
+      "title": "Chris Swan's Weblog",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:41"
+    },
+    {
+      "id": 10,
+      "person_id": 16,
+      "url": "https://mcfunley.com/rss",
+      "title": "Dan McKinley",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:41"
+    },
+    {
+      "id": 11,
+      "person_id": 17,
+      "url": "https://2ality.com/feeds/posts.atom",
+      "title": "2ality – JavaScript and more",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:41"
+    },
+    {
+      "id": 12,
+      "person_id": 18,
+      "url": "https://borretti.me/feed",
+      "title": "Fernando Borretti",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:42"
+    },
+    {
+      "id": 13,
+      "person_id": 19,
+      "url": "https://architectelevator.com/feed.xml",
+      "title": "The Architect Elevator",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:42"
+    },
+    {
+      "id": 14,
+      "person_id": 20,
+      "url": "https://www.hillelwayne.com/index.xml",
+      "title": "Hillel Wayne",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:42"
+    },
+    {
+      "id": 15,
+      "person_id": 21,
+      "url": "https://www.jamesshore.com/v2/feed",
+      "title": "James Shore",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:43"
+    },
+    {
+      "id": 16,
+      "person_id": 22,
+      "url": "https://jvns.ca/atom.xml",
+      "title": "Julia Evans",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:43"
+    },
+    {
+      "id": 17,
+      "person_id": 23,
+      "url": "https://www.skovhus.dev/rss.xml",
+      "title": "Kenneth Skovhus",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:43"
+    },
+    {
+      "id": 18,
+      "person_id": 24,
+      "url": "https://tailscale.com/blog/index.xml",
+      "title": "Blog on Tailscale",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:43"
+    },
+    {
+      "id": 19,
+      "person_id": 25,
+      "url": "https://larahogan.me/feed.xml",
+      "title": "Lara Callender Hogan",
+      "created_at": "2025-12-14 06:52:40",
+      "last_fetched_at": "2025-12-25 19:23:43"
+    }
+  ],
+  "page": 1,
+  "per_page": 20,
+  "total": 44,
+  "total_pages": 3
+}

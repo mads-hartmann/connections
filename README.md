@@ -34,6 +34,16 @@ Testing
 dune test
 ```
 
+### E2E Snapshot Tests
+
+E2E tests start the server with `server/test/data/test.db` and compare API responses against JSON snapshots in `server/test/data/snapshots/`.
+
+Update snapshots after intentional API changes:
+
+```bash
+dune exec server/bin/update_snapshots.exe
+```
+
 Running
 
 ```bash

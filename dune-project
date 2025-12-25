@@ -14,7 +14,7 @@
  (depends
   (ocaml (>= 5.4.0))
   (dune (>= 3.0))
-  (tapak (>= 0.1.0))
+  tapak ; pinned from https://github.com/syaiful6/tapak.git
   (caqti (>= 2.0.0))
   (caqti-driver-sqlite3 (>= 2.0.0))
   (caqti-eio (>= 2.0.0))

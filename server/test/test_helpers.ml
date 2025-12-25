@@ -7,10 +7,7 @@ let caqti_err err = Format.asprintf "%a" Caqti_error.pp err
 (* Setup in-memory database for tests - requires Eio context *)
 let setup_test_db ~sw ~stdenv =
   Db.Pool.init ~sw ~stdenv ":memory:";
-  Db.Person.init_table ();
-  Db.Rss_feed.init_table ();
-  Db.Article.init_table ();
-  Db.Category.init_table ()
+  Db.Pool.apply_schema ()
 
 (* Helper to run tests within Eio context *)
 let with_eio f =

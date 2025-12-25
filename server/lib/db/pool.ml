@@ -27,3 +27,37 @@ let init ~sw ~(stdenv : Eio_unix.Stdenv.base) db_path =
       failwith
         (Format.asprintf "Database connection error: %a" Caqti_error.pp err)
   | Ok pool -> pool_ref := Some pool
+
+(* Execute SQL statements from a string.
+   SQLite/Caqti doesn't support multi-statement execution in prepared statements,
+   so we split on semicolons and execute each statement individually. *)
+let exec_sql sql =
+  let pool = get () in
+  let statements =
+    String.split_on_char ';' sql
+    |> List.map String.trim
+    |> List.filter (fun s -> String.length s > 0)
+  in
+  let exec_statement stmt =
+    let query =
+      Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit) stmt
+    in
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec query ())
+      pool
+  in
+  let rec apply = function
+    | [] -> ()
+    | stmt :: rest -> (
+        match exec_statement stmt with
+        | Error err ->
+            failwith
+              (Format.asprintf "SQL execution error: %a\nStatement: %s"
+                 Caqti_error.pp err stmt)
+        | Ok () -> apply rest)
+  in
+  apply statements
+
+(* Apply database schema embedded at build time from schema.sql *)
+let apply_schema () =
+  exec_sql Schema_sql.content
