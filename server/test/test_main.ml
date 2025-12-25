@@ -12,4 +12,5 @@ let () =
       ("Feed_fetcher", Test_feed_fetcher.suite);
       ("Opml_parser", Test_opml_parser.suite);
       ("Url_metadata", Test_url_metadata.suite);
+      ("E2E", Test_e2e.suite);
     ]

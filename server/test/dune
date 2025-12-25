@@ -6,6 +6,8 @@
   eio
   eio_main
   yojson
+  piaf
   tapak)
  (deps
-  (source_tree data)))
+  (source_tree data)
+  (alias_rec %{workspace_root}/server/bin/all)))
