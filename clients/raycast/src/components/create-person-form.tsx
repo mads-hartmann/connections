@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Detail, Form, Icon, List, showToast, Toast, useNavigation } from "@raycast/api";
+import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
 import { useState } from "react";
 import * as Metadata from "../api/metadata";
 
@@ -19,7 +19,7 @@ export function CreatePersonForm({ revalidate }: CreatePersonFormProps) {
       setIsLoading(true);
       try {
         const metadata = await Metadata.fetchMetadata(values.url.trim());
-        push(<PersonPreview metadata={metadata} initialName={values.name.trim()} revalidate={revalidate} />);
+        push(<PersonPreviewForm metadata={metadata} initialName={values.name.trim()} revalidate={revalidate} />);
       } catch (error) {
         showToast({
           style: Toast.Style.Failure,
@@ -105,13 +105,13 @@ async function createPerson(name: string, feeds?: Array<{ url: string; title: st
   return person;
 }
 
-interface PersonPreviewProps {
+interface PersonPreviewFormProps {
   metadata: Metadata.MetadataResponse;
   initialName: string;
   revalidate: () => void;
 }
 
-function PersonPreview({ metadata, initialName, revalidate }: PersonPreviewProps) {
+function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewFormProps) {
   const { pop } = useNavigation();
   const [isCreating, setIsCreating] = useState(false);
 
@@ -124,21 +124,11 @@ function PersonPreview({ metadata, initialName, revalidate }: PersonPreviewProps
     metadata.merged.content.title ||
     new URL(metadata.merged.url).hostname;
 
-  const [name, setName] = useState(suggestedName || "");
-  const [selectedFeeds, setSelectedFeeds] = useState<Set<string>>(new Set(metadata.merged.feeds.map((f) => f.url)));
+  const author = metadata.merged.author;
+  const site = metadata.merged.site;
 
-  const toggleFeed = (url: string) => {
-    const newSelected = new Set(selectedFeeds);
-    if (newSelected.has(url)) {
-      newSelected.delete(url);
-    } else {
-      newSelected.add(url);
-    }
-    setSelectedFeeds(newSelected);
-  };
-
-  const handleCreate = async () => {
-    if (!name.trim()) {
+  async function handleSubmit(values: { name: string; feeds: string[] }) {
+    if (!values.name.trim()) {
       showToast({
         style: Toast.Style.Failure,
         title: "Name required",
@@ -149,8 +139,8 @@ function PersonPreview({ metadata, initialName, revalidate }: PersonPreviewProps
 
     setIsCreating(true);
     try {
-      const feedsToCreate = metadata.merged.feeds.filter((f) => selectedFeeds.has(f.url));
-      await createPerson(name.trim(), feedsToCreate);
+      const feedsToCreate = metadata.merged.feeds.filter((f) => values.feeds.includes(f.url));
+      await createPerson(values.name.trim(), feedsToCreate);
       showToast({
         style: Toast.Style.Success,
         title: "Person created",
@@ -168,174 +158,89 @@ function PersonPreview({ metadata, initialName, revalidate }: PersonPreviewProps
     } finally {
       setIsCreating(false);
     }
-  };
-
-  const author = metadata.merged.author;
-  const site = metadata.merged.site;
-
-  // Build markdown preview
-  let markdown = `# Preview: ${name || "New Person"}\n\n`;
-
-  if (author?.photo) {
-    markdown += `![Photo](${author.photo})\n\n`;
   }
 
-  if (author?.bio) {
-    markdown += `> ${author.bio}\n\n`;
-  }
-
-  markdown += `## Details\n\n`;
-  markdown += `| Field | Value |\n|-------|-------|\n`;
-  markdown += `| **URL** | ${metadata.merged.url} |\n`;
-
-  if (author?.name) markdown += `| **Author** | ${author.name} |\n`;
-  if (author?.email) markdown += `| **Email** | ${author.email} |\n`;
-  if (author?.location) markdown += `| **Location** | ${author.location} |\n`;
-  if (site?.name) markdown += `| **Site** | ${site.name} |\n`;
-
-  if (author?.social_profiles && author.social_profiles.length > 0) {
-    markdown += `\n## Social Profiles\n\n`;
-    for (const profile of author.social_profiles) {
-      markdown += `- ${profile}\n`;
-    }
-  }
-
-  if (metadata.merged.feeds.length > 0) {
-    markdown += `\n## Discovered Feeds (${selectedFeeds.size}/${metadata.merged.feeds.length} selected)\n\n`;
-    for (const feed of metadata.merged.feeds) {
-      const selected = selectedFeeds.has(feed.url) ? "✓" : "○";
-      markdown += `- ${selected} **${feed.title || "Untitled"}** (${feed.format})\n`;
-      markdown += `  ${feed.url}\n`;
-    }
-  }
-
-  return (
-    <Detail
-      isLoading={isCreating}
-      markdown={markdown}
-      navigationTitle="Preview Person"
-      metadata={
-        <Detail.Metadata>
-          <Detail.Metadata.Label title="Name" text={name} />
-          {author?.url && <Detail.Metadata.Link title="Website" target={author.url} text={author.url} />}
-          {site?.favicon && <Detail.Metadata.Label title="Favicon" icon={site.favicon} text="" />}
-          <Detail.Metadata.Separator />
-          <Detail.Metadata.Label title="Feeds" text={`${selectedFeeds.size} selected`} />
-          {metadata.merged.feeds.map((feed) => (
-            <Detail.Metadata.TagList key={feed.url} title={feed.title || feed.url}>
-              <Detail.Metadata.TagList.Item
-                text={feed.format}
-                color={selectedFeeds.has(feed.url) ? "#00ff00" : "#888888"}
-              />
-            </Detail.Metadata.TagList>
-          ))}
-        </Detail.Metadata>
-      }
-      actions={
-        <ActionPanel>
-          <Action title="Create Person" icon={Icon.Plus} onAction={handleCreate} />
-          <Action.Push
-            title="Edit Name & Feeds"
-            icon={Icon.Pencil}
-            target={
-              <EditPersonPreview
-                metadata={metadata}
-                name={name}
-                setName={setName}
-                selectedFeeds={selectedFeeds}
-                toggleFeed={toggleFeed}
-              />
-            }
-          />
-          <Action.OpenInBrowser title="Open URL" url={metadata.merged.url} />
-        </ActionPanel>
-      }
-    />
-  );
-}
-
-interface EditPersonPreviewProps {
-  metadata: Metadata.MetadataResponse;
-  name: string;
-  setName: (name: string) => void;
-  selectedFeeds: Set<string>;
-  toggleFeed: (url: string) => void;
-}
-
-function EditPersonPreview({ metadata, name, setName, selectedFeeds, toggleFeed }: EditPersonPreviewProps) {
-  const { pop } = useNavigation();
-
-  return (
-    <List navigationTitle="Edit Person Details">
-      <List.Section title="Name">
-        <List.Item
-          title={name || "No name set"}
-          subtitle="Click to edit"
-          icon={Icon.Person}
-          actions={
-            <ActionPanel>
-              <Action.Push
-                title="Edit Name"
-                icon={Icon.Pencil}
-                target={<EditNameForm currentName={name} onSave={setName} />}
-              />
-              <Action title="Done" icon={Icon.Check} onAction={pop} />
-            </ActionPanel>
-          }
-        />
-      </List.Section>
-
-      <List.Section title="Feeds" subtitle={`${selectedFeeds.size} of ${metadata.merged.feeds.length} selected`}>
-        {metadata.merged.feeds.map((feed) => (
-          <List.Item
-            key={feed.url}
-            title={feed.title || "Untitled"}
-            subtitle={feed.url}
-            icon={selectedFeeds.has(feed.url) ? Icon.CheckCircle : Icon.Circle}
-            accessories={[{ tag: feed.format }]}
-            actions={
-              <ActionPanel>
-                <Action
-                  title={selectedFeeds.has(feed.url) ? "Deselect Feed" : "Select Feed"}
-                  icon={selectedFeeds.has(feed.url) ? Icon.Circle : Icon.CheckCircle}
-                  onAction={() => toggleFeed(feed.url)}
-                />
-                <Action title="Done" icon={Icon.Check} onAction={pop} />
-              </ActionPanel>
-            }
-          />
-        ))}
-      </List.Section>
-
-      {metadata.merged.feeds.length === 0 && (
-        <List.EmptyView title="No feeds discovered" description="No RSS/Atom feeds were found at this URL" />
-      )}
-    </List>
-  );
-}
-
-interface EditNameFormProps {
-  currentName: string;
-  onSave: (name: string) => void;
-}
-
-function EditNameForm({ currentName, onSave }: EditNameFormProps) {
-  const { pop } = useNavigation();
-
-  function handleSubmit(values: { name: string }) {
-    onSave(values.name);
-    pop();
-  }
+  // Build info strings for display
+  const detailParts: string[] = [];
+  if (author?.location) detailParts.push(`📍 ${author.location}`);
+  if (author?.email) detailParts.push(`✉️ ${author.email}`);
 
   return (
     <Form
+      isLoading={isCreating}
+      navigationTitle="Create Person"
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Save Name" onSubmit={handleSubmit} />
+          <Action.SubmitForm title="Create Person" icon={Icon.Plus} onSubmit={handleSubmit} />
+          <Action.OpenInBrowser title="Open URL" url={metadata.merged.url} />
         </ActionPanel>
       }
     >
-      <Form.TextField id="name" title="Name" defaultValue={currentName} placeholder="Enter person's name" />
+      {/* Source URL */}
+      <Form.Description title="Source" text={metadata.merged.url} />
+
+      {/* Name field with favicon/photo as visual context */}
+      <Form.TextField
+        id="name"
+        title="Name"
+        defaultValue={suggestedName || ""}
+        placeholder="Enter person's name"
+        info={author?.bio || undefined}
+      />
+
+      {/* Show extracted metadata as read-only info */}
+      {detailParts.length > 0 && <Form.Description text={detailParts.join("  •  ")} />}
+
+      {/* Social profiles */}
+      {author?.social_profiles && author.social_profiles.length > 0 && (
+        <Form.Description title="Social" text={author.social_profiles.slice(0, 5).join("\n")} />
+      )}
+
+      <Form.Separator />
+
+      {/* Feeds Section with TagPicker for multi-select */}
+      {metadata.merged.feeds.length > 0 ? (
+        <Form.TagPicker
+          id="feeds"
+          title="Feeds"
+          defaultValue={metadata.merged.feeds.map((f) => f.url)}
+          info={`${metadata.merged.feeds.length} feed(s) discovered. Deselect any you don't want to subscribe to.`}
+        >
+          {metadata.merged.feeds.map((feed) => (
+            <Form.TagPicker.Item
+              key={feed.url}
+              value={feed.url}
+              title={feed.title || "Untitled"}
+              icon={getFeedIcon(feed.format)}
+            />
+          ))}
+        </Form.TagPicker>
+      ) : (
+        <Form.Description title="Feeds" text="No RSS/Atom feeds discovered at this URL." />
+      )}
+
+      {/* Show feed URLs for reference */}
+      {metadata.merged.feeds.length > 0 && (
+        <Form.Description
+          text={metadata.merged.feeds.map((f) => `• ${f.title || "Untitled"} (${f.format})\n  ${f.url}`).join("\n")}
+        />
+      )}
+
+      {/* Site info if different from name */}
+      {site?.name && site.name !== suggestedName && <Form.Description title="Site" text={site.name} />}
     </Form>
   );
+}
+
+function getFeedIcon(format: string): Icon {
+  switch (format) {
+    case "rss":
+      return Icon.Livestream;
+    case "atom":
+      return Icon.Globe;
+    case "json_feed":
+      return Icon.Code;
+    default:
+      return Icon.Document;
+  }
 }
