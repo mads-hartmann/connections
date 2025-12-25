@@ -27,6 +27,12 @@ let delete ~id =
   | Ok false -> Error Error.Not_found
   | Ok true -> Ok ()
 
+let update ~id ~name =
+  match Db.Tag.update ~id ~name with
+  | Error err -> Error (Error.Database err)
+  | Ok None -> Error Error.Not_found
+  | Ok (Some tag) -> Ok tag
+
 let add_to_person ~person_id ~tag_id =
   Db.Tag.add_to_person ~person_id ~tag_id
   |> Result.map_error (fun err -> Error.Database err)

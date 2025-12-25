@@ -29,6 +29,10 @@ let delete_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
     "DELETE FROM tags WHERE id = ?"
 
+let update_query =
+  Caqti_request.Infix.(Caqti_type.(t2 string int) ->. Caqti_type.unit)
+    "UPDATE tags SET name = ? WHERE id = ?"
+
 let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
     "SELECT COUNT(*) FROM tags WHERE id = ?"
@@ -118,6 +122,25 @@ let delete ~id =
           pool
       in
       true
+
+let update ~id ~name =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let* exists =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
+      pool
+  in
+  match exists with
+  | 0 -> Ok None
+  | _ ->
+      let+ () =
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.exec update_query (name, id))
+          pool
+      in
+      Some { Model.Tag.id; name }
 
 let add_to_person ~person_id ~tag_id =
   let pool = Pool.get () in

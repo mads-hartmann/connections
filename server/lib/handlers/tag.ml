@@ -29,6 +29,18 @@ let delete_tag _request id =
   let* () = Service.Tag.delete ~id |> Handler_utils.or_tag_error in
   Response.of_string ~body:"" `No_content
 
+type update_request = { name : string } [@@deriving yojson]
+
+let update_tag request id =
+  let* { name } =
+    Handler_utils.parse_json_body update_request_of_yojson request
+    |> Handler_utils.or_bad_request
+  in
+  if String.trim name = "" then Handler_utils.bad_request "Name cannot be empty"
+  else
+    let* tag = Service.Tag.update ~id ~name |> Handler_utils.or_tag_error in
+    Handler_utils.json_response (Model.Tag.to_json tag)
+
 let add_to_person _request person_id tag_id =
   let* () =
     Service.Tag.add_to_person ~person_id ~tag_id |> Handler_utils.or_tag_error
@@ -83,6 +95,7 @@ let routes () =
     get (s "tags") |> guard Pagination.Pagination.pagination_guard |> into list;
     get (s "tags" / int) |> request |> into get_tag;
     post (s "tags") |> request |> into create;
+    patch (s "tags" / int) |> request |> into update_tag;
     delete (s "tags" / int) |> request |> into delete_tag;
     get (s "persons" / int / s "tags") |> request |> into list_by_person;
     post (s "persons" / int / s "tags" / int) |> request |> into add_to_person;
