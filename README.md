@@ -1,69 +1,14 @@
-# Connections Server
+# Connections
 
-A simple OCaml web server for managing connections (people) with SQLite storage.
+This is my attempt and building this:
 
-## Development
+> I want this weird hybrid of an app that's somewhere between an RSS reader and a Contacts app. I want to be able to organise my social graph and also snoop in on everyone and what they're up to.
 
-Requires OCaml version 5.4.0
-
-```bash
-opam switch create connections 5.4.0
-```
-
-Install dependencies using opam:
-
-```bash
-opam install . --deps-only
-```
-
-Building
-
-```bash
-dune build
-```
-
-Formatting
-
-```bash
-dune fmt
-```
-
-Testing
-
-```bash
-dune test
-```
-
-### E2E Snapshot Tests
-
-E2E tests start the server with `server/test/data/test.db` and compare API responses against JSON snapshots in `server/test/data/snapshots/`.
-
-Update snapshots after intentional API changes:
-
-```bash
-dune exec server/bin/update_snapshots.exe
-```
-
-Running
-
-```bash
-dune exec connections-server
-```
-
-Or run with custom configuration:
-
-```bash
-PORT=3000 DB_PATH=mydata.db dune exec connections-server
-```
-
-### Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8080` | Port to run the server on |
-| `DB_PATH` | `connections.db` | Path to SQLite database file |
+It's currently very rough, and I'm mostly building it as an exercise to see how good Ona is at building OCaml apps and trying to push my own limits when it comes to vibe ~~coding~~ engineering.
 
 ## API Usage
+
+TODO: Move this to docs instead. Create a file for each "concepts" e.g. person.md, feed.md, and so on
 
 ### Create a person
 
