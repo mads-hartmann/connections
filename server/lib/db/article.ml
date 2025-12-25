@@ -153,6 +153,16 @@ let get ~id =
     pool
   |> Result.map (Option.map tuple_to_article)
 
+(* GET with tags *)
+let get_with_tags ~id =
+  let open Result.Syntax in
+  let* article_opt = get ~id in
+  match article_opt with
+  | None -> Ok None
+  | Some article ->
+      let+ tags = Tag.get_by_article ~article_id:id in
+      Some (Model.Article.add_tags article tags)
+
 (* LIST BY FEED with pagination *)
 let list_by_feed ~feed_id ~page ~per_page =
   let open Result.Syntax in
@@ -194,6 +204,32 @@ let list_all ~page ~per_page ~unread_only =
   in
   let data = List.map tuple_to_article rows in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
+
+(* LIST ALL with tags - eager loads tags for all articles *)
+let list_all_with_tags ~page ~per_page ~unread_only =
+  let open Result.Syntax in
+  let* paginated = list_all ~page ~per_page ~unread_only in
+  let article_ids =
+    List.map (fun (a : Model.Article.t) -> a.id) paginated.data
+  in
+  if List.length article_ids = 0 then
+    Ok
+      (Model.Shared.Paginated.make ~data:[] ~page ~per_page
+         ~total:paginated.total)
+  else
+    let+ tags_by_article = Tag.get_by_article_ids ~article_ids in
+    let data =
+      List.map
+        (fun (article : Model.Article.t) ->
+          let tags =
+            Option.value ~default:[]
+              (Hashtbl.find_opt tags_by_article article.id)
+            |> List.rev
+          in
+          Model.Article.add_tags article tags)
+        paginated.data
+    in
+    Model.Shared.Paginated.make ~data ~page ~per_page ~total:paginated.total
 
 (* MARK READ/UNREAD *)
 let mark_read ~id ~read =

@@ -176,3 +176,66 @@ let get_by_feed ~feed_id =
       Db.collect_list get_by_feed_query feed_id)
     pool
   |> Result.map (List.map tuple_to_tag)
+
+(* Article-Tag associations *)
+let add_to_article_query =
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->. Caqti_type.unit)
+    "INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?, ?)"
+
+let remove_from_article_query =
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->. Caqti_type.unit)
+    "DELETE FROM article_tags WHERE article_id = ? AND tag_id = ?"
+
+let get_by_article_query =
+  Caqti_request.Infix.(Caqti_type.int ->* tag_row_type)
+    "SELECT t.id, t.name FROM tags t INNER JOIN article_tags at ON t.id = \
+     at.tag_id WHERE at.article_id = ? ORDER BY t.name"
+
+let get_by_article_ids_query =
+  Caqti_request.Infix.(Caqti_type.string ->* Caqti_type.(t3 int int string))
+    "SELECT at.article_id, t.id, t.name FROM tags t INNER JOIN article_tags at \
+     ON t.id = at.tag_id WHERE at.article_id IN (SELECT value FROM \
+     json_each(?)) ORDER BY at.article_id, t.name"
+
+let add_to_article ~article_id ~tag_id =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.exec add_to_article_query (article_id, tag_id))
+    pool
+
+let remove_from_article ~article_id ~tag_id =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.exec remove_from_article_query (article_id, tag_id))
+    pool
+
+let get_by_article ~article_id =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.collect_list get_by_article_query article_id)
+    pool
+  |> Result.map (List.map tuple_to_tag)
+
+let get_by_article_ids ~article_ids =
+  let pool = Pool.get () in
+  let ids_json =
+    `List (List.map (fun id -> `Int id) article_ids) |> Yojson.Safe.to_string
+  in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.collect_list get_by_article_ids_query ids_json)
+    pool
+  |> Result.map (fun rows ->
+         let tbl = Hashtbl.create (List.length article_ids) in
+         List.iter
+           (fun (article_id, tag_id, tag_name) ->
+             let tag = { Model.Tag.id = tag_id; name = tag_name } in
+             let existing =
+               Option.value ~default:[] (Hashtbl.find_opt tbl article_id)
+             in
+             Hashtbl.replace tbl article_id (tag :: existing))
+           rows;
+         tbl)

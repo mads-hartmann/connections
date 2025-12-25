@@ -50,3 +50,15 @@ let remove_from_feed ~feed_id ~tag_id =
 let get_by_feed ~feed_id =
   Db.Tag.get_by_feed ~feed_id
   |> Result.map_error (fun err -> Error.Database err)
+
+let add_to_article ~article_id ~tag_id =
+  Db.Tag.add_to_article ~article_id ~tag_id
+  |> Result.map_error (fun err -> Error.Database err)
+
+let remove_from_article ~article_id ~tag_id =
+  Db.Tag.remove_from_article ~article_id ~tag_id
+  |> Result.map_error (fun err -> Error.Database err)
+
+let get_by_article ~article_id =
+  Db.Tag.get_by_article ~article_id
+  |> Result.map_error (fun err -> Error.Database err)

@@ -12,13 +12,13 @@ end
 (* Domain operations *)
 
 let get ~id =
-  match Db.Article.get ~id with
+  match Db.Article.get_with_tags ~id with
   | Error err -> Error (Error.Database err)
   | Ok None -> Error Error.Not_found
   | Ok (Some article) -> Ok article
 
 let list_all ~page ~per_page ~unread_only =
-  Db.Article.list_all ~page ~per_page ~unread_only
+  Db.Article.list_all_with_tags ~page ~per_page ~unread_only
   |> Result.map_error (fun err -> Error.Database err)
 
 let list_by_feed ~feed_id ~page ~per_page =

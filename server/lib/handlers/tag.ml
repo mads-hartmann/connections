@@ -64,6 +64,19 @@ let list_by_feed _request feed_id =
   let* tags = Service.Tag.get_by_feed ~feed_id |> Handler_utils.or_tag_error in
   Handler_utils.json_response (Model.Tag.list_to_json tags)
 
+let add_to_article _request article_id tag_id =
+  let* () =
+    Service.Tag.add_to_article ~article_id ~tag_id |> Handler_utils.or_tag_error
+  in
+  Response.of_string ~body:"" `No_content
+
+let remove_from_article _request article_id tag_id =
+  let* () =
+    Service.Tag.remove_from_article ~article_id ~tag_id
+    |> Handler_utils.or_tag_error
+  in
+  Response.of_string ~body:"" `No_content
+
 let routes () =
   let open Tapak.Router in
   [
@@ -79,4 +92,8 @@ let routes () =
     post (s "feeds" / int / s "tags" / int) |> request |> into add_to_feed;
     delete (s "feeds" / int / s "tags" / int)
     |> request |> into remove_from_feed;
+    post (s "articles" / int / s "tags" / int)
+    |> request |> into add_to_article;
+    delete (s "articles" / int / s "tags" / int)
+    |> request |> into remove_from_article;
   ]

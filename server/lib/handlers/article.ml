@@ -18,11 +18,11 @@ let list_all request (pagination : Pagination.Pagination.t) =
       ~unread_only
     |> Handler_utils.or_article_error
   in
-  Handler_utils.json_response (Model.Article.paginated_to_json paginated)
+  Handler_utils.json_response (Model.Article.paginated_with_tags_to_json paginated)
 
 let get_article _request id =
   let* article = Service.Article.get ~id |> Handler_utils.or_article_error in
-  Handler_utils.json_response (Model.Article.to_json article)
+  Handler_utils.json_response (Model.Article.with_tags_to_json article)
 
 type mark_read_request = { read : bool } [@@deriving yojson]
 
