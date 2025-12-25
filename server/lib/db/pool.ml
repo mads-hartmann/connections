@@ -58,9 +58,6 @@ let exec_sql sql =
   in
   apply statements
 
-(* Apply database schema from schema.sql file *)
-let apply_schema ~schema_path =
-  if not (Sys.file_exists schema_path) then
-    failwith (Printf.sprintf "Schema file not found: %s" schema_path);
-  let schema = In_channel.with_open_text schema_path In_channel.input_all in
-  exec_sql schema
+(* Apply database schema embedded at build time from schema.sql *)
+let apply_schema () =
+  exec_sql Schema_sql.content

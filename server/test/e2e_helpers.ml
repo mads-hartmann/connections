@@ -17,7 +17,6 @@ let workspace_root =
 
 let test_db_path = Filename.concat workspace_root "server/test/data/test.db"
 let snapshots_dir = Filename.concat workspace_root "server/test/data/snapshots"
-let schema_path = Filename.concat workspace_root "server/lib/db/schema.sql"
 
 (* Endpoints to test - IDs must match data in test.db *)
 let endpoints = [
@@ -58,7 +57,6 @@ let start_server ~sw ~env ~port =
   let args = [
     executable;
     "--db"; test_db_path;
-    "--schema"; schema_path;
     "--port"; string_of_int port;
     "--no-scheduler"
   ] in
