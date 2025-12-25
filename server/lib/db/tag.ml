@@ -140,3 +140,39 @@ let get_by_person ~person_id =
       Db.collect_list get_by_person_query person_id)
     pool
   |> Result.map (List.map tuple_to_tag)
+
+(* Feed-Tag associations *)
+let add_to_feed_query =
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->. Caqti_type.unit)
+    "INSERT OR IGNORE INTO feed_tags (feed_id, tag_id) VALUES (?, ?)"
+
+let remove_from_feed_query =
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->. Caqti_type.unit)
+    "DELETE FROM feed_tags WHERE feed_id = ? AND tag_id = ?"
+
+let get_by_feed_query =
+  Caqti_request.Infix.(Caqti_type.int ->* tag_row_type)
+    "SELECT t.id, t.name FROM tags t INNER JOIN feed_tags ft ON t.id = \
+     ft.tag_id WHERE ft.feed_id = ? ORDER BY t.name"
+
+let add_to_feed ~feed_id ~tag_id =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.exec add_to_feed_query (feed_id, tag_id))
+    pool
+
+let remove_from_feed ~feed_id ~tag_id =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.exec remove_from_feed_query (feed_id, tag_id))
+    pool
+
+let get_by_feed ~feed_id =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.collect_list get_by_feed_query feed_id)
+    pool
+  |> Result.map (List.map tuple_to_tag)
