@@ -2,4 +2,4 @@
  (name main)
  (public_name connections-server)
  (package connections-server)
- (libraries connections_server tapak eio_main logs logs.fmt fmt.tty))
+ (libraries connections_server tapak eio_main logs logs.fmt fmt.tty cmdliner))
