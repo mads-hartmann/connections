@@ -8,8 +8,8 @@ services:
       start: |
         cd /workspaces/connections
         gitpod env port open 8080 --name connections-server
-        dune exec connections-server
-      ready: curl -sf http://localhost:8080/persons > /dev/null
+        dune exec connections-server -- --db server/test/data/test.db --no-scheduler
+      ready: curl -sf http://localhost:8080/health > /dev/null
       stop: pkill -f connections-server
 
 tasks:
