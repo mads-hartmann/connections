@@ -1,67 +1,66 @@
 (* Row type definitions *)
-let category_row_type = Caqti_type.(t2 int string)
+let tag_row_type = Caqti_type.(t2 int string)
 
 let insert_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
-    "INSERT INTO categories (name) VALUES (?) RETURNING id"
+    "INSERT INTO tags (name) VALUES (?) RETURNING id"
 
 let get_query =
-  Caqti_request.Infix.(Caqti_type.int ->? category_row_type)
-    "SELECT id, name FROM categories WHERE id = ?"
+  Caqti_request.Infix.(Caqti_type.int ->? tag_row_type)
+    "SELECT id, name FROM tags WHERE id = ?"
 
 let get_by_name_query =
-  Caqti_request.Infix.(Caqti_type.string ->? category_row_type)
-    "SELECT id, name FROM categories WHERE name = ?"
+  Caqti_request.Infix.(Caqti_type.string ->? tag_row_type)
+    "SELECT id, name FROM tags WHERE name = ?"
 
 let list_query =
-  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* category_row_type)
-    "SELECT id, name FROM categories ORDER BY name LIMIT ? OFFSET ?"
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* tag_row_type)
+    "SELECT id, name FROM tags ORDER BY name LIMIT ? OFFSET ?"
 
 let list_all_query =
-  Caqti_request.Infix.(Caqti_type.unit ->* category_row_type)
-    "SELECT id, name FROM categories ORDER BY name"
+  Caqti_request.Infix.(Caqti_type.unit ->* tag_row_type)
+    "SELECT id, name FROM tags ORDER BY name"
 
 let count_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
-    "SELECT COUNT(*) FROM categories"
+    "SELECT COUNT(*) FROM tags"
 
 let delete_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
-    "DELETE FROM categories WHERE id = ?"
+    "DELETE FROM tags WHERE id = ?"
 
 let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
-    "SELECT COUNT(*) FROM categories WHERE id = ?"
+    "SELECT COUNT(*) FROM tags WHERE id = ?"
 
 let add_to_person_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->. Caqti_type.unit)
-    "INSERT OR IGNORE INTO person_categories (person_id, category_id) VALUES \
-     (?, ?)"
+    "INSERT OR IGNORE INTO person_tags (person_id, tag_id) VALUES (?, ?)"
 
 let remove_from_person_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->. Caqti_type.unit)
-    "DELETE FROM person_categories WHERE person_id = ? AND category_id = ?"
+    "DELETE FROM person_tags WHERE person_id = ? AND tag_id = ?"
 
 let get_by_person_query =
-  Caqti_request.Infix.(Caqti_type.int ->* category_row_type)
-    "SELECT c.id, c.name FROM categories c INNER JOIN person_categories pc ON \
-     c.id = pc.category_id WHERE pc.person_id = ? ORDER BY c.name"
+  Caqti_request.Infix.(Caqti_type.int ->* tag_row_type)
+    "SELECT t.id, t.name FROM tags t INNER JOIN person_tags pt ON t.id = \
+     pt.tag_id WHERE pt.person_id = ? ORDER BY t.name"
 
-let tuple_to_category (id, name) = { Model.Category.id; name }
+let tuple_to_tag (id, name) = { Model.Tag.id; name }
 
 let create ~name =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
     pool
-  |> Result.map (fun id -> { Model.Category.id; name })
+  |> Result.map (fun id -> { Model.Tag.id; name })
 
 let get ~id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
     pool
-  |> Result.map (Option.map tuple_to_category)
+  |> Result.map (Option.map tuple_to_tag)
 
 let get_by_name ~name =
   let pool = Pool.get () in
@@ -69,12 +68,12 @@ let get_by_name ~name =
     (fun (module Db : Caqti_eio.CONNECTION) ->
       Db.find_opt get_by_name_query name)
     pool
-  |> Result.map (Option.map tuple_to_category)
+  |> Result.map (Option.map tuple_to_tag)
 
 let get_or_create ~name =
   let open Result.Syntax in
   let* existing = get_by_name ~name in
-  match existing with Some category -> Ok category | None -> create ~name
+  match existing with Some tag -> Ok tag | None -> create ~name
 
 let list_all () =
   let pool = Pool.get () in
@@ -82,7 +81,7 @@ let list_all () =
     (fun (module Db : Caqti_eio.CONNECTION) ->
       Db.collect_list list_all_query ())
     pool
-  |> Result.map (List.map tuple_to_category)
+  |> Result.map (List.map tuple_to_tag)
 
 let list ~page ~per_page () =
   let open Result.Syntax in
@@ -99,7 +98,7 @@ let list ~page ~per_page () =
         Db.collect_list list_query (per_page, offset))
       pool
   in
-  let data = List.map tuple_to_category rows in
+  let data = List.map tuple_to_tag rows in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
 let delete ~id =
@@ -120,18 +119,18 @@ let delete ~id =
       in
       true
 
-let add_to_person ~person_id ~category_id =
+let add_to_person ~person_id ~tag_id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
-      Db.exec add_to_person_query (person_id, category_id))
+      Db.exec add_to_person_query (person_id, tag_id))
     pool
 
-let remove_from_person ~person_id ~category_id =
+let remove_from_person ~person_id ~tag_id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
-      Db.exec remove_from_person_query (person_id, category_id))
+      Db.exec remove_from_person_query (person_id, tag_id))
     pool
 
 let get_by_person ~person_id =
@@ -140,4 +139,4 @@ let get_by_person ~person_id =
     (fun (module Db : Caqti_eio.CONNECTION) ->
       Db.collect_list get_by_person_query person_id)
     pool
-  |> Result.map (List.map tuple_to_category)
+  |> Result.map (List.map tuple_to_tag)

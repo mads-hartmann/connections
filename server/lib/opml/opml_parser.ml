@@ -1,9 +1,9 @@
-(* OPML Parser - extracts feed URLs, titles, and categories from OPML files *)
+(* OPML Parser - extracts feed URLs, titles, and tags from OPML files *)
 
 type feed_entry = {
   url : string;
   title : string option;
-  categories : string list;
+  tags : string list;
 }
 
 type parse_result = { feeds : feed_entry list; errors : string list }
@@ -23,8 +23,8 @@ let rec skip_element input =
       skip_element input
   | _ -> skip_element input
 
-(* Parse outline elements recursively, tracking category path *)
-let rec parse_outline ~categories acc input =
+(* Parse outline elements recursively, tracking tag path *)
+let rec parse_outline ~tags acc input =
   match Xmlm.peek input with
   | `El_end ->
       (* Consume the end tag and return *)
@@ -41,29 +41,29 @@ let rec parse_outline ~categories acc input =
         match xml_url with
         | Some url ->
             (* This is a feed entry - parse any children then continue *)
-            let acc = { url; title = display_name; categories } :: acc in
+            let acc = { url; title = display_name; tags } :: acc in
             (* Consume children until we hit the end tag for this outline *)
-            parse_outline ~categories acc input
+            parse_outline ~tags acc input
         | None ->
-            (* This is a category/folder - recurse with updated category path *)
-            let category_name =
+            (* This is a folder - recurse with updated tag path *)
+            let tag_name =
               match display_name with Some n -> n | None -> "Unknown"
             in
-            let new_categories = categories @ [ category_name ] in
-            parse_outline ~categories:new_categories acc input
+            let new_tags = tags @ [ tag_name ] in
+            parse_outline ~tags:new_tags acc input
       in
       (* Parse siblings *)
-      parse_outline ~categories acc input
+      parse_outline ~tags acc input
   | `El_start _ ->
       (* Skip non-outline elements *)
       skip_element input;
-      parse_outline ~categories acc input
+      parse_outline ~tags acc input
   | `Data _ ->
       let _ = Xmlm.input input in
-      parse_outline ~categories acc input
+      parse_outline ~tags acc input
   | `Dtd _ ->
       let _ = Xmlm.input input in
-      parse_outline ~categories acc input
+      parse_outline ~tags acc input
 
 (* Skip to body element - returns true if found, false if end of document *)
 let rec skip_to_body input =
@@ -79,7 +79,7 @@ let parse (content : string) : (parse_result, string) result =
     let input = Xmlm.make_input (`String (0, content)) in
     (* Find body element *)
     if skip_to_body input then
-      let feeds = parse_outline ~categories:[] [] input in
+      let feeds = parse_outline ~tags:[] [] input in
       Ok { feeds = List.rev feeds; errors = [] }
     else Error "No body element found in OPML"
   with

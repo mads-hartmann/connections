@@ -20,7 +20,7 @@ let build () =
          Handlers.Person.routes ();
          Handlers.Rss_feed.routes ();
          Handlers.Article.routes ();
-         Handlers.Category.routes ();
+         Handlers.Tag.routes ();
          Handlers.Import.routes ();
          Handlers.Metadata.routes ();
        ])

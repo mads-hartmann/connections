@@ -10,12 +10,12 @@ type t_with_counts = {
 }
 [@@deriving yojson]
 
-type with_categories = { id : int; name : string; categories : Category.t list }
+type with_tags = { id : int; name : string; tags : Tag.t list }
 [@@deriving yojson]
 
 let to_json = yojson_of_t
 let of_json = t_of_yojson
-let with_categories_to_json = yojson_of_with_categories
+let with_tags_to_json = yojson_of_with_tags
 let paginated_to_json response = Shared.Paginated.to_json yojson_of_t response
 
 let paginated_with_counts_to_json response =
