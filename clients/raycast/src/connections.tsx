@@ -6,11 +6,13 @@ import { FeedList } from "./components/feed-list";
 import { ImportOpml } from "./components/import-opml";
 import { ArticleList } from "./components/article-list";
 import { ArticleDetail } from "./components/article-detail";
+import { TagArticles } from "./components/tag-articles";
 import * as Person from "./api/person";
 import * as Feed from "./api/feed";
 import * as Article from "./api/article";
+import * as Tag from "./api/tag";
 
-type ViewType = "connections" | "feeds" | "articles";
+type ViewType = "connections" | "feeds" | "articles" | "tags";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -73,6 +75,22 @@ export default function Command() {
     execute: selectedView === "articles",
   });
 
+  // Fetch all tags
+  const {
+    isLoading: isLoadingTags,
+    data: tagsData,
+    pagination: tagsPagination,
+  } = useFetch((options) => Tag.listUrl({ page: options.page + 1 }), {
+    mapResult(result: Tag.TagsResponse) {
+      return {
+        data: result.data,
+        hasMore: result.page < result.total_pages,
+      };
+    },
+    keepPreviousData: true,
+    execute: selectedView === "tags",
+  });
+
   const deletePerson = async (person: Person.Person) => {
     await Person.deletePerson(person);
     revalidateConnections();
@@ -119,21 +137,27 @@ export default function Command() {
       ? isLoadingConnections
       : selectedView === "feeds"
         ? isLoadingFeeds
-        : isLoadingArticles;
+        : selectedView === "articles"
+          ? isLoadingArticles
+          : isLoadingTags;
 
   const pagination =
     selectedView === "connections"
       ? connectionsPagination
       : selectedView === "feeds"
         ? feedsPagination
-        : articlesPagination;
+        : selectedView === "articles"
+          ? articlesPagination
+          : tagsPagination;
 
   const searchBarPlaceholder =
     selectedView === "connections"
       ? "Search people..."
       : selectedView === "feeds"
         ? "Search feeds..."
-        : "Search articles...";
+        : selectedView === "articles"
+          ? "Search articles..."
+          : "Search tags...";
 
   return (
     <List
@@ -151,6 +175,7 @@ export default function Command() {
           <List.Dropdown.Item title="Connections" value="connections" />
           <List.Dropdown.Item title="Feeds" value="feeds" />
           <List.Dropdown.Item title="Articles" value="articles" />
+          <List.Dropdown.Item title="Tags" value="tags" />
         </List.Dropdown>
       }
       actions={
@@ -277,6 +302,20 @@ export default function Command() {
             />
           );
         })}
+
+      {selectedView === "tags" &&
+        tagsData?.map((tag) => (
+          <List.Item
+            key={String(tag.id)}
+            title={tag.name}
+            icon={Icon.Tag}
+            actions={
+              <ActionPanel>
+                <Action.Push title="View Articles" icon={Icon.List} target={<TagArticles tag={tag} />} />
+              </ActionPanel>
+            }
+          />
+        ))}
     </List>
   );
 }

@@ -1,3 +1,8 @@
+export interface Tag {
+  id: number;
+  name: string;
+}
+
 export interface Article {
   id: number;
   feed_id: number;
@@ -9,6 +14,7 @@ export interface Article {
   image_url: string | null;
   created_at: string;
   read_at: string | null;
+  tags: Tag[];
 }
 
 export interface ArticlesResponse {
