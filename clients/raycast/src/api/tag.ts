@@ -18,8 +18,3 @@ export function listUrl({ page, query }: { page: number; query?: string }) {
   }
   return `http://localhost:8080/tags?${params.toString()}`;
 }
-
-export function articlesUrl({ tag, page }: { tag: string; page: number }) {
-  const params = new URLSearchParams({ page: String(page), per_page: "20", tag });
-  return `http://localhost:8080/articles?${params.toString()}`;
-}

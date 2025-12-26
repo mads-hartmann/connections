@@ -2,12 +2,12 @@ import { Action, ActionPanel, Alert, confirmAlert, Icon, Keyboard, List, showToa
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import * as ArticleApi from "../api/article";
+import * as Tag from "../api/tag";
 import { ArticleDetail } from "./article-detail";
 
-interface ArticleListProps {
-  feedId: number;
-  feedTitle: string;
-}
+type ArticleListProps =
+  | { feedId: number; feedTitle: string; tag?: never }
+  | { tag: Tag.Tag; feedId?: never; feedTitle?: never };
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -26,11 +26,17 @@ async function confirmMarkAllRead(feedTitle: string): Promise<boolean> {
   });
 }
 
-export function ArticleList({ feedId, feedTitle }: ArticleListProps) {
+export function ArticleList(props: ArticleListProps) {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
+  const isTagView = "tag" in props && props.tag !== undefined;
+  const navigationTitle = isTagView ? `Tag: ${props.tag.name}` : `${props.feedTitle} - Articles`;
+
   const { isLoading, data, pagination, revalidate } = useFetch(
-    (options) => ArticleApi.listUrl({ feedId, page: options.page + 1 }),
+    (options) =>
+      isTagView
+        ? ArticleApi.listByTagUrl({ tag: props.tag.name, page: options.page + 1 })
+        : ArticleApi.listUrl({ feedId: props.feedId, page: options.page + 1 }),
     {
       mapResult(result: ArticleApi.ArticlesResponse) {
         return {
@@ -59,10 +65,10 @@ export function ArticleList({ feedId, feedTitle }: ArticleListProps) {
   };
 
   const markAllRead = async () => {
-    const confirmed = await confirmMarkAllRead(feedTitle);
-    if (!confirmed) {
-      return;
-    }
+    if (isTagView) return;
+
+    const confirmed = await confirmMarkAllRead(props.feedTitle);
+    if (!confirmed) return;
 
     const toast = await showToast({
       style: Toast.Style.Animated,
@@ -70,7 +76,7 @@ export function ArticleList({ feedId, feedTitle }: ArticleListProps) {
     });
 
     try {
-      const result = await ArticleApi.markAllArticlesRead(feedId);
+      const result = await ArticleApi.markAllArticlesRead(props.feedId);
 
       toast.style = Toast.Style.Success;
       toast.title = `Marked ${result.marked_read} article${result.marked_read !== 1 ? "s" : ""} as read`;
@@ -87,7 +93,7 @@ export function ArticleList({ feedId, feedTitle }: ArticleListProps) {
     <List
       isLoading={isLoading}
       pagination={pagination}
-      navigationTitle={`${feedTitle} - Articles`}
+      navigationTitle={navigationTitle}
       searchBarAccessory={
         <List.Dropdown
           tooltip="Filter"
@@ -124,12 +130,14 @@ export function ArticleList({ feedId, feedTitle }: ArticleListProps) {
                   onAction={() => toggleRead(article)}
                   shortcut={{ modifiers: ["cmd"], key: "m" }}
                 />
-                <Action
-                  title="Mark All as Read"
-                  icon={Icon.CheckCircle}
-                  onAction={markAllRead}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
-                />
+                {!isTagView && (
+                  <Action
+                    title="Mark All as Read"
+                    icon={Icon.CheckCircle}
+                    onAction={markAllRead}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
+                  />
+                )}
                 <Action.CopyToClipboard
                   title="Copy URL"
                   content={article.url}

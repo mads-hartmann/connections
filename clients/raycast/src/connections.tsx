@@ -6,7 +6,6 @@ import { FeedList } from "./components/feed-list";
 import { ImportOpml } from "./components/import-opml";
 import { ArticleList } from "./components/article-list";
 import { ArticleDetail } from "./components/article-detail";
-import { TagArticles } from "./components/tag-articles";
 import * as Person from "./api/person";
 import * as Feed from "./api/feed";
 import * as Article from "./api/article";
@@ -311,7 +310,7 @@ export default function Command() {
             icon={Icon.Tag}
             actions={
               <ActionPanel>
-                <Action.Push title="View Articles" icon={Icon.List} target={<TagArticles tag={tag} />} />
+                <Action.Push title="View Articles" icon={Icon.List} target={<ArticleList tag={tag} />} />
               </ActionPanel>
             }
           />

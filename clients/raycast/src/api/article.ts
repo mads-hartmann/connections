@@ -38,6 +38,11 @@ export function listAllUrl({ page, unread }: { page: number; unread?: boolean })
   return `http://localhost:8080/articles?${params.toString()}`;
 }
 
+export function listByTagUrl({ tag, page }: { tag: string; page: number }) {
+  const params = new URLSearchParams({ page: String(page), per_page: "20", tag });
+  return `http://localhost:8080/articles?${params.toString()}`;
+}
+
 export async function markArticleRead(id: number, read: boolean): Promise<Article> {
   const response = await fetch(`http://localhost:8080/articles/${id}/read`, {
     method: "POST",
