@@ -19,16 +19,30 @@ let upsert_query =
       VALUES (?, ?, ?, ?, ?, ?, ?)
     |}
 
+(* Tags subquery - reused across all article queries *)
+let tags_subquery =
+  {|(SELECT json_group_array(json_object('id', t.id, 'name', t.name))
+     FROM article_tags at
+     JOIN tags t ON at.tag_id = t.id
+     WHERE at.article_id = a.id)|}
+
 (* Base SELECT with tags JSON aggregation *)
 let select_with_tags =
-  {|
-    SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
-           COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
-                     FROM article_tags at
-                     JOIN tags t ON at.tag_id = t.id
-                     WHERE at.article_id = a.id), '[]') as tags
-    FROM articles a
-  |}
+  Printf.sprintf
+    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+       COALESCE(%s, '[]') as tags
+FROM articles a|}
+    tags_subquery
+
+(* Base SELECT for tag-filtered queries (needs JOIN for filtering) *)
+let select_with_tags_filtered_by_tag =
+  Printf.sprintf
+    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+       COALESCE(%s, '[]') as tags
+FROM articles a
+INNER JOIN article_tags at_filter ON a.id = at_filter.article_id
+INNER JOIN tags t_filter ON at_filter.tag_id = t_filter.id|}
+    tags_subquery
 
 let get_query =
   Caqti_request.Infix.(Caqti_type.int ->? article_row_type)
@@ -69,19 +83,9 @@ let count_unread_query =
 
 let list_by_tag_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
-    {|
-      SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
-             COALESCE((SELECT json_group_array(json_object('id', t2.id, 'name', t2.name))
-                       FROM article_tags at2
-                       JOIN tags t2 ON at2.tag_id = t2.id
-                       WHERE at2.article_id = a.id), '[]') as tags
-      FROM articles a
-      INNER JOIN article_tags at ON a.id = at.article_id
-      INNER JOIN tags t ON at.tag_id = t.id
-      WHERE t.name = ?
-      GROUP BY a.id
-      ORDER BY a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?
-    |}
+    (select_with_tags_filtered_by_tag
+    ^ " WHERE t_filter.name = ? GROUP BY a.id ORDER BY a.published_at DESC, \
+       a.created_at DESC LIMIT ? OFFSET ?")
 
 let count_by_tag_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
@@ -95,19 +99,9 @@ let count_by_tag_query =
 
 let list_by_tag_unread_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
-    {|
-      SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
-             COALESCE((SELECT json_group_array(json_object('id', t2.id, 'name', t2.name))
-                       FROM article_tags at2
-                       JOIN tags t2 ON at2.tag_id = t2.id
-                       WHERE at2.article_id = a.id), '[]') as tags
-      FROM articles a
-      INNER JOIN article_tags at ON a.id = at.article_id
-      INNER JOIN tags t ON at.tag_id = t.id
-      WHERE t.name = ? AND a.read_at IS NULL
-      GROUP BY a.id
-      ORDER BY a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?
-    |}
+    (select_with_tags_filtered_by_tag
+    ^ " WHERE t_filter.name = ? AND a.read_at IS NULL GROUP BY a.id ORDER BY \
+       a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?")
 
 let count_by_tag_unread_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
@@ -136,33 +130,6 @@ let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
     "SELECT COUNT(*) FROM articles WHERE id = ?"
 
-(* Parse tags JSON string into Tag.t list *)
-let parse_tags_json (json_str : string) : Model.Tag.t list =
-  try
-    match Yojson.Safe.from_string json_str with
-    | `List items ->
-        List.filter_map
-          (fun item ->
-            match item with
-            | `Assoc fields -> (
-                let id =
-                  Option.bind (List.assoc_opt "id" fields) (function
-                    | `Int i -> Some i
-                    | _ -> None)
-                in
-                let name =
-                  Option.bind (List.assoc_opt "name" fields) (function
-                    | `String s -> Some s
-                    | _ -> None)
-                in
-                match (id, name) with
-                | Some id, Some name -> Some { Model.Tag.id; name }
-                | _ -> None)
-            | _ -> None)
-          items
-    | _ -> []
-  with _ -> []
-
 (* Helper to convert DB tuple to Model.Article.t *)
 let tuple_to_article
     ( (id, feed_id, title, url, published_at),
@@ -178,7 +145,7 @@ let tuple_to_article
     image_url;
     created_at;
     read_at;
-    tags = parse_tags_json tags_json;
+    tags = Tag_json.parse tags_json;
   }
 
 (* UPSERT - returns true if inserted, false if duplicate *)

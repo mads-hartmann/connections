@@ -61,33 +61,6 @@ let update_last_fetched_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
     "UPDATE rss_feeds SET last_fetched_at = datetime('now') WHERE id = ?"
 
-(* Parse tags JSON string into Tag.t list *)
-let parse_tags_json (json_str : string) : Model.Tag.t list =
-  try
-    match Yojson.Safe.from_string json_str with
-    | `List items ->
-        List.filter_map
-          (fun item ->
-            match item with
-            | `Assoc fields -> (
-                let id =
-                  Option.bind (List.assoc_opt "id" fields) (function
-                    | `Int i -> Some i
-                    | _ -> None)
-                in
-                let name =
-                  Option.bind (List.assoc_opt "name" fields) (function
-                    | `String s -> Some s
-                    | _ -> None)
-                in
-                match (id, name) with
-                | Some id, Some name -> Some { Model.Tag.id; name }
-                | _ -> None)
-            | _ -> None)
-          items
-    | _ -> []
-  with _ -> []
-
 (* Helper to convert DB tuple to Model.Rss_feed.t *)
 let tuple_to_feed
     (id, person_id, url, title, created_at, last_fetched_at, tags_json) =
@@ -98,7 +71,7 @@ let tuple_to_feed
     title;
     created_at;
     last_fetched_at;
-    tags = parse_tags_json tags_json;
+    tags = Tag_json.parse tags_json;
   }
 
 (* CREATE *)

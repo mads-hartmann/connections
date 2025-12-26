@@ -92,42 +92,15 @@ let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
     "SELECT COUNT(*) FROM persons WHERE id = ?"
 
-(* Parse tags JSON string into Tag.t list *)
-let parse_tags_json (json_str : string) : Model.Tag.t list =
-  try
-    match Yojson.Safe.from_string json_str with
-    | `List items ->
-        List.filter_map
-          (fun item ->
-            match item with
-            | `Assoc fields -> (
-                let id =
-                  Option.bind (List.assoc_opt "id" fields) (function
-                    | `Int i -> Some i
-                    | _ -> None)
-                in
-                let name =
-                  Option.bind (List.assoc_opt "name" fields) (function
-                    | `String s -> Some s
-                    | _ -> None)
-                in
-                match (id, name) with
-                | Some id, Some name -> Some { Model.Tag.id; name }
-                | _ -> None)
-            | _ -> None)
-          items
-    | _ -> []
-  with _ -> []
-
 let tuple_to_person (id, name, tags_json) =
-  { Model.Person.id; name; tags = parse_tags_json tags_json }
+  { Model.Person.id; name; tags = Tag_json.parse tags_json }
 
 let tuple_to_person_with_counts (id, name, tags_json, feed_count, article_count)
     =
   {
     Model.Person.id;
     name;
-    tags = parse_tags_json tags_json;
+    tags = Tag_json.parse tags_json;
     feed_count;
     article_count;
   }
