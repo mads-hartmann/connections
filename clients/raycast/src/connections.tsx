@@ -235,87 +235,105 @@ export default function Command() {
         ))}
 
       {selectedView === "feeds" &&
-        feedsData?.map((feed) => (
-          <List.Item
-            key={String(feed.id)}
-            title={feed.title || feed.url}
-            subtitle={feed.title ? feed.url : undefined}
-            accessories={[{ text: formatDate(feed.last_fetched_at), tooltip: "Last fetched" }]}
-            actions={
-              <ActionPanel>
-                <Action.Push
-                  title="View Articles"
-                  icon={Icon.List}
-                  target={<ArticleList feedId={feed.id} feedTitle={feed.title || feed.url} />}
-                />
-                <Action
-                  title="Refresh Feed"
-                  icon={Icon.ArrowClockwise}
-                  onAction={() => refreshFeed(feed)}
-                  shortcut={{ modifiers: ["cmd"], key: "r" }}
-                />
-                <Action
-                  title="Delete"
-                  icon={Icon.Trash}
-                  style={Action.Style.Destructive}
-                  onAction={() => deleteFeed(feed)}
-                  shortcut={Keyboard.Shortcut.Common.Remove}
-                />
-              </ActionPanel>
-            }
-          />
-        ))}
-
-      {selectedView === "articles" &&
-        articlesData?.map((article) => {
-          const isRead = article.read_at !== null;
-          return (
+        feedsData
+          ?.filter((feed) => {
+            if (!searchText) return true;
+            const search = searchText.toLowerCase();
+            return (feed.title?.toLowerCase().includes(search) ?? false) || feed.url.toLowerCase().includes(search);
+          })
+          .map((feed) => (
             <List.Item
-              key={String(article.id)}
-              title={article.title || "Untitled"}
-              subtitle={article.author || undefined}
-              accessories={[
-                { text: formatDate(article.published_at) },
-                { icon: isRead ? Icon.Checkmark : Icon.Circle, tooltip: isRead ? "Read" : "Unread" },
-              ]}
+              key={String(feed.id)}
+              title={feed.title || feed.url}
+              subtitle={feed.title ? feed.url : undefined}
+              accessories={[{ text: formatDate(feed.last_fetched_at), tooltip: "Last fetched" }]}
               actions={
                 <ActionPanel>
                   <Action.Push
-                    title="View Article"
-                    icon={Icon.Eye}
-                    target={<ArticleDetail article={article} revalidateArticles={revalidateArticles} />}
+                    title="View Articles"
+                    icon={Icon.List}
+                    target={<ArticleList feedId={feed.id} feedTitle={feed.title || feed.url} />}
                   />
-                  <Action.OpenInBrowser url={article.url} shortcut={Keyboard.Shortcut.Common.Open} />
                   <Action
-                    title={isRead ? "Mark as Unread" : "Mark as Read"}
-                    icon={isRead ? Icon.Circle : Icon.Checkmark}
-                    onAction={() => toggleArticleRead(article)}
-                    shortcut={{ modifiers: ["cmd"], key: "m" }}
+                    title="Refresh Feed"
+                    icon={Icon.ArrowClockwise}
+                    onAction={() => refreshFeed(feed)}
+                    shortcut={{ modifiers: ["cmd"], key: "r" }}
                   />
-                  <Action.CopyToClipboard
-                    title="Copy URL"
-                    content={article.url}
-                    shortcut={Keyboard.Shortcut.Common.Copy}
+                  <Action
+                    title="Delete"
+                    icon={Icon.Trash}
+                    style={Action.Style.Destructive}
+                    onAction={() => deleteFeed(feed)}
+                    shortcut={Keyboard.Shortcut.Common.Remove}
                   />
                 </ActionPanel>
               }
             />
-          );
-        })}
+          ))}
+
+      {selectedView === "articles" &&
+        articlesData
+          ?.filter((article) => {
+            if (!searchText) return true;
+            const search = searchText.toLowerCase();
+            return (
+              (article.title?.toLowerCase().includes(search) ?? false) ||
+              (article.author?.toLowerCase().includes(search) ?? false) ||
+              article.url.toLowerCase().includes(search)
+            );
+          })
+          .map((article) => {
+            const isRead = article.read_at !== null;
+            return (
+              <List.Item
+                key={String(article.id)}
+                title={article.title || "Untitled"}
+                subtitle={article.author || undefined}
+                accessories={[
+                  { text: formatDate(article.published_at) },
+                  { icon: isRead ? Icon.Checkmark : Icon.Circle, tooltip: isRead ? "Read" : "Unread" },
+                ]}
+                actions={
+                  <ActionPanel>
+                    <Action.Push
+                      title="View Article"
+                      icon={Icon.Eye}
+                      target={<ArticleDetail article={article} revalidateArticles={revalidateArticles} />}
+                    />
+                    <Action.OpenInBrowser url={article.url} shortcut={Keyboard.Shortcut.Common.Open} />
+                    <Action
+                      title={isRead ? "Mark as Unread" : "Mark as Read"}
+                      icon={isRead ? Icon.Circle : Icon.Checkmark}
+                      onAction={() => toggleArticleRead(article)}
+                      shortcut={{ modifiers: ["cmd"], key: "m" }}
+                    />
+                    <Action.CopyToClipboard
+                      title="Copy URL"
+                      content={article.url}
+                      shortcut={Keyboard.Shortcut.Common.Copy}
+                    />
+                  </ActionPanel>
+                }
+              />
+            );
+          })}
 
       {selectedView === "tags" &&
-        tagsData?.map((tag) => (
-          <List.Item
-            key={String(tag.id)}
-            title={tag.name}
-            icon={Icon.Tag}
-            actions={
-              <ActionPanel>
-                <Action.Push title="View Articles" icon={Icon.List} target={<TagArticles tag={tag} />} />
-              </ActionPanel>
-            }
-          />
-        ))}
+        tagsData
+          ?.filter((tag) => !searchText || tag.name.toLowerCase().includes(searchText.toLowerCase()))
+          .map((tag) => (
+            <List.Item
+              key={String(tag.id)}
+              title={tag.name}
+              icon={Icon.Tag}
+              actions={
+                <ActionPanel>
+                  <Action.Push title="View Articles" icon={Icon.List} target={<TagArticles tag={tag} />} />
+                </ActionPanel>
+              }
+            />
+          ))}
     </List>
   );
 }
