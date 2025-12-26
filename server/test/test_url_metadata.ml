@@ -229,7 +229,7 @@ let test_extract_microformats () =
   Alcotest.(check (option string))
     "h-entry published" (Some "2024-02-01T08:00:00Z")
     result.content.published_at;
-  Alcotest.(check int) "2 categories" 2 (List.length result.content.tags);
+  Alcotest.(check int) "2 tags" 2 (List.length result.content.tags);
   (* Check author from h-card *)
   match result.author with
   | None -> Alcotest.fail "expected author"

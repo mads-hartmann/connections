@@ -95,11 +95,11 @@ let or_person_error result =
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result
 
-(* Convert Service.Category.Error.t to response *)
-let or_category_error result =
+(* Convert Service.Tag.Error.t to response *)
+let or_tag_error result =
   Result.map_error
     (function
-      | Service.Category.Error.Not_found -> not_found "Category not found"
-      | Service.Category.Error.Database err ->
+      | Service.Tag.Error.Not_found -> not_found "Tag not found"
+      | Service.Tag.Error.Database err ->
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result

@@ -1,6 +1,6 @@
 # Person
 
-A person represents an individual in your social graph. Each person can have multiple RSS feeds and belong to multiple categories.
+A person represents an individual in your social graph. Each person can have multiple RSS feeds and be associated with multiple tags.
 
 ## Fields
 
@@ -89,36 +89,36 @@ DELETE /persons/:id
 curl -X DELETE http://localhost:8080/persons/1
 ```
 
-## Categories
+## Tags
 
-Persons can be organized into categories. See [category.md](category.md) for category management.
+Persons can be organized with tags. See [tag.md](tag.md) for tag management.
 
-### List categories for a person
-
-```
-GET /persons/:id/categories
-```
-
-```bash
-curl http://localhost:8080/persons/1/categories
-```
-
-### Add a category to a person
+### List tags for a person
 
 ```
-POST /persons/:person_id/categories/:category_id
+GET /persons/:id/tags
 ```
 
 ```bash
-curl -X POST http://localhost:8080/persons/1/categories/2
+curl http://localhost:8080/persons/1/tags
 ```
 
-### Remove a category from a person
+### Add a tag to a person
 
 ```
-DELETE /persons/:person_id/categories/:category_id
+POST /persons/:person_id/tags/:tag_id
 ```
 
 ```bash
-curl -X DELETE http://localhost:8080/persons/1/categories/2
+curl -X POST http://localhost:8080/persons/1/tags/2
+```
+
+### Remove a tag from a person
+
+```
+DELETE /persons/:person_id/tags/:tag_id
+```
+
+```bash
+curl -X DELETE http://localhost:8080/persons/1/tags/2
 ```

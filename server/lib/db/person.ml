@@ -1,18 +1,29 @@
-(* Row type definitions *)
-let person_row_type = Caqti_type.(t2 int string)
-let person_with_counts_row_type = Caqti_type.(t4 int string int int)
+(* Row type definitions - 3 fields with tags JSON *)
+let person_row_type = Caqti_type.(t3 int string string)
+let person_with_counts_row_type = Caqti_type.(t5 int string string int int)
 
 let insert_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
     "INSERT INTO persons (name) VALUES (?) RETURNING id"
 
+(* Base SELECT with tags JSON aggregation *)
+let select_with_tags =
+  {|
+    SELECT p.id, p.name,
+           COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
+                     FROM person_tags pt
+                     JOIN tags t ON pt.tag_id = t.id
+                     WHERE pt.person_id = p.id), '[]') as tags
+    FROM persons p
+  |}
+
 let get_query =
   Caqti_request.Infix.(Caqti_type.int ->? person_row_type)
-    "SELECT id, name FROM persons WHERE id = ?"
+    (select_with_tags ^ " WHERE p.id = ?")
 
 let list_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->* person_row_type)
-    "SELECT id, name FROM persons ORDER BY id LIMIT ? OFFSET ?"
+    (select_with_tags ^ " ORDER BY p.id LIMIT ? OFFSET ?")
 
 let count_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
@@ -20,8 +31,8 @@ let count_query =
 
 let list_filtered_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* person_row_type)
-    "SELECT id, name FROM persons WHERE name LIKE ? ORDER BY name DESC LIMIT ? \
-     OFFSET ?"
+    (select_with_tags
+    ^ " WHERE p.name LIKE ? ORDER BY p.name DESC LIMIT ? OFFSET ?")
 
 let count_filtered_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
@@ -33,6 +44,10 @@ let list_with_counts_query =
       SELECT
         p.id,
         p.name,
+        COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
+                  FROM person_tags pt
+                  JOIN tags t ON pt.tag_id = t.id
+                  WHERE pt.person_id = p.id), '[]') as tags,
         COUNT(DISTINCT f.id) as feed_count,
         COUNT(a.id) as article_count
       FROM persons p
@@ -50,6 +65,10 @@ let list_with_counts_filtered_query =
       SELECT
         p.id,
         p.name,
+        COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
+                  FROM person_tags pt
+                  JOIN tags t ON pt.tag_id = t.id
+                  WHERE pt.person_id = p.id), '[]') as tags,
         COUNT(DISTINCT f.id) as feed_count,
         COUNT(a.id) as article_count
       FROM persons p
@@ -73,17 +92,18 @@ let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
     "SELECT COUNT(*) FROM persons WHERE id = ?"
 
-let tuple_to_person (id, name) = { Model.Person.id; name }
+let tuple_to_person (id, name, tags_json) =
+  { Model.Person.id; name; tags = Tag_json.parse tags_json }
 
-let tuple_to_person_with_counts (id, name, feed_count, article_count) =
-  { Model.Person.id; name; feed_count; article_count }
-
-let create ~name =
-  let pool = Pool.get () in
-  Caqti_eio.Pool.use
-    (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
-    pool
-  |> Result.map (fun id -> { Model.Person.id; name })
+let tuple_to_person_with_counts (id, name, tags_json, feed_count, article_count)
+    =
+  {
+    Model.Person.id;
+    name;
+    tags = Tag_json.parse tags_json;
+    feed_count;
+    article_count;
+  }
 
 let get ~id =
   let pool = Pool.get () in
@@ -91,6 +111,16 @@ let get ~id =
     (fun (module Db : Caqti_eio.CONNECTION) -> Db.find_opt get_query id)
     pool
   |> Result.map (Option.map tuple_to_person)
+
+let create ~name =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let* id =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
+      pool
+  in
+  get ~id |> Result.map (Option.get)
 
 let list ~page ~per_page ?query () =
   let open Result.Syntax in
@@ -136,13 +166,13 @@ let update ~id ~name =
   match exists with
   | 0 -> Ok None
   | _ ->
-      let+ () =
+      let* () =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.exec update_query (name, id))
           pool
       in
-      Some { Model.Person.id; name }
+      get ~id
 
 let delete ~id =
   let open Result.Syntax in

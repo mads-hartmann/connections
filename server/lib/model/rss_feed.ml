@@ -7,6 +7,7 @@ type t = {
   title : string option; [@yojson.option]
   created_at : string;
   last_fetched_at : string option; [@yojson.option]
+  tags : Tag.t list;
 }
 [@@deriving yojson]
 

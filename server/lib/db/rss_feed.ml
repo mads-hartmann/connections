@@ -1,6 +1,6 @@
-(* Row type definitions *)
+(* Row type definitions - 7 fields with tags JSON *)
 let rss_feed_row_type =
-  Caqti_type.(t6 int int string (option string) string (option string))
+  Caqti_type.(t7 int int string (option string) string (option string) string)
 
 let insert_query =
   Caqti_request.Infix.(
@@ -8,15 +8,25 @@ let insert_query =
     "INSERT INTO rss_feeds (person_id, url, title) VALUES (?, ?, ?) RETURNING \
      id"
 
+(* Base SELECT with tags JSON aggregation *)
+let select_with_tags =
+  {|
+    SELECT f.id, f.person_id, f.url, f.title, f.created_at, f.last_fetched_at,
+           COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
+                     FROM feed_tags ft
+                     JOIN tags t ON ft.tag_id = t.id
+                     WHERE ft.feed_id = f.id), '[]') as tags
+    FROM rss_feeds f
+  |}
+
 let get_query =
   Caqti_request.Infix.(Caqti_type.int ->? rss_feed_row_type)
-    "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
-     rss_feeds WHERE id = ?"
+    (select_with_tags ^ " WHERE f.id = ?")
 
 let list_by_person_query =
   Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* rss_feed_row_type)
-    "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
-     rss_feeds WHERE person_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
+    (select_with_tags
+    ^ " WHERE f.person_id = ? ORDER BY f.created_at DESC LIMIT ? OFFSET ?")
 
 let count_by_person_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
@@ -37,13 +47,11 @@ let exists_query =
 
 let list_all_query =
   Caqti_request.Infix.(Caqti_type.unit ->* rss_feed_row_type)
-    "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
-     rss_feeds"
+    select_with_tags
 
 let list_all_paginated_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->* rss_feed_row_type)
-    "SELECT id, person_id, url, title, created_at, last_fetched_at FROM \
-     rss_feeds ORDER BY created_at DESC LIMIT ? OFFSET ?"
+    (select_with_tags ^ " ORDER BY f.created_at DESC LIMIT ? OFFSET ?")
 
 let count_all_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
@@ -54,8 +62,17 @@ let update_last_fetched_query =
     "UPDATE rss_feeds SET last_fetched_at = datetime('now') WHERE id = ?"
 
 (* Helper to convert DB tuple to Model.Rss_feed.t *)
-let tuple_to_feed (id, person_id, url, title, created_at, last_fetched_at) =
-  { Model.Rss_feed.id; person_id; url; title; created_at; last_fetched_at }
+let tuple_to_feed
+    (id, person_id, url, title, created_at, last_fetched_at, tags_json) =
+  {
+    Model.Rss_feed.id;
+    person_id;
+    url;
+    title;
+    created_at;
+    last_fetched_at;
+    tags = Tag_json.parse tags_json;
+  }
 
 (* CREATE *)
 let create ~person_id ~url ~title =
@@ -120,13 +137,14 @@ let update ~id ~url ~title =
           let new_title =
             match title with Some _ -> title | None -> current_feed.title
           in
-          let+ () =
+          let* () =
             Caqti_eio.Pool.use
               (fun (module Db : Caqti_eio.CONNECTION) ->
                 Db.exec update_query (new_url, new_title, id))
               pool
           in
-          Some { current_feed with url = new_url; title = new_title })
+          (* Re-fetch to get updated feed with tags *)
+          get ~id)
 
 (* DELETE *)
 let delete ~id =

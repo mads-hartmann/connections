@@ -1,9 +1,10 @@
-(* Article row type: 10 fields split as t2 of (t5, t5) *)
+(* Article row type with tags JSON: 11 fields split as t2 of (t5, t6) *)
 let article_row_type =
   Caqti_type.(
     t2
       (t5 int int (option string) string (option string))
-      (t5 (option string) (option string) (option string) string (option string)))
+      (t6 (option string) (option string) (option string) string (option string)
+         string))
 
 (* Upsert input type: 7 fields *)
 let upsert_input_type =
@@ -18,19 +19,44 @@ let upsert_query =
       VALUES (?, ?, ?, ?, ?, ?, ?)
     |}
 
+(* Tags subquery - reused across all article queries *)
+let tags_subquery =
+  {|(SELECT json_group_array(json_object('id', t.id, 'name', t.name))
+     FROM article_tags at
+     JOIN tags t ON at.tag_id = t.id
+     WHERE at.article_id = a.id)|}
+
+(* Base SELECT with tags JSON aggregation *)
+let select_with_tags =
+  Printf.sprintf
+    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+       COALESCE(%s, '[]') as tags
+FROM articles a|}
+    tags_subquery
+
+(* Base SELECT for tag-filtered queries (needs JOIN for filtering) *)
+let select_with_tags_filtered_by_tag =
+  Printf.sprintf
+    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+       COALESCE(%s, '[]') as tags
+FROM articles a
+INNER JOIN article_tags at_filter ON a.id = at_filter.article_id
+INNER JOIN tags t_filter ON at_filter.tag_id = t_filter.id|}
+    tags_subquery
+
 let get_query =
   Caqti_request.Infix.(Caqti_type.int ->? article_row_type)
-    {|
-      SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
-      FROM articles WHERE id = ?
-    |}
+    (select_with_tags ^ " WHERE a.id = ?")
+
+let get_by_feed_url_query =
+  Caqti_request.Infix.(Caqti_type.(t2 int string) ->? article_row_type)
+    (select_with_tags ^ " WHERE a.feed_id = ? AND a.url = ?")
 
 let list_by_feed_query =
   Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* article_row_type)
-    {|
-      SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
-      FROM articles WHERE feed_id = ? ORDER BY published_at DESC, created_at DESC LIMIT ? OFFSET ?
-    |}
+    (select_with_tags
+    ^ " WHERE a.feed_id = ? ORDER BY a.published_at DESC, a.created_at DESC \
+       LIMIT ? OFFSET ?")
 
 let count_by_feed_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
@@ -38,10 +64,8 @@ let count_by_feed_query =
 
 let list_all_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->* article_row_type)
-    {|
-      SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
-      FROM articles ORDER BY published_at DESC, created_at DESC LIMIT ? OFFSET ?
-    |}
+    (select_with_tags
+    ^ " ORDER BY a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?")
 
 let count_all_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
@@ -49,14 +73,45 @@ let count_all_query =
 
 let list_unread_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->* article_row_type)
-    {|
-      SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
-      FROM articles WHERE read_at IS NULL ORDER BY published_at DESC, created_at DESC LIMIT ? OFFSET ?
-    |}
+    (select_with_tags
+    ^ " WHERE a.read_at IS NULL ORDER BY a.published_at DESC, a.created_at \
+       DESC LIMIT ? OFFSET ?")
 
 let count_unread_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
     "SELECT COUNT(*) FROM articles WHERE read_at IS NULL"
+
+let list_by_tag_query =
+  Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
+    (select_with_tags_filtered_by_tag
+    ^ " WHERE t_filter.name = ? GROUP BY a.id ORDER BY a.published_at DESC, \
+       a.created_at DESC LIMIT ? OFFSET ?")
+
+let count_by_tag_query =
+  Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
+    {|
+      SELECT COUNT(DISTINCT a.id)
+      FROM articles a
+      INNER JOIN article_tags at ON a.id = at.article_id
+      INNER JOIN tags t ON at.tag_id = t.id
+      WHERE t.name = ?
+    |}
+
+let list_by_tag_unread_query =
+  Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
+    (select_with_tags_filtered_by_tag
+    ^ " WHERE t_filter.name = ? AND a.read_at IS NULL GROUP BY a.id ORDER BY \
+       a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?")
+
+let count_by_tag_unread_query =
+  Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
+    {|
+      SELECT COUNT(DISTINCT a.id)
+      FROM articles a
+      INNER JOIN article_tags at ON a.id = at.article_id
+      INNER JOIN tags t ON at.tag_id = t.id
+      WHERE t.name = ? AND a.read_at IS NULL
+    |}
 
 let mark_read_query =
   Caqti_request.Infix.(Caqti_type.(t2 (option string) int) ->. Caqti_type.unit)
@@ -78,7 +133,7 @@ let exists_query =
 (* Helper to convert DB tuple to Model.Article.t *)
 let tuple_to_article
     ( (id, feed_id, title, url, published_at),
-      (content, author, image_url, created_at, read_at) ) =
+      (content, author, image_url, created_at, read_at, tags_json) ) =
   {
     Model.Article.id;
     feed_id;
@@ -90,6 +145,7 @@ let tuple_to_article
     image_url;
     created_at;
     read_at;
+    tags = Tag_json.parse tags_json;
   }
 
 (* UPSERT - returns true if inserted, false if duplicate *)
@@ -153,6 +209,15 @@ let get ~id =
     pool
   |> Result.map (Option.map tuple_to_article)
 
+(* GET by feed_id and url *)
+let get_by_feed_url ~feed_id ~url =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.find_opt get_by_feed_url_query (feed_id, url))
+    pool
+  |> Result.map (Option.map tuple_to_article)
+
 (* LIST BY FEED with pagination *)
 let list_by_feed ~feed_id ~page ~per_page =
   let open Result.Syntax in
@@ -190,6 +255,29 @@ let list_all ~page ~per_page ~unread_only =
       (fun (module Db : Caqti_eio.CONNECTION) ->
         if unread_only then Db.collect_list list_unread_query (per_page, offset)
         else Db.collect_list list_all_query (per_page, offset))
+      pool
+  in
+  let data = List.map tuple_to_article rows in
+  Model.Shared.Paginated.make ~data ~page ~per_page ~total
+
+(* LIST BY TAG with pagination and optional unread filter *)
+let list_by_tag ~tag ~page ~per_page ~unread_only =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let offset = (page - 1) * per_page in
+  let* total =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        if unread_only then Db.find count_by_tag_unread_query tag
+        else Db.find count_by_tag_query tag)
+      pool
+  in
+  let+ rows =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        if unread_only then
+          Db.collect_list list_by_tag_unread_query (tag, per_page, offset)
+        else Db.collect_list list_by_tag_query (tag, per_page, offset))
       pool
   in
   let data = List.map tuple_to_article rows in

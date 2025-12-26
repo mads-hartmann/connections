@@ -6,7 +6,7 @@ type feed_info = { url : string; title : string option } [@@deriving yojson]
 type person_info = {
   name : string;
   feeds : feed_info list;
-  categories : string list;
+  tags : string list;
 }
 [@@deriving yojson]
 
@@ -23,7 +23,7 @@ type confirm_request = { people : person_info list } [@@deriving yojson]
 type confirm_response = {
   created_people : int;
   created_feeds : int;
-  created_categories : int;
+  created_tags : int;
 }
 [@@deriving yojson]
 
@@ -105,23 +105,22 @@ let process_entries ~sw ~env (entries : Opml_parser.feed_entry list) :
       in
       let existing =
         match Hashtbl.find_opt by_author author_name with
-        | Some (feeds, cats) -> (feeds, cats)
+        | Some (feeds, tags) -> (feeds, tags)
         | None -> ([], [])
       in
-      let feeds, cats = existing in
-      let new_cats =
+      let feeds, tags = existing in
+      let new_tags =
         List.fold_left
-          (fun acc cat -> if List.mem cat acc then acc else cat :: acc)
-          cats entry.Opml_parser.categories
+          (fun acc tag -> if List.mem tag acc then acc else tag :: acc)
+          tags entry.Opml_parser.tags
       in
-      Hashtbl.replace by_author author_name (feed :: feeds, new_cats))
+      Hashtbl.replace by_author author_name (feed :: feeds, new_tags))
     successes;
   (* Convert to list *)
   let people : person_info list =
     Hashtbl.fold
-      (fun name (feeds, categories) acc ->
-        ({ name; feeds = List.rev feeds; categories = List.rev categories }
-          : person_info)
+      (fun name (feeds, tags) acc ->
+        ({ name; feeds = List.rev feeds; tags = List.rev tags } : person_info)
         :: acc)
       by_author []
   in
@@ -143,24 +142,24 @@ let preview ~sw ~env (opml_content : string) : (preview_response, string) result
 
 let caqti_err err = Format.asprintf "%a" Caqti_error.pp err
 
-(* Confirm import - create people, feeds, and categories *)
+(* Confirm import - create people, feeds, and tags *)
 let confirm (request : confirm_request) : (confirm_response, string) result =
   let created_people = ref 0 in
   let created_feeds = ref 0 in
-  let created_categories = ref 0 in
-  let category_cache = Hashtbl.create 16 in
-  (* Helper to get or create category *)
-  let get_or_create_category name =
-    match Hashtbl.find_opt category_cache name with
+  let created_tags = ref 0 in
+  let tag_cache = Hashtbl.create 16 in
+  (* Helper to get or create tag *)
+  let get_or_create_tag name =
+    match Hashtbl.find_opt tag_cache name with
     | Some id -> Ok id
     | None -> (
-        let result = Db.Category.get_or_create ~name in
+        let result = Db.Tag.get_or_create ~name in
         match result with
         | Error err -> Error (caqti_err err)
-        | Ok category ->
-            Hashtbl.add category_cache name category.id;
-            incr created_categories;
-            Ok category.id)
+        | Ok tag ->
+            Hashtbl.add tag_cache name tag.id;
+            incr created_tags;
+            Ok tag.id)
   in
   (* Process each person *)
   let rec process_people = function
@@ -189,21 +188,21 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
             match create_feeds person.feeds with
             | Error msg -> Error msg
             | Ok () -> (
-                (* Add categories to person *)
-                let rec add_categories = function
+                (* Add tags to person *)
+                let rec add_tags = function
                   | [] -> Ok ()
-                  | cat_name :: rest -> (
-                      match get_or_create_category cat_name with
+                  | tag_name :: rest -> (
+                      match get_or_create_tag tag_name with
                       | Error msg -> Error msg
-                      | Ok cat_id -> (
+                      | Ok tag_id -> (
                           match
-                            Db.Category.add_to_person
-                              ~person_id:created_person.id ~category_id:cat_id
+                            Db.Tag.add_to_person ~person_id:created_person.id
+                              ~tag_id
                           with
                           | Error err -> Error (caqti_err err)
-                          | Ok () -> add_categories rest))
+                          | Ok () -> add_tags rest))
                 in
-                match add_categories person.categories with
+                match add_tags person.tags with
                 | Error msg -> Error msg
                 | Ok () -> process_people rest)))
   in
@@ -214,5 +213,5 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
         {
           created_people = !created_people;
           created_feeds = !created_feeds;
-          created_categories = !created_categories;
+          created_tags = !created_tags;
         }

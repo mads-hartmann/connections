@@ -24,9 +24,26 @@ let rss2_enclosure_to_image (enclosure : Syndic.Rss2.enclosure option) :
       else None
   | None -> None
 
-(* Convert RSS2 item to our article format *)
+(* Extract category names from RSS2 item *)
+let rss2_item_categories (item : Syndic.Rss2.item) : string list =
+  List.map (fun (cat : Syndic.Rss2.category) -> cat.data) item.categories
+
+(* Extract category names from Atom entry *)
+let atom_entry_categories (entry : Syndic.Atom.entry) : string list =
+  List.filter_map
+    (fun (cat : Syndic.Atom.category) ->
+      match cat.label with Some label -> Some label | None -> Some cat.term)
+    entry.categories
+
+(* Article with extracted tags *)
+type article_with_tags = {
+  article : Db.Article.create_input;
+  tags : string list;
+}
+
+(* Convert RSS2 item to our article format with tags *)
 let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
-    Db.Article.create_input option =
+    article_with_tags option =
   let title, content = rss2_story_to_title_and_content item.story in
   let url =
     match item.link with
@@ -39,9 +56,9 @@ let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
   match url with
   | None -> None (* Skip items without URL *)
   | Some url ->
-      Some
+      let article =
         {
-          feed_id;
+          Db.Article.feed_id;
           title;
           url;
           published_at = Option.map ptime_to_string item.pubDate;
@@ -49,10 +66,13 @@ let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
           author = item.author;
           image_url = rss2_enclosure_to_image item.enclosure;
         }
+      in
+      let tags = rss2_item_categories item in
+      Some { article; tags }
 
-(* Convert Atom entry to our article format *)
+(* Convert Atom entry to our article format with tags *)
 let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
-    Db.Article.create_input option =
+    article_with_tags option =
   (* Get URL from links - prefer alternate, fallback to first link *)
   let url =
     let links = entry.links in
@@ -106,9 +126,9 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
             | _ -> None)
           entry.links
       in
-      Some
+      let article =
         {
-          feed_id;
+          Db.Article.feed_id;
           title;
           url;
           published_at =
@@ -119,6 +139,9 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
           author;
           image_url;
         }
+      in
+      let tags = atom_entry_categories entry in
+      Some { article; tags }
 
 (* Fetch URL content using Piaf *)
 let fetch_url ~sw ~env (url : string) : (string, string) result =
@@ -205,15 +228,38 @@ let fetch_feed_metadata ~sw ~env (url : string) : (feed_metadata, string) result
       | Error msg -> Error msg
       | Ok parsed_feed -> Ok (extract_metadata parsed_feed))
 
-(* Extract articles from parsed feed *)
-let extract_articles ~feed_id (feed : parsed_feed) :
-    Db.Article.create_input list =
+(* Extract articles with tags from parsed feed *)
+let extract_articles_with_tags ~feed_id (feed : parsed_feed) :
+    article_with_tags list =
   match feed with
   | Rss2 channel ->
       List.filter_map (rss2_item_to_article ~feed_id) channel.items
   | Atom feed -> List.filter_map (atom_entry_to_article ~feed_id) feed.entries
 
-(* Process a single feed: fetch, parse, store articles *)
+(* Associate tags with an article, creating tags if needed *)
+let associate_tags_with_article ~article_id ~tag_names : unit =
+  List.iter
+    (fun tag_name ->
+      match Db.Tag.get_or_create ~name:tag_name with
+      | Error err ->
+          Log.err (fun m ->
+              m "Failed to get/create tag '%s': %a" tag_name Caqti_error.pp err)
+      | Ok tag -> (
+          match Db.Tag.add_to_article ~article_id ~tag_id:tag.id with
+          | Error err ->
+              Log.err (fun m ->
+                  m "Failed to associate tag '%s' with article %d: %a" tag_name
+                    article_id Caqti_error.pp err)
+          | Ok () -> ()))
+    tag_names
+
+(* Get feed tags to inherit *)
+let get_feed_tag_ids ~feed_id : int list =
+  match Db.Tag.get_by_feed ~feed_id with
+  | Error _ -> []
+  | Ok tags -> List.map (fun (t : Model.Tag.t) -> t.id) tags
+
+(* Process a single feed: fetch, parse, store articles with tags *)
 let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
   Log.info (fun m -> m "Fetching feed %d: %s" feed.id feed.url);
   let fetch_result = fetch_url ~sw ~env feed.url in
@@ -227,16 +273,49 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
           Log.err (fun m ->
               m "Failed to parse feed %d (%s): %s" feed.id feed.url msg)
       | Ok parsed_feed ->
-          let articles = extract_articles ~feed_id:feed.id parsed_feed in
-          let insert_result = Db.Article.upsert_many articles in
-          (match insert_result with
-          | Error err ->
-              Log.err (fun m ->
-                  m "Failed to store articles for feed %d: %a" feed.id
-                    Caqti_error.pp err)
-          | Ok count ->
-              Log.info (fun m ->
-                  m "Processed %d articles for feed %d" count feed.id));
+          let articles_with_tags =
+            extract_articles_with_tags ~feed_id:feed.id parsed_feed
+          in
+          let feed_tag_ids = get_feed_tag_ids ~feed_id:feed.id in
+          let count = ref 0 in
+          List.iter
+            (fun { article; tags } ->
+              (* Upsert the article *)
+              match Db.Article.upsert article with
+              | Error err ->
+                  Log.err (fun m ->
+                      m "Failed to upsert article '%s': %a"
+                        (Option.value ~default:article.url article.title)
+                        Caqti_error.pp err)
+              | Ok () -> (
+                  incr count;
+                  (* Get the article ID by looking it up *)
+                  match
+                    Db.Article.get_by_feed_url ~feed_id:feed.id ~url:article.url
+                  with
+                  | Error err ->
+                      Log.err (fun m ->
+                          m "Failed to get article after upsert: %a"
+                            Caqti_error.pp err)
+                  | Ok None ->
+                      Log.err (fun m ->
+                          m "Article not found after upsert: %s" article.url)
+                  | Ok (Some stored_article) ->
+                      (* Associate article-level tags *)
+                      associate_tags_with_article ~article_id:stored_article.id
+                        ~tag_names:tags;
+                      (* Inherit feed tags *)
+                      List.iter
+                        (fun tag_id ->
+                          let _ =
+                            Db.Tag.add_to_article ~article_id:stored_article.id
+                              ~tag_id
+                          in
+                          ())
+                        feed_tag_ids))
+            articles_with_tags;
+          Log.info (fun m ->
+              m "Processed %d articles for feed %d" !count feed.id);
           (* Update last_fetched_at on the feed *)
           let _ = Db.Rss_feed.update_last_fetched ~id:feed.id in
           ())

@@ -221,5 +221,3 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
     </Form>
   );
 }
-
-

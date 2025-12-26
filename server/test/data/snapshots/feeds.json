@@ -5,7 +5,8 @@
       "person_id": 48,
       "url": "https://blog.mads-hartmann.com/feed.xml",
       "title": "Mads Hartmann",
-      "created_at": "2025-12-25 19:26:18"
+      "created_at": "2025-12-25 19:26:18",
+      "tags": []
     },
     {
       "id": 43,
@@ -13,7 +14,8 @@
       "url": "https://anil.recoil.org/news.xml",
       "title": "anil.recoil.org",
       "created_at": "2025-12-14 20:17:36",
-      "last_fetched_at": "2025-12-25 19:23:53"
+      "last_fetched_at": "2025-12-25 19:23:53",
+      "tags": []
     },
     {
       "id": 2,
@@ -21,7 +23,8 @@
       "url": "https://adam.herokuapp.com/feed",
       "title": "a tornado of razorblades",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:39"
+      "last_fetched_at": "2025-12-25 19:23:39",
+      "tags": []
     },
     {
       "id": 3,
@@ -29,7 +32,8 @@
       "url": "https://alexjreid.dev/index.xml",
       "title": "Alex Reid",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:39"
+      "last_fetched_at": "2025-12-25 19:23:39",
+      "tags": []
     },
     {
       "id": 4,
@@ -37,7 +41,8 @@
       "url": "https://fasterthanli.me/index.xml",
       "title": "fasterthanli.me",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:39"
+      "last_fetched_at": "2025-12-25 19:23:39",
+      "tags": []
     },
     {
       "id": 5,
@@ -45,7 +50,8 @@
       "url": "https://andydote.co.uk/rss",
       "title": "Andy Dote",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:40"
+      "last_fetched_at": "2025-12-25 19:23:40",
+      "tags": []
     },
     {
       "id": 6,
@@ -53,7 +59,8 @@
       "url": "https://arkadiyt.com/atom.xml",
       "title": "Arkadiy Tetelman",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:40"
+      "last_fetched_at": "2025-12-25 19:23:40",
+      "tags": []
     },
     {
       "id": 7,
@@ -61,7 +68,8 @@
       "url": "https://metaredux.com/feed",
       "title": "Meta Redux",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:40"
+      "last_fetched_at": "2025-12-25 19:23:40",
+      "tags": []
     },
     {
       "id": 8,
@@ -69,7 +77,8 @@
       "url": "https://caseyhandmer.wordpress.com/feed/",
       "title": "Casey Handmer's blog",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:41"
+      "last_fetched_at": "2025-12-25 19:23:41",
+      "tags": []
     },
     {
       "id": 9,
@@ -77,7 +86,8 @@
       "url": "https://blog.thestateofme.com/feed/",
       "title": "Chris Swan's Weblog",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:41"
+      "last_fetched_at": "2025-12-25 19:23:41",
+      "tags": []
     },
     {
       "id": 10,
@@ -85,7 +95,8 @@
       "url": "https://mcfunley.com/rss",
       "title": "Dan McKinley",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:41"
+      "last_fetched_at": "2025-12-25 19:23:41",
+      "tags": []
     },
     {
       "id": 11,
@@ -93,7 +104,8 @@
       "url": "https://2ality.com/feeds/posts.atom",
       "title": "2ality – JavaScript and more",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:41"
+      "last_fetched_at": "2025-12-25 19:23:41",
+      "tags": []
     },
     {
       "id": 12,
@@ -101,7 +113,8 @@
       "url": "https://borretti.me/feed",
       "title": "Fernando Borretti",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:42"
+      "last_fetched_at": "2025-12-25 19:23:42",
+      "tags": []
     },
     {
       "id": 13,
@@ -109,7 +122,8 @@
       "url": "https://architectelevator.com/feed.xml",
       "title": "The Architect Elevator",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:42"
+      "last_fetched_at": "2025-12-25 19:23:42",
+      "tags": []
     },
     {
       "id": 14,
@@ -117,7 +131,8 @@
       "url": "https://www.hillelwayne.com/index.xml",
       "title": "Hillel Wayne",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:42"
+      "last_fetched_at": "2025-12-25 19:23:42",
+      "tags": []
     },
     {
       "id": 15,
@@ -125,7 +140,8 @@
       "url": "https://www.jamesshore.com/v2/feed",
       "title": "James Shore",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:43"
+      "last_fetched_at": "2025-12-25 19:23:43",
+      "tags": []
     },
     {
       "id": 16,
@@ -133,7 +149,8 @@
       "url": "https://jvns.ca/atom.xml",
       "title": "Julia Evans",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:43"
+      "last_fetched_at": "2025-12-25 19:23:43",
+      "tags": []
     },
     {
       "id": 17,
@@ -141,7 +158,8 @@
       "url": "https://www.skovhus.dev/rss.xml",
       "title": "Kenneth Skovhus",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:43"
+      "last_fetched_at": "2025-12-25 19:23:43",
+      "tags": []
     },
     {
       "id": 18,
@@ -149,7 +167,8 @@
       "url": "https://tailscale.com/blog/index.xml",
       "title": "Blog on Tailscale",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:43"
+      "last_fetched_at": "2025-12-25 19:23:43",
+      "tags": []
     },
     {
       "id": 19,
@@ -157,7 +176,8 @@
       "url": "https://larahogan.me/feed.xml",
       "title": "Lara Callender Hogan",
       "created_at": "2025-12-14 06:52:40",
-      "last_fetched_at": "2025-12-25 19:23:43"
+      "last_fetched_at": "2025-12-25 19:23:43",
+      "tags": []
     }
   ],
   "page": 1,

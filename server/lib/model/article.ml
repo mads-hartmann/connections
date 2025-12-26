@@ -11,6 +11,7 @@ type t = {
   image_url : string option; [@yojson.option]
   created_at : string;
   read_at : string option;
+  tags : Tag.t list;
 }
 [@@deriving yojson]
 

@@ -73,7 +73,7 @@ let test_parse_empty_body () =
       Alcotest.(check int)
         "empty body has no feeds" 0 (List.length result.feeds)
 
-let test_parse_with_categories () =
+let test_parse_with_tags () =
   let content =
     {|<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
@@ -100,16 +100,14 @@ let test_parse_with_categories () =
       | None -> Alcotest.fail "feed1 not found"
       | Some feed ->
           Alcotest.(check (list string))
-            "feed1 categories" [ "Tech"; "Blogs" ] feed.categories);
+            "feed1 tags" [ "Tech"; "Blogs" ] feed.tags);
       (match find_by_url "https://example.com/feed2.xml" with
       | None -> Alcotest.fail "feed2 not found"
       | Some feed ->
-          Alcotest.(check (list string))
-            "feed2 categories" [ "Tech" ] feed.categories);
+          Alcotest.(check (list string)) "feed2 tags" [ "Tech" ] feed.tags);
       match find_by_url "https://example.com/feed3.xml" with
       | None -> Alcotest.fail "feed3 not found"
-      | Some feed ->
-          Alcotest.(check (list string)) "feed3 categories" [] feed.categories)
+      | Some feed -> Alcotest.(check (list string)) "feed3 tags" [] feed.tags)
 
 let test_parse_invalid_xml () =
   let content = "not valid xml at all" in
@@ -127,7 +125,6 @@ let suite =
       test_specific_feeds_present;
     Alcotest.test_case "empty body returns no feeds" `Quick
       test_parse_empty_body;
-    Alcotest.test_case "nested categories are extracted" `Quick
-      test_parse_with_categories;
+    Alcotest.test_case "nested tags are extracted" `Quick test_parse_with_tags;
     Alcotest.test_case "invalid XML returns error" `Quick test_parse_invalid_xml;
   ]

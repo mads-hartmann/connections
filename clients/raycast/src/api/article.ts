@@ -1,3 +1,8 @@
+export interface Tag {
+  id: number;
+  name: string;
+}
+
 export interface Article {
   id: number;
   feed_id: number;
@@ -9,6 +14,7 @@ export interface Article {
   image_url: string | null;
   created_at: string;
   read_at: string | null;
+  tags: Tag[];
 }
 
 export interface ArticlesResponse {
@@ -29,6 +35,11 @@ export function listAllUrl({ page, unread }: { page: number; unread?: boolean })
   if (unread) {
     params.set("unread", "true");
   }
+  return `http://localhost:8080/articles?${params.toString()}`;
+}
+
+export function listByTagUrl({ tag, page }: { tag: string; page: number }) {
+  const params = new URLSearchParams({ page: String(page), per_page: "20", tag });
   return `http://localhost:8080/articles?${params.toString()}`;
 }
 
