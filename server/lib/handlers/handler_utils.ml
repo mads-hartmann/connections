@@ -103,3 +103,16 @@ let or_tag_error result =
       | Service.Tag.Error.Database err ->
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result
+
+(* Convert Service.Person_metadata.Error.t to response *)
+let or_person_metadata_error result =
+  Result.map_error
+    (function
+      | Service.Person_metadata.Error.Not_found -> not_found "Metadata not found"
+      | Service.Person_metadata.Error.Person_not_found ->
+          not_found "Person not found"
+      | Service.Person_metadata.Error.Invalid_field_type ->
+          bad_request "Invalid field type"
+      | Service.Person_metadata.Error.Database err ->
+          internal_error (Format.asprintf "%a" Caqti_error.pp err))
+    result

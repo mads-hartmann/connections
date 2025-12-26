@@ -1,145 +1,25 @@
 {
   "data": [
-    {
-      "id": 8,
-      "name": "Adam Wiggins",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 20
-    },
-    {
-      "id": 9,
-      "name": "Alex Reid",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 25
-    },
-    {
-      "id": 10,
-      "name": "Amos Wenger",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 25
-    },
-    {
-      "id": 11,
-      "name": "Andy Dote",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 170
-    },
-    {
-      "id": 12,
-      "name": "Arkadiy Tetelman",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 9
-    },
-    {
-      "id": 13,
-      "name": "Bozhidar Batsov",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 10
-    },
-    {
-      "id": 14,
-      "name": "Casey Handmer's blog",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 10
-    },
-    {
-      "id": 15,
-      "name": "Chris Swan's Weblog",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 10
-    },
-    {
-      "id": 16,
-      "name": "Dan McKinley",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 20
-    },
-    {
-      "id": 17,
-      "name": "Dr. Axel Rauschmayer",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 64
-    },
-    {
-      "id": 18,
-      "name": "Fernando Borretti",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 22
-    },
-    {
-      "id": 19,
-      "name": "Gregor Hohpe",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 12
-    },
-    {
-      "id": 20,
-      "name": "Hillel Wayne",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 19
-    },
-    {
-      "id": 21,
-      "name": "James Shore",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 15
-    },
-    {
-      "id": 22,
-      "name": "Julia Evans",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 20
-    },
-    {
-      "id": 23,
-      "name": "Kenneth Skovhus",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 24
-    },
-    {
-      "id": 24,
-      "name": "Kevin Purdy",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 18
-    },
-    {
-      "id": 25,
-      "name": "Lara Callender Hogan",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 10
-    },
-    {
-      "id": 26,
-      "name": "Mads Hartmann",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 35
-    },
-    {
-      "id": 27,
-      "name": "Malte Ubl",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 115
-    }
+    { "id": 8, "name": "Adam Wiggins", "tags": [], "feed_count": 1, "article_count": 20, "metadata": [] },
+    { "id": 9, "name": "Alex Reid", "tags": [], "feed_count": 1, "article_count": 25, "metadata": [] },
+    { "id": 10, "name": "Amos Wenger", "tags": [], "feed_count": 1, "article_count": 25, "metadata": [] },
+    { "id": 11, "name": "Andy Dote", "tags": [], "feed_count": 1, "article_count": 170, "metadata": [] },
+    { "id": 12, "name": "Arkadiy Tetelman", "tags": [], "feed_count": 1, "article_count": 9, "metadata": [] },
+    { "id": 13, "name": "Bozhidar Batsov", "tags": [], "feed_count": 1, "article_count": 10, "metadata": [] },
+    { "id": 14, "name": "Casey Handmer's blog", "tags": [], "feed_count": 1, "article_count": 10, "metadata": [] },
+    { "id": 15, "name": "Chris Swan's Weblog", "tags": [], "feed_count": 1, "article_count": 10, "metadata": [] },
+    { "id": 16, "name": "Dan McKinley", "tags": [], "feed_count": 1, "article_count": 20, "metadata": [] },
+    { "id": 17, "name": "Dr. Axel Rauschmayer", "tags": [], "feed_count": 1, "article_count": 64, "metadata": [] },
+    { "id": 18, "name": "Fernando Borretti", "tags": [], "feed_count": 1, "article_count": 22, "metadata": [] },
+    { "id": 19, "name": "Gregor Hohpe", "tags": [], "feed_count": 1, "article_count": 12, "metadata": [] },
+    { "id": 20, "name": "Hillel Wayne", "tags": [], "feed_count": 1, "article_count": 19, "metadata": [] },
+    { "id": 21, "name": "James Shore", "tags": [], "feed_count": 1, "article_count": 15, "metadata": [] },
+    { "id": 22, "name": "Julia Evans", "tags": [], "feed_count": 1, "article_count": 20, "metadata": [] },
+    { "id": 23, "name": "Kenneth Skovhus", "tags": [], "feed_count": 1, "article_count": 24, "metadata": [] },
+    { "id": 24, "name": "Kevin Purdy", "tags": [], "feed_count": 1, "article_count": 18, "metadata": [] },
+    { "id": 25, "name": "Lara Callender Hogan", "tags": [], "feed_count": 1, "article_count": 10, "metadata": [] },
+    { "id": 26, "name": "Mads Hartmann", "tags": [], "feed_count": 1, "article_count": 35, "metadata": [] },
+    { "id": 27, "name": "Malte Ubl", "tags": [], "feed_count": 1, "article_count": 115, "metadata": [] }
   ],
   "page": 1,
   "per_page": 20,

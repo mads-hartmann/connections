@@ -18,6 +18,7 @@ let build () =
        [
          health_routes ();
          Handlers.Person.routes ();
+         Handlers.Person_metadata.routes ();
          Handlers.Rss_feed.routes ();
          Handlers.Article.routes ();
          Handlers.Tag.routes ();

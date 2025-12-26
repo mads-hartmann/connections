@@ -1,10 +1,28 @@
 import { Alert, confirmAlert } from "@raycast/api";
 
+export interface MetadataFieldType {
+  id: number;
+  name: string;
+}
+
+export interface PersonMetadata {
+  id: number;
+  field_type: MetadataFieldType;
+  value: string;
+}
+
 export interface Person {
   id: number;
   name: string;
   feed_count: number;
   article_count: number;
+  metadata: PersonMetadata[];
+}
+
+export interface PersonDetail {
+  id: number;
+  name: string;
+  metadata: PersonMetadata[];
 }
 
 export interface PersonsResponse {
@@ -15,12 +33,31 @@ export interface PersonsResponse {
   total_pages: number;
 }
 
+// Known field types matching server enum
+export const FIELD_TYPES: MetadataFieldType[] = [
+  { id: 1, name: "Bluesky" },
+  { id: 2, name: "Email" },
+  { id: 3, name: "GitHub" },
+  { id: 4, name: "LinkedIn" },
+  { id: 5, name: "Mastodon" },
+  { id: 6, name: "Website" },
+  { id: 7, name: "X" },
+];
+
 export function listUrl({ page, query }: { page: number; query?: string }) {
   const params = new URLSearchParams({ page: String(page), per_page: "20" });
   if (query) {
     params.append("query", query);
   }
   return `http://localhost:8080/persons?${params.toString()}`;
+}
+
+export async function getPerson(id: number): Promise<PersonDetail> {
+  const response = await fetch(`http://localhost:8080/persons/${id}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch person");
+  }
+  return response.json();
 }
 
 export async function deletePerson(person: Person) {
@@ -37,5 +74,41 @@ export async function deletePerson(person: Person) {
     await fetch(`http://localhost:8080/persons/${person.id}`, {
       method: "DELETE",
     });
+  }
+}
+
+export async function createMetadata(personId: number, fieldTypeId: number, value: string): Promise<PersonMetadata> {
+  const response = await fetch(`http://localhost:8080/persons/${personId}/metadata`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ field_type_id: fieldTypeId, value }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create metadata");
+  }
+  return response.json();
+}
+
+export async function updateMetadata(personId: number, metadataId: number, value: string): Promise<PersonMetadata> {
+  const response = await fetch(`http://localhost:8080/persons/${personId}/metadata/${metadataId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ value }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update metadata");
+  }
+  return response.json();
+}
+
+export async function deleteMetadata(personId: number, metadataId: number): Promise<void> {
+  const response = await fetch(`http://localhost:8080/persons/${personId}/metadata/${metadataId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to delete metadata");
   }
 }

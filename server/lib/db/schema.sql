@@ -79,3 +79,31 @@ CREATE INDEX IF NOT EXISTS idx_feed_tags_feed_id ON feed_tags(feed_id);
 CREATE INDEX IF NOT EXISTS idx_feed_tags_tag_id ON feed_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_article_tags_article_id ON article_tags(article_id);
 CREATE INDEX IF NOT EXISTS idx_article_tags_tag_id ON article_tags(tag_id);
+
+-- Metadata field types (static lookup table)
+CREATE TABLE IF NOT EXISTS metadata_field_types (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE
+);
+
+-- Seed metadata field types (alphabetically ordered by name)
+INSERT OR IGNORE INTO metadata_field_types (id, name) VALUES
+  (1, 'Bluesky'),
+  (2, 'Email'),
+  (3, 'GitHub'),
+  (4, 'LinkedIn'),
+  (5, 'Mastodon'),
+  (6, 'Website'),
+  (7, 'X');
+
+-- Person metadata
+CREATE TABLE IF NOT EXISTS person_metadata (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  person_id INTEGER NOT NULL,
+  field_type_id INTEGER NOT NULL,
+  value TEXT NOT NULL,
+  FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE,
+  FOREIGN KEY (field_type_id) REFERENCES metadata_field_types(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_person_metadata_person_id ON person_metadata(person_id);
