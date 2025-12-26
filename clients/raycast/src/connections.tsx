@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Icon, Keyboard, List, showToast, Toast } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CreatePersonForm } from "./components/create-person-form";
 import { FeedList } from "./components/feed-list";
 import { ImportOpml } from "./components/import-opml";
@@ -80,7 +80,6 @@ export default function Command() {
     isLoading: isLoadingTags,
     data: tagsData,
     pagination: tagsPagination,
-    revalidate: revalidateTags,
   } = useFetch((options) => Tag.listUrl({ page: options.page + 1, query: searchText || undefined }), {
     mapResult(result: Tag.TagsResponse) {
       return {
@@ -91,13 +90,6 @@ export default function Command() {
     keepPreviousData: true,
     execute: selectedView === "tags",
   });
-
-  // Revalidate tags when search text changes
-  useEffect(() => {
-    if (selectedView === "tags") {
-      revalidateTags();
-    }
-  }, [searchText, selectedView]);
 
   const deletePerson = async (person: Person.Person) => {
     await Person.deletePerson(person);
@@ -174,7 +166,6 @@ export default function Command() {
       filtering={false}
       onSearchTextChange={setSearchText}
       searchBarPlaceholder={searchBarPlaceholder}
-      throttle
       searchBarAccessory={
         <List.Dropdown
           tooltip="Select View"
