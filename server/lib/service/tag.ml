@@ -17,8 +17,8 @@ let get ~id =
   | Ok None -> Error Error.Not_found
   | Ok (Some tag) -> Ok tag
 
-let list ~page ~per_page () =
-  Db.Tag.list ~page ~per_page ()
+let list ~page ~per_page ?query () =
+  Db.Tag.list ~page ~per_page ?query ()
   |> Result.map_error (fun err -> Error.Database err)
 
 let delete ~id =

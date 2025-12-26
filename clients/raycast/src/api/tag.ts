@@ -11,8 +11,11 @@ export interface TagsResponse {
   total_pages: number;
 }
 
-export function listUrl({ page }: { page: number }) {
+export function listUrl({ page, query }: { page: number; query?: string }) {
   const params = new URLSearchParams({ page: String(page), per_page: "20" });
+  if (query) {
+    params.set("query", query);
+  }
   return `http://localhost:8080/tags?${params.toString()}`;
 }
 

@@ -2,9 +2,11 @@ open Tapak
 open Handler_utils.Syntax
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-let list (pagination : Pagination.Pagination.t) =
+let list request (pagination : Pagination.Pagination.t) =
+  let query = Handler_utils.query "query" request in
   let* response =
-    Service.Tag.list ~page:pagination.page ~per_page:pagination.per_page ()
+    Service.Tag.list ~page:pagination.page ~per_page:pagination.per_page ?query
+      ()
     |> Handler_utils.or_tag_error
   in
   Handler_utils.json_response (Model.Tag.paginated_to_json response)
@@ -92,7 +94,9 @@ let remove_from_article _request article_id tag_id =
 let routes () =
   let open Tapak.Router in
   [
-    get (s "tags") |> guard Pagination.Pagination.pagination_guard |> into list;
+    get (s "tags")
+    |> guard Pagination.Pagination.pagination_guard
+    |> request |> into list;
     get (s "tags" / int) |> request |> into get_tag;
     post (s "tags") |> request |> into create;
     patch (s "tags" / int) |> request |> into update_tag;

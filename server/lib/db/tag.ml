@@ -25,6 +25,14 @@ let count_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
     "SELECT COUNT(*) FROM tags"
 
+let list_filtered_query =
+  Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* tag_row_type)
+    "SELECT id, name FROM tags WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?"
+
+let count_filtered_query =
+  Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
+    "SELECT COUNT(*) FROM tags WHERE name LIKE ?"
+
 let delete_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
     "DELETE FROM tags WHERE id = ?"
@@ -87,23 +95,41 @@ let list_all () =
     pool
   |> Result.map (List.map tuple_to_tag)
 
-let list ~page ~per_page () =
+let list ~page ~per_page ?query () =
   let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
-  let* total =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_query ())
-      pool
-  in
-  let+ rows =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.collect_list list_query (per_page, offset))
-      pool
-  in
-  let data = List.map tuple_to_tag rows in
-  Model.Shared.Paginated.make ~data ~page ~per_page ~total
+  match query with
+  | None ->
+      let* total =
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_query ())
+          pool
+      in
+      let+ rows =
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.collect_list list_query (per_page, offset))
+          pool
+      in
+      let data = List.map tuple_to_tag rows in
+      Model.Shared.Paginated.make ~data ~page ~per_page ~total
+  | Some q ->
+      let pattern = "%" ^ q ^ "%" in
+      let* total =
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.find count_filtered_query pattern)
+          pool
+      in
+      let+ rows =
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.collect_list list_filtered_query (pattern, per_page, offset))
+          pool
+      in
+      let data = List.map tuple_to_tag rows in
+      Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
 let delete ~id =
   let open Result.Syntax in
