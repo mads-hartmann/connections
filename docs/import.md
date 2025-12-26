@@ -6,7 +6,7 @@ Import feeds from OPML files. The import process has two steps: preview and conf
 
 ### Preview import
 
-Parse an OPML file and return a preview of what will be imported. Each outline with feeds becomes a person.
+Parse an OPML file and return a preview of what will be imported. Each outline with feeds becomes a person. OPML folder structure is converted to tags.
 
 ```
 POST /import/opml/preview
@@ -20,11 +20,23 @@ curl -X POST http://localhost:8080/import/opml/preview \
   --data-binary @feeds.opml
 ```
 
-Response includes a list of people with their feeds, allowing you to review before confirming.
+Response:
+```json
+{
+  "people": [
+    {
+      "name": "Person Name",
+      "feeds": [{"url": "https://example.com/feed.xml", "title": "Feed Title"}],
+      "tags": ["Tech", "Blogs"]
+    }
+  ],
+  "errors": []
+}
+```
 
 ### Confirm import
 
-Create the persons and feeds from a preview.
+Create the persons, feeds, and tags from a preview.
 
 ```
 POST /import/opml/confirm
@@ -38,7 +50,8 @@ Request body:
       "name": "Person Name",
       "feeds": [
         {"url": "https://example.com/feed.xml", "title": "Feed Title"}
-      ]
+      ],
+      "tags": ["Tech"]
     }
   ]
 }
@@ -47,5 +60,14 @@ Request body:
 ```bash
 curl -X POST http://localhost:8080/import/opml/confirm \
   -H "Content-Type: application/json" \
-  -d '{"people": [{"name": "John", "feeds": [{"url": "https://example.com/feed.xml", "title": "Blog"}]}]}'
+  -d '{"people": [{"name": "John", "feeds": [{"url": "https://example.com/feed.xml", "title": "Blog"}], "tags": ["Tech"]}]}'
+```
+
+Response:
+```json
+{
+  "created_people": 1,
+  "created_feeds": 1,
+  "created_tags": 1
+}
 ```

@@ -115,3 +115,37 @@ POST /feeds/:id/refresh
 ```bash
 curl -X POST http://localhost:8080/feeds/1/refresh
 ```
+
+## Tags
+
+Feeds can be tagged. Feed tags are inherited by articles when the feed is fetched. See [tag.md](tag.md) for tag management.
+
+### List tags for a feed
+
+```
+GET /feeds/:id/tags
+```
+
+```bash
+curl http://localhost:8080/feeds/1/tags
+```
+
+### Add a tag to a feed
+
+```
+POST /feeds/:feed_id/tags/:tag_id
+```
+
+```bash
+curl -X POST http://localhost:8080/feeds/1/tags/2
+```
+
+### Remove a tag from a feed
+
+```
+DELETE /feeds/:feed_id/tags/:tag_id
+```
+
+```bash
+curl -X DELETE http://localhost:8080/feeds/1/tags/2
+```

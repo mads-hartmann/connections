@@ -16,6 +16,7 @@ Articles are entries from RSS feeds. They are created automatically when feeds a
 | `image_url` | string (optional) | Featured image URL |
 | `created_at` | string | When the article was added |
 | `read_at` | string (optional) | When marked as read, null if unread |
+| `tags` | array | List of tags (see [tag.md](tag.md)) |
 
 ## Endpoints
 
@@ -29,10 +30,13 @@ Query parameters:
 - `page` (int, default: 1) - Page number
 - `per_page` (int, default: 20) - Items per page
 - `unread` (bool, optional) - Filter to unread articles only
+- `tag` (string, optional) - Filter by tag name
 
 ```bash
 curl http://localhost:8080/articles
 curl "http://localhost:8080/articles?unread=true"
+curl "http://localhost:8080/articles?tag=tech"
+curl "http://localhost:8080/articles?tag=tech&unread=true"
 curl "http://localhost:8080/articles?page=1&per_page=20"
 ```
 

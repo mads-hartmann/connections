@@ -11,5 +11,5 @@ It's currently very rough, and I'm mostly building it as an exercise to see how 
 - [Person](docs/person.md) - Manage people in your social graph
 - [Feed](docs/feed.md) - RSS feeds belonging to people
 - [Article](docs/article.md) - Articles from RSS feeds
-- [Category](docs/category.md) - Organize people into groups
+- [Tag](docs/tag.md) - Organize people, feeds, and articles with tags
 - [Import](docs/import.md) - Import feeds from OPML files
