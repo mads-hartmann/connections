@@ -1,9 +1,10 @@
-(* Article row type: 10 fields split as t2 of (t5, t5) *)
+(* Article row type with tags JSON: 11 fields split as t2 of (t5, t6) *)
 let article_row_type =
   Caqti_type.(
     t2
       (t5 int int (option string) string (option string))
-      (t5 (option string) (option string) (option string) string (option string)))
+      (t6 (option string) (option string) (option string) string (option string)
+         string))
 
 (* Upsert input type: 7 fields *)
 let upsert_input_type =
@@ -18,26 +19,30 @@ let upsert_query =
       VALUES (?, ?, ?, ?, ?, ?, ?)
     |}
 
+(* Base SELECT with tags JSON aggregation *)
+let select_with_tags =
+  {|
+    SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+           COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
+                     FROM article_tags at
+                     JOIN tags t ON at.tag_id = t.id
+                     WHERE at.article_id = a.id), '[]') as tags
+    FROM articles a
+  |}
+
 let get_query =
   Caqti_request.Infix.(Caqti_type.int ->? article_row_type)
-    {|
-      SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
-      FROM articles WHERE id = ?
-    |}
+    (select_with_tags ^ " WHERE a.id = ?")
 
 let get_by_feed_url_query =
   Caqti_request.Infix.(Caqti_type.(t2 int string) ->? article_row_type)
-    {|
-      SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
-      FROM articles WHERE feed_id = ? AND url = ?
-    |}
+    (select_with_tags ^ " WHERE a.feed_id = ? AND a.url = ?")
 
 let list_by_feed_query =
   Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* article_row_type)
-    {|
-      SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
-      FROM articles WHERE feed_id = ? ORDER BY published_at DESC, created_at DESC LIMIT ? OFFSET ?
-    |}
+    (select_with_tags
+    ^ " WHERE a.feed_id = ? ORDER BY a.published_at DESC, a.created_at DESC \
+       LIMIT ? OFFSET ?")
 
 let count_by_feed_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
@@ -45,10 +50,8 @@ let count_by_feed_query =
 
 let list_all_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->* article_row_type)
-    {|
-      SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
-      FROM articles ORDER BY published_at DESC, created_at DESC LIMIT ? OFFSET ?
-    |}
+    (select_with_tags
+    ^ " ORDER BY a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?")
 
 let count_all_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
@@ -56,10 +59,9 @@ let count_all_query =
 
 let list_unread_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->* article_row_type)
-    {|
-      SELECT id, feed_id, title, url, published_at, content, author, image_url, created_at, read_at
-      FROM articles WHERE read_at IS NULL ORDER BY published_at DESC, created_at DESC LIMIT ? OFFSET ?
-    |}
+    (select_with_tags
+    ^ " WHERE a.read_at IS NULL ORDER BY a.published_at DESC, a.created_at \
+       DESC LIMIT ? OFFSET ?")
 
 let count_unread_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
@@ -68,11 +70,16 @@ let count_unread_query =
 let list_by_tag_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
     {|
-      SELECT DISTINCT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at
+      SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+             COALESCE((SELECT json_group_array(json_object('id', t2.id, 'name', t2.name))
+                       FROM article_tags at2
+                       JOIN tags t2 ON at2.tag_id = t2.id
+                       WHERE at2.article_id = a.id), '[]') as tags
       FROM articles a
       INNER JOIN article_tags at ON a.id = at.article_id
       INNER JOIN tags t ON at.tag_id = t.id
       WHERE t.name = ?
+      GROUP BY a.id
       ORDER BY a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?
     |}
 
@@ -89,11 +96,16 @@ let count_by_tag_query =
 let list_by_tag_unread_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
     {|
-      SELECT DISTINCT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at
+      SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+             COALESCE((SELECT json_group_array(json_object('id', t2.id, 'name', t2.name))
+                       FROM article_tags at2
+                       JOIN tags t2 ON at2.tag_id = t2.id
+                       WHERE at2.article_id = a.id), '[]') as tags
       FROM articles a
       INNER JOIN article_tags at ON a.id = at.article_id
       INNER JOIN tags t ON at.tag_id = t.id
       WHERE t.name = ? AND a.read_at IS NULL
+      GROUP BY a.id
       ORDER BY a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?
     |}
 
@@ -124,10 +136,37 @@ let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
     "SELECT COUNT(*) FROM articles WHERE id = ?"
 
+(* Parse tags JSON string into Tag.t list *)
+let parse_tags_json (json_str : string) : Model.Tag.t list =
+  try
+    match Yojson.Safe.from_string json_str with
+    | `List items ->
+        List.filter_map
+          (fun item ->
+            match item with
+            | `Assoc fields -> (
+                let id =
+                  Option.bind (List.assoc_opt "id" fields) (function
+                    | `Int i -> Some i
+                    | _ -> None)
+                in
+                let name =
+                  Option.bind (List.assoc_opt "name" fields) (function
+                    | `String s -> Some s
+                    | _ -> None)
+                in
+                match (id, name) with
+                | Some id, Some name -> Some { Model.Tag.id; name }
+                | _ -> None)
+            | _ -> None)
+          items
+    | _ -> []
+  with _ -> []
+
 (* Helper to convert DB tuple to Model.Article.t *)
 let tuple_to_article
     ( (id, feed_id, title, url, published_at),
-      (content, author, image_url, created_at, read_at) ) =
+      (content, author, image_url, created_at, read_at, tags_json) ) =
   {
     Model.Article.id;
     feed_id;
@@ -139,6 +178,7 @@ let tuple_to_article
     image_url;
     created_at;
     read_at;
+    tags = parse_tags_json tags_json;
   }
 
 (* UPSERT - returns true if inserted, false if duplicate *)
@@ -211,16 +251,6 @@ let get_by_feed_url ~feed_id ~url =
     pool
   |> Result.map (Option.map tuple_to_article)
 
-(* GET with tags *)
-let get_with_tags ~id =
-  let open Result.Syntax in
-  let* article_opt = get ~id in
-  match article_opt with
-  | None -> Ok None
-  | Some article ->
-      let+ tags = Tag.get_by_article ~article_id:id in
-      Some (Model.Article.add_tags article tags)
-
 (* LIST BY FEED with pagination *)
 let list_by_feed ~feed_id ~page ~per_page =
   let open Result.Syntax in
@@ -285,44 +315,6 @@ let list_by_tag ~tag ~page ~per_page ~unread_only =
   in
   let data = List.map tuple_to_article rows in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
-
-(* Helper to add tags to a paginated result *)
-let add_tags_to_paginated paginated =
-  let open Result.Syntax in
-  let article_ids =
-    List.map (fun (a : Model.Article.t) -> a.id) paginated.Model.Shared.Paginated.data
-  in
-  if List.length article_ids = 0 then
-    Ok
-      (Model.Shared.Paginated.make ~data:[] ~page:paginated.page
-         ~per_page:paginated.per_page ~total:paginated.total)
-  else
-    let+ tags_by_article = Tag.get_by_article_ids ~article_ids in
-    let data =
-      List.map
-        (fun (article : Model.Article.t) ->
-          let tags =
-            Option.value ~default:[]
-              (Hashtbl.find_opt tags_by_article article.id)
-            |> List.rev
-          in
-          Model.Article.add_tags article tags)
-        paginated.data
-    in
-    Model.Shared.Paginated.make ~data ~page:paginated.page
-      ~per_page:paginated.per_page ~total:paginated.total
-
-(* LIST ALL with tags - eager loads tags for all articles *)
-let list_all_with_tags ~page ~per_page ~unread_only =
-  let open Result.Syntax in
-  let* paginated = list_all ~page ~per_page ~unread_only in
-  add_tags_to_paginated paginated
-
-(* LIST BY TAG with tags - eager loads tags for all articles *)
-let list_by_tag_with_tags ~tag ~page ~per_page ~unread_only =
-  let open Result.Syntax in
-  let* paginated = list_by_tag ~tag ~page ~per_page ~unread_only in
-  add_tags_to_paginated paginated
 
 (* MARK READ/UNREAD *)
 let mark_read ~id ~read =

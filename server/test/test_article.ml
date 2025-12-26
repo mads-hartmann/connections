@@ -20,6 +20,7 @@ let test_article_to_json () =
       image_url = None;
       created_at = "2024-01-01 12:00:00";
       read_at = None;
+      tags = [];
     }
   in
   let json = Model.Article.to_json article in
