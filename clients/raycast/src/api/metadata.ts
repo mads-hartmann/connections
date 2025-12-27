@@ -4,6 +4,16 @@ export interface Feed {
   format: "rss" | "atom" | "json_feed";
 }
 
+export interface MetadataFieldType {
+  id: number;
+  name: string;
+}
+
+export interface ClassifiedProfile {
+  url: string;
+  field_type: MetadataFieldType;
+}
+
 export interface Author {
   name: string | null;
   url: string | null;
@@ -12,6 +22,7 @@ export interface Author {
   bio: string | null;
   location: string | null;
   social_profiles: string[];
+  classified_profiles: ClassifiedProfile[];
 }
 
 export interface Content {

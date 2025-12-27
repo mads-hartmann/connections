@@ -1,6 +1,6 @@
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-type t = Bluesky | Email | GitHub | LinkedIn | Mastodon | Website | X
+type t = Bluesky | Email | GitHub | LinkedIn | Mastodon | Website | X | Other
 [@@deriving yojson]
 
 let id = function
@@ -11,6 +11,7 @@ let id = function
   | Mastodon -> 5
   | Website -> 6
   | X -> 7
+  | Other -> 8
 
 let name = function
   | Bluesky -> "Bluesky"
@@ -20,6 +21,7 @@ let name = function
   | Mastodon -> "Mastodon"
   | Website -> "Website"
   | X -> "X"
+  | Other -> "Other"
 
 let of_id = function
   | 1 -> Some Bluesky
@@ -29,9 +31,10 @@ let of_id = function
   | 5 -> Some Mastodon
   | 6 -> Some Website
   | 7 -> Some X
+  | 8 -> Some Other
   | _ -> None
 
-let all = [ Bluesky; Email; GitHub; LinkedIn; Mastodon; Website; X ]
+let all = [ Bluesky; Email; GitHub; LinkedIn; Mastodon; Website; X; Other ]
 
 type with_id = { id : int; name : string } [@@deriving yojson]
 

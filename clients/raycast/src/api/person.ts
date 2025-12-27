@@ -44,6 +44,7 @@ export const FIELD_TYPES: MetadataFieldType[] = [
   { id: 5, name: "Mastodon" },
   { id: 6, name: "Website" },
   { id: 7, name: "X" },
+  { id: 8, name: "Other" },
 ];
 
 export function listUrl({ page, query }: { page: number; query?: string }) {
