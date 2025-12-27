@@ -68,11 +68,13 @@ export function EditFeedForm({ feed, revalidate }: EditFeedFormProps) {
     >
       <Form.TextField id="url" title="URL" defaultValue={feed.url} placeholder="https://example.com/feed.xml" />
       <Form.TextField id="title" title="Title" defaultValue={feed.title || ""} placeholder="Feed title" />
-      <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
-        {allTags?.map((tag) => (
-          <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
-        ))}
-      </Form.TagPicker>
+      {!isLoadingAllTags && !isLoadingFeedTags && (
+        <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
+          {allTags?.map((tag) => (
+            <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
+          ))}
+        </Form.TagPicker>
+      )}
     </Form>
   );
 }
