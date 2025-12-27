@@ -8,6 +8,9 @@ import { ArticleList } from "./components/article-list";
 import { ArticleDetail } from "./components/article-detail";
 import { ArticleDetailMetadata } from "./components/article-detail-metadata";
 import { AddMetadataForm } from "./components/add-metadata-form";
+import { CreateTagForm } from "./components/create-tag-form";
+import { EditTagForm } from "./components/edit-tag-form";
+import { ManageTagsForm } from "./components/manage-tags-form";
 import * as Person from "./api/person";
 import * as Feed from "./api/feed";
 import * as Article from "./api/article";
@@ -121,6 +124,7 @@ export default function Command() {
     isLoading: isLoadingTags,
     data: tagsData,
     pagination: tagsPagination,
+    revalidate: revalidateTags,
   } = useFetch((options) => Tag.listUrl({ page: options.page + 1, query: searchText || undefined }), {
     mapResult(result: Tag.TagsResponse) {
       return {
@@ -261,6 +265,19 @@ export default function Command() {
                     <AddMetadataForm personId={person.id} personName={person.name} revalidate={revalidateConnections} />
                   }
                 />
+                <Action.Push
+                  title="Manage Tags"
+                  icon={Icon.Tag}
+                  shortcut={{ modifiers: ["cmd"], key: "t" }}
+                  target={
+                    <ManageTagsForm
+                      entityType="person"
+                      entityId={person.id}
+                      entityName={person.name}
+                      revalidate={revalidateConnections}
+                    />
+                  }
+                />
                 <Action
                   title={showConnectionsDetail ? "Hide Details" : "Show Details"}
                   icon={showConnectionsDetail ? Icon.EyeDisabled : Icon.Eye}
@@ -380,6 +397,30 @@ export default function Command() {
             actions={
               <ActionPanel>
                 <Action.Push title="View Articles" icon={Icon.List} target={<ArticleList tag={tag} />} />
+                <Action.Push
+                  title="Edit Tag"
+                  icon={Icon.Pencil}
+                  shortcut={Keyboard.Shortcut.Common.Edit}
+                  target={<EditTagForm tag={tag} revalidate={revalidateTags} />}
+                />
+                <Action.Push
+                  title="Create Tag"
+                  icon={Icon.Plus}
+                  shortcut={Keyboard.Shortcut.Common.New}
+                  target={<CreateTagForm revalidate={revalidateTags} />}
+                />
+                <Action
+                  title="Delete"
+                  icon={Icon.Trash}
+                  style={Action.Style.Destructive}
+                  onAction={async () => {
+                    const deleted = await Tag.deleteTag(tag);
+                    if (deleted) {
+                      revalidateTags();
+                    }
+                  }}
+                  shortcut={Keyboard.Shortcut.Common.Remove}
+                />
               </ActionPanel>
             }
           />

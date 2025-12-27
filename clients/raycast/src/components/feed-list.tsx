@@ -4,6 +4,7 @@ import * as Feed from "../api/feed";
 import { ArticleList } from "./article-list";
 import { CreateFeedForm } from "./create-feed-form";
 import { EditFeedForm } from "./edit-feed-form";
+import { ManageTagsForm } from "./manage-tags-form";
 
 interface FeedListProps {
   personId: number;
@@ -89,6 +90,19 @@ export function FeedList({ personId, personName }: FeedListProps) {
                 title="Edit Feed"
                 icon={Icon.Pencil}
                 target={<EditFeedForm feed={feed} revalidate={revalidate} />}
+              />
+              <Action.Push
+                title="Manage Tags"
+                icon={Icon.Tag}
+                shortcut={{ modifiers: ["cmd"], key: "t" }}
+                target={
+                  <ManageTagsForm
+                    entityType="feed"
+                    entityId={feed.id}
+                    entityName={feed.title || feed.url}
+                    revalidate={revalidate}
+                  />
+                }
               />
               <Action.Push
                 title="Create Feed"

@@ -1,5 +1,6 @@
 import { Action, ActionPanel, Detail, Icon, showToast, Toast } from "@raycast/api";
 import { Article, markArticleRead } from "../api/article";
+import { ManageTagsForm } from "./manage-tags-form";
 
 interface ArticleDetailProps {
   article: Article;
@@ -36,10 +37,13 @@ export function ArticleDetail({ article, revalidateArticles }: ArticleDetailProp
     }
   };
 
+  const tagsLine = article.tags.length > 0 ? `**Tags:** ${article.tags.map((t) => t.name).join(", ")}` : null;
+
   const metadata = [
     article.author ? `**Author:** ${article.author}` : null,
     `**Published:** ${formatDate(article.published_at)}`,
     isRead ? `**Read:** ${formatDate(article.read_at)}` : "**Status:** Unread",
+    tagsLine,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -63,6 +67,19 @@ ${article.content || "*No content available*"}
             title={isRead ? "Mark as Unread" : "Mark as Read"}
             icon={isRead ? Icon.Circle : Icon.Checkmark}
             onAction={toggleRead}
+          />
+          <Action.Push
+            title="Manage Tags"
+            icon={Icon.Tag}
+            shortcut={{ modifiers: ["cmd"], key: "t" }}
+            target={
+              <ManageTagsForm
+                entityType="article"
+                entityId={article.id}
+                entityName={article.title || "Untitled"}
+                revalidate={revalidateArticles}
+              />
+            }
           />
           <Action.CopyToClipboard title="Copy URL" content={article.url} />
         </ActionPanel>
