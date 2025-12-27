@@ -16,13 +16,13 @@ export interface Person {
   name: string;
   feed_count: number;
   article_count: number;
-  metadata?: PersonMetadata[];
+  metadata: PersonMetadata[];
 }
 
 export interface PersonDetail {
   id: number;
   name: string;
-  metadata?: PersonMetadata[];
+  metadata: PersonMetadata[];
 }
 
 export interface PersonsResponse {
