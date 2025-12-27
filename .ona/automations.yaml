@@ -20,6 +20,7 @@ tasks:
       - postDevcontainerStart
     command: |
       cd /workspaces/connections
+      opam pin add tapak https://github.com/syaiful6/tapak.git -y --no-action
       opam install . --deps-only -y
 
   build:
