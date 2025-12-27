@@ -14,9 +14,10 @@ let list_by_feed (pagination : Pagination.Pagination.t) feed_id =
 let list_all request (pagination : Pagination.Pagination.t) =
   let unread_only = Handler_utils.query "unread" request = Some "true" in
   let tag = Handler_utils.query "tag" request in
+  let query = Handler_utils.query "query" request in
   let* paginated =
     Service.Article.list_all ~page:pagination.page ~per_page:pagination.per_page
-      ~unread_only ~tag
+      ~unread_only ~tag ?query ()
     |> Handler_utils.or_article_error
   in
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)

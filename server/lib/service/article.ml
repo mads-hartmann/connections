@@ -17,13 +17,13 @@ let get ~id =
   | Ok None -> Error Error.Not_found
   | Ok (Some article) -> Ok article
 
-let list_all ~page ~per_page ~unread_only ~tag =
+let list_all ~page ~per_page ~unread_only ~tag ?query () =
   match tag with
   | Some tag_name ->
       Db.Article.list_by_tag ~tag:tag_name ~page ~per_page ~unread_only
       |> Result.map_error (fun err -> Error.Database err)
   | None ->
-      Db.Article.list_all ~page ~per_page ~unread_only
+      Db.Article.list_all ~page ~per_page ~unread_only ?query ()
       |> Result.map_error (fun err -> Error.Database err)
 
 let list_by_feed ~feed_id ~page ~per_page =
