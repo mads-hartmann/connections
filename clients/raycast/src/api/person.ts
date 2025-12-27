@@ -1,4 +1,5 @@
 import { Alert, confirmAlert } from "@raycast/api";
+import { Tag } from "./tag";
 
 export interface MetadataFieldType {
   id: number;
@@ -17,6 +18,7 @@ export interface Person {
   feed_count: number;
   article_count: number;
   metadata: PersonMetadata[];
+  tags: Tag[];
 }
 
 export interface PersonDetail {

@@ -1,7 +1,5 @@
 import { List } from "@raycast/api";
-import { useFetch } from "@raycast/utils";
 import * as Person from "../api/person";
-import * as Tag from "../api/tag";
 
 function getMetadataUrl(metadata: Person.PersonMetadata): string | null {
   const value = metadata.value;
@@ -19,8 +17,7 @@ interface PersonDetailMetadataProps {
 }
 
 export function PersonDetailMetadata({ person }: PersonDetailMetadataProps) {
-  const { data: tags } = useFetch<Tag.Tag[]>(Tag.listByPersonUrl(person.id));
-
+  const tags = person.tags
   return (
     <List.Item.Detail
       metadata={

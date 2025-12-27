@@ -77,11 +77,13 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
       }
     >
       <Form.TextField id="name" title="Name" defaultValue={person.name} placeholder="Person name" />
+      {!isLoadingAllTags && !isLoadingPersonTags && (
       <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
         {allTags?.map((tag) => (
           <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
         ))}
       </Form.TagPicker>
+      )}
     </Form>
   );
 }
