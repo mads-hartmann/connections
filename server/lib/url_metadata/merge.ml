@@ -111,22 +111,29 @@ let merge_author ~(microformats : Extract_microformats.h_card option)
         { Types.Author.empty with name = Some author })
       html_meta
   in
+  (* Create author from rel-me links if no other source provides one *)
+  let from_rel_me =
+    match rel_me with
+    | [] -> None
+    | _ -> Some { Types.Author.empty with social_profiles = rel_me }
+  in
   (* Merge in priority order *)
   let candidates =
-    [ from_microformats; from_json_ld; from_og; from_twitter; from_html ]
+    [ from_microformats; from_json_ld; from_og; from_twitter; from_html; from_rel_me ]
   in
   match List.filter_map Fun.id candidates with
   | [] -> None
   | first :: rest ->
       let merged = List.fold_left Types.Author.merge first rest in
-      if Types.Author.is_empty merged then None
-      else
-        (* Classify social profiles after merging *)
-        let classified =
-          classify_profiles ~email:merged.email
-            ~social_profiles:merged.social_profiles
-        in
-        Some { merged with classified_profiles = classified }
+      (* Classify social profiles after merging *)
+      let classified =
+        classify_profiles ~email:merged.email
+          ~social_profiles:merged.social_profiles
+      in
+      let result = { merged with classified_profiles = classified } in
+      (* Only return author if it has meaningful content *)
+      if Types.Author.is_empty result && List.length classified = 0 then None
+      else Some result
 
 let merge_content ~(microformats : Extract_microformats.h_entry option)
     ~(json_ld : Extract_json_ld.article option)
