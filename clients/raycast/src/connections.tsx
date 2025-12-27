@@ -10,7 +10,7 @@ import { ArticleDetailMetadata } from "./components/article-detail-metadata";
 import { AddMetadataForm } from "./components/add-metadata-form";
 import { CreateTagForm } from "./components/create-tag-form";
 import { EditTagForm } from "./components/edit-tag-form";
-import { ManageTagsForm } from "./components/manage-tags-form";
+import { PersonEditForm } from "./components/person-edit-form";
 import * as Person from "./api/person";
 import * as Feed from "./api/feed";
 import * as Article from "./api/article";
@@ -266,17 +266,10 @@ export default function Command() {
                   }
                 />
                 <Action.Push
-                  title="Manage Tags"
-                  icon={Icon.Tag}
-                  shortcut={{ modifiers: ["cmd"], key: "t" }}
-                  target={
-                    <ManageTagsForm
-                      entityType="person"
-                      entityId={person.id}
-                      entityName={person.name}
-                      revalidate={revalidateConnections}
-                    />
-                  }
+                  title="Edit Person"
+                  icon={Icon.Pencil}
+                  shortcut={Keyboard.Shortcut.Common.Edit}
+                  target={<PersonEditForm person={person} revalidate={revalidateConnections} />}
                 />
                 <Action
                   title={showConnectionsDetail ? "Hide Details" : "Show Details"}

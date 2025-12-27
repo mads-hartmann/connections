@@ -1,6 +1,6 @@
-import { Action, ActionPanel, Detail, Icon, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Detail, Icon, Keyboard, showToast, Toast } from "@raycast/api";
 import { Article, markArticleRead } from "../api/article";
-import { ManageTagsForm } from "./manage-tags-form";
+import { ArticleEditForm } from "./article-edit-form";
 
 interface ArticleDetailProps {
   article: Article;
@@ -69,17 +69,10 @@ ${article.content || "*No content available*"}
             onAction={toggleRead}
           />
           <Action.Push
-            title="Manage Tags"
-            icon={Icon.Tag}
-            shortcut={{ modifiers: ["cmd"], key: "t" }}
-            target={
-              <ManageTagsForm
-                entityType="article"
-                entityId={article.id}
-                entityName={article.title || "Untitled"}
-                revalidate={revalidateArticles}
-              />
-            }
+            title="Edit Article"
+            icon={Icon.Pencil}
+            shortcut={Keyboard.Shortcut.Common.Edit}
+            target={<ArticleEditForm article={article} revalidate={revalidateArticles} />}
           />
           <Action.CopyToClipboard title="Copy URL" content={article.url} />
         </ActionPanel>

@@ -60,6 +60,19 @@ export async function getPerson(id: number): Promise<PersonDetail> {
   return response.json();
 }
 
+export async function updatePerson(id: number, name: string): Promise<PersonDetail> {
+  const response = await fetch(`http://localhost:8080/persons/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update person");
+  }
+  return response.json();
+}
+
 export async function deletePerson(person: Person) {
   if (
     await confirmAlert({
