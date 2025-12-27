@@ -88,6 +88,7 @@ export function FeedList({ personId, personName }: FeedListProps) {
               <Action.Push
                 title="Edit Feed"
                 icon={Icon.Pencil}
+                shortcut={Keyboard.Shortcut.Common.Edit}
                 target={<EditFeedForm feed={feed} revalidate={revalidate} />}
               />
               <Action.Push
