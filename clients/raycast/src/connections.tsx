@@ -3,6 +3,7 @@ import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import { CreatePersonForm } from "./components/create-person-form";
 import { FeedList } from "./components/feed-list";
+import { FeedItem } from "./components/feed-item";
 import { ImportOpml } from "./components/import-opml";
 import { ArticleList } from "./components/article-list";
 import { ArticleDetail } from "./components/article-detail";
@@ -102,27 +103,6 @@ export default function Command() {
   const deletePerson = async (person: Person.Person) => {
     await Person.deletePerson(person);
     revalidateConnections();
-  };
-
-  const deleteFeed = async (feed: Feed.Feed) => {
-    const deleted = await Feed.deleteFeed(feed);
-    if (deleted) {
-      revalidateFeeds();
-    }
-  };
-
-  const refreshFeed = async (feed: Feed.Feed) => {
-    try {
-      await Feed.refreshFeed(feed.id);
-      showToast({ style: Toast.Style.Success, title: "Feed refreshed" });
-      revalidateFeeds();
-    } catch (error) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to refresh feed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
   };
 
   const toggleArticleRead = async (article: Article.Article) => {
@@ -265,36 +245,7 @@ export default function Command() {
         ))}
 
       {selectedView === "feeds" &&
-        feedsData?.map((feed) => (
-          <List.Item
-            key={String(feed.id)}
-            title={feed.title || feed.url}
-            subtitle={feed.title ? feed.url : undefined}
-            accessories={[{ text: formatDate(feed.last_fetched_at), tooltip: "Last fetched" }]}
-            actions={
-              <ActionPanel>
-                <Action.Push
-                  title="View Articles"
-                  icon={Icon.List}
-                  target={<ArticleList feedId={feed.id} feedTitle={feed.title || feed.url} />}
-                />
-                <Action
-                  title="Refresh Feed"
-                  icon={Icon.ArrowClockwise}
-                  onAction={() => refreshFeed(feed)}
-                  shortcut={{ modifiers: ["cmd"], key: "r" }}
-                />
-                <Action
-                  title="Delete"
-                  icon={Icon.Trash}
-                  style={Action.Style.Destructive}
-                  onAction={() => deleteFeed(feed)}
-                  shortcut={Keyboard.Shortcut.Common.Remove}
-                />
-              </ActionPanel>
-            }
-          />
-        ))}
+        feedsData?.map((feed) => <FeedItem key={String(feed.id)} feed={feed} revalidate={revalidateFeeds} />)}
 
       {selectedView === "articles" &&
         articlesData?.map((article) => {
