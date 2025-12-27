@@ -4,6 +4,7 @@ import { useState } from "react";
 import * as ArticleApi from "../api/article";
 import * as Tag from "../api/tag";
 import { ArticleDetail } from "./article-detail";
+import { ArticleDetailMetadata } from "./article-detail-metadata";
 
 type ArticleListProps =
   | { feedId: number; feedTitle: string; tag?: never }
@@ -28,6 +29,7 @@ async function confirmMarkAllRead(feedTitle: string): Promise<boolean> {
 
 export function ArticleList(props: ArticleListProps) {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [showDetail, setShowDetail] = useState(true);
 
   const isTagView = "tag" in props && props.tag !== undefined;
   const navigationTitle = isTagView ? `Tag: ${props.tag.name}` : `${props.feedTitle} - Articles`;
@@ -94,6 +96,7 @@ export function ArticleList(props: ArticleListProps) {
       isLoading={isLoading}
       pagination={pagination}
       navigationTitle={navigationTitle}
+      isShowingDetail={showDetail}
       searchBarAccessory={
         <List.Dropdown
           tooltip="Filter"
@@ -111,11 +114,16 @@ export function ArticleList(props: ArticleListProps) {
           <List.Item
             key={String(article.id)}
             title={article.title || "Untitled"}
-            subtitle={article.author || undefined}
-            accessories={[
-              { text: formatDate(article.published_at) },
-              { icon: isRead ? Icon.Checkmark : Icon.Circle, tooltip: isRead ? "Read" : "Unread" },
-            ]}
+            subtitle={showDetail ? undefined : article.author || undefined}
+            accessories={
+              showDetail
+                ? undefined
+                : [
+                    { text: formatDate(article.published_at) },
+                    { icon: isRead ? Icon.Checkmark : Icon.Circle, tooltip: isRead ? "Read" : "Unread" },
+                  ]
+            }
+            detail={<ArticleDetailMetadata article={article} />}
             actions={
               <ActionPanel>
                 <Action.Push
@@ -129,6 +137,12 @@ export function ArticleList(props: ArticleListProps) {
                   icon={isRead ? Icon.Circle : Icon.Checkmark}
                   onAction={() => toggleRead(article)}
                   shortcut={{ modifiers: ["cmd"], key: "m" }}
+                />
+                <Action
+                  title={showDetail ? "Hide Details" : "Show Details"}
+                  icon={showDetail ? Icon.EyeDisabled : Icon.Eye}
+                  shortcut={{ modifiers: ["cmd"], key: "d" }}
+                  onAction={() => setShowDetail(!showDetail)}
                 />
                 {!isTagView && (
                   <Action

@@ -6,6 +6,7 @@ import { FeedList } from "./components/feed-list";
 import { ImportOpml } from "./components/import-opml";
 import { ArticleList } from "./components/article-list";
 import { ArticleDetail } from "./components/article-detail";
+import { ArticleDetailMetadata } from "./components/article-detail-metadata";
 import { AddMetadataForm } from "./components/add-metadata-form";
 import * as Person from "./api/person";
 import * as Feed from "./api/feed";
@@ -56,10 +57,13 @@ function PersonDetailMetadata({ person }: { person: Person.Person }) {
   );
 }
 
+
+
 export default function Command() {
   const [selectedView, setSelectedView] = useState<ViewType>("connections");
   const [searchText, setSearchText] = useState("");
-  const [showDetail, setShowDetail] = useState(true);
+  const [showConnectionsDetail, setShowConnectionsDetail] = useState(true);
+  const [showArticlesDetail, setShowArticlesDetail] = useState(true);
 
   // Fetch connections (people)
   const {
@@ -203,7 +207,7 @@ export default function Command() {
       filtering={false}
       onSearchTextChange={setSearchText}
       searchBarPlaceholder={searchBarPlaceholder}
-      isShowingDetail={selectedView === "connections" && showDetail}
+      isShowingDetail={(selectedView === "connections" && showConnectionsDetail) || (selectedView === "articles" && showArticlesDetail)}
       searchBarAccessory={
         <List.Dropdown
           tooltip="Select View"
@@ -258,10 +262,10 @@ export default function Command() {
                   }
                 />
                 <Action
-                  title={showDetail ? "Hide Details" : "Show Details"}
-                  icon={showDetail ? Icon.EyeDisabled : Icon.Eye}
+                  title={showConnectionsDetail ? "Hide Details" : "Show Details"}
+                  icon={showConnectionsDetail ? Icon.EyeDisabled : Icon.Eye}
                   shortcut={{ modifiers: ["cmd"], key: "d" }}
-                  onAction={() => setShowDetail(!showDetail)}
+                  onAction={() => setShowConnectionsDetail(!showConnectionsDetail)}
                 />
                 <Action.Push
                   title="Create Person"
@@ -326,11 +330,16 @@ export default function Command() {
             <List.Item
               key={String(article.id)}
               title={article.title || "Untitled"}
-              subtitle={article.author || undefined}
-              accessories={[
-                { text: formatDate(article.published_at) },
-                { icon: isRead ? Icon.Checkmark : Icon.Circle, tooltip: isRead ? "Read" : "Unread" },
-              ]}
+              subtitle={showArticlesDetail ? undefined : article.author || undefined}
+              accessories={
+                showArticlesDetail
+                  ? undefined
+                  : [
+                      { text: formatDate(article.published_at) },
+                      { icon: isRead ? Icon.Checkmark : Icon.Circle, tooltip: isRead ? "Read" : "Unread" },
+                    ]
+              }
+              detail={<ArticleDetailMetadata article={article} />}
               actions={
                 <ActionPanel>
                   <Action.Push
@@ -344,6 +353,12 @@ export default function Command() {
                     icon={isRead ? Icon.Circle : Icon.Checkmark}
                     onAction={() => toggleArticleRead(article)}
                     shortcut={{ modifiers: ["cmd"], key: "m" }}
+                  />
+                  <Action
+                    title={showArticlesDetail ? "Hide Details" : "Show Details"}
+                    icon={showArticlesDetail ? Icon.EyeDisabled : Icon.Eye}
+                    shortcut={{ modifiers: ["cmd"], key: "d" }}
+                    onAction={() => setShowArticlesDetail(!showArticlesDetail)}
                   />
                   <Action.CopyToClipboard
                     title="Copy URL"
