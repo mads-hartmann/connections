@@ -4,6 +4,56 @@
 
 let first_some options = List.find_opt Option.is_some options |> Option.join
 
+(* Classify social profiles into typed metadata fields *)
+let classify_profiles ~email ~social_profiles : Types.Classified_profile.t list =
+  let seen = Hashtbl.create 16 in
+  let dominated_by_email url =
+    match email with
+    | Some e -> String.equal url e || String.equal url ("mailto:" ^ e)
+    | None -> false
+  in
+  let classify_url url : Model.Metadata_field_type.t =
+    if String.starts_with ~prefix:"mailto:" (String.lowercase_ascii url) then
+      Email
+    else
+      let get_host u =
+        try Option.map String.lowercase_ascii (Uri.host (Uri.of_string u))
+        with _ -> None
+      in
+      let host_matches ~domain host =
+        String.equal host domain || String.ends_with ~suffix:("." ^ domain) host
+      in
+      match get_host url with
+      | None -> Other
+      | Some host ->
+          if host_matches ~domain:"twitter.com" host
+             || host_matches ~domain:"x.com" host
+          then X
+          else if host_matches ~domain:"github.com" host then GitHub
+          else if host_matches ~domain:"linkedin.com" host then LinkedIn
+          else if host_matches ~domain:"bsky.app" host
+                  || host_matches ~domain:"bsky.social" host
+          then Bluesky
+          else Other
+  in
+  let from_email =
+    Option.map
+      (fun e -> Types.Classified_profile.{ url = e; field_type = Email })
+      email
+    |> Option.to_list
+  in
+  let from_profiles =
+    List.filter_map
+      (fun url ->
+        if Hashtbl.mem seen url || dominated_by_email url then None
+        else begin
+          Hashtbl.add seen url ();
+          Some Types.Classified_profile.{ url; field_type = classify_url url }
+        end)
+      social_profiles
+  in
+  from_email @ from_profiles
+
 let merge_author ~(microformats : Extract_microformats.h_card option)
     ~(json_ld : Extract_json_ld.person option) ~(opengraph : string option)
     ~(twitter : string option) ~(html_meta : string option)
@@ -24,6 +74,7 @@ let merge_author ~(microformats : Extract_microformats.h_card option)
             | None, Some country -> Some country
             | None, None -> None);
           social_profiles = rel_me;
+          classified_profiles = [];
         })
       microformats
   in
@@ -38,6 +89,7 @@ let merge_author ~(microformats : Extract_microformats.h_card option)
           bio = None;
           location = None;
           social_profiles = jl.same_as;
+          classified_profiles = [];
         })
       json_ld
   in
@@ -67,7 +119,14 @@ let merge_author ~(microformats : Extract_microformats.h_card option)
   | [] -> None
   | first :: rest ->
       let merged = List.fold_left Types.Author.merge first rest in
-      if Types.Author.is_empty merged then None else Some merged
+      if Types.Author.is_empty merged then None
+      else
+        (* Classify social profiles after merging *)
+        let classified =
+          classify_profiles ~email:merged.email
+            ~social_profiles:merged.social_profiles
+        in
+        Some { merged with classified_profiles = classified }
 
 let merge_content ~(microformats : Extract_microformats.h_entry option)
     ~(json_ld : Extract_json_ld.article option)
