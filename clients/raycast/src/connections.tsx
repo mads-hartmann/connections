@@ -6,6 +6,7 @@ import { FeedList } from "./components/feed-list";
 import { ImportOpml } from "./components/import-opml";
 import { ArticleList } from "./components/article-list";
 import { ArticleDetail } from "./components/article-detail";
+import { AddMetadataForm } from "./components/add-metadata-form";
 import * as Person from "./api/person";
 import * as Feed from "./api/feed";
 import * as Article from "./api/article";
@@ -19,9 +20,46 @@ function formatDate(dateStr: string | null): string {
   return date.toLocaleDateString();
 }
 
+function getMetadataUrl(metadata: Person.PersonMetadata): string | null {
+  const value = metadata.value;
+  if (metadata.field_type.name === "Email") {
+    return `mailto:${value}`;
+  }
+  // For URLs, return as-is
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+  return null;
+}
+
+function PersonDetailMetadata({ person }: { person: Person.Person }) {
+  return (
+    <List.Item.Detail
+      metadata={
+        <List.Item.Detail.Metadata>
+          <List.Item.Detail.Metadata.Label title="Name" text={person.name} />
+          <List.Item.Detail.Metadata.Label title="Feeds" text={String(person.feed_count)} />
+          <List.Item.Detail.Metadata.Label title="Articles" text={String(person.article_count)} />
+          {person.metadata.length > 0 && <List.Item.Detail.Metadata.Separator />}
+          {person.metadata.map((m) => {
+            const url = getMetadataUrl(m);
+            if (url) {
+              return (
+                <List.Item.Detail.Metadata.Link key={m.id} title={m.field_type.name} text={m.value} target={url} />
+              );
+            }
+            return <List.Item.Detail.Metadata.Label key={m.id} title={m.field_type.name} text={m.value} />;
+          })}
+        </List.Item.Detail.Metadata>
+      }
+    />
+  );
+}
+
 export default function Command() {
   const [selectedView, setSelectedView] = useState<ViewType>("connections");
   const [searchText, setSearchText] = useState("");
+  const [showDetail, setShowDetail] = useState(true);
 
   // Fetch connections (people)
   const {
@@ -165,6 +203,7 @@ export default function Command() {
       filtering={false}
       onSearchTextChange={setSearchText}
       searchBarPlaceholder={searchBarPlaceholder}
+      isShowingDetail={selectedView === "connections" && showDetail}
       searchBarAccessory={
         <List.Dropdown
           tooltip="Select View"
@@ -202,12 +241,27 @@ export default function Command() {
             key={String(person.id)}
             title={person.name}
             accessories={[{ text: `${person.feed_count} feeds` }, { text: `${person.article_count} articles` }]}
+            detail={<PersonDetailMetadata person={person} />}
             actions={
               <ActionPanel>
                 <Action.Push
                   title="View Feeds"
                   icon={Icon.List}
                   target={<FeedList personId={person.id} personName={person.name} />}
+                />
+                <Action.Push
+                  title="Add Metadata"
+                  icon={Icon.Plus}
+                  shortcut={{ modifiers: ["cmd"], key: "m" }}
+                  target={
+                    <AddMetadataForm personId={person.id} personName={person.name} revalidate={revalidateConnections} />
+                  }
+                />
+                <Action
+                  title={showDetail ? "Hide Details" : "Show Details"}
+                  icon={showDetail ? Icon.EyeDisabled : Icon.Eye}
+                  shortcut={{ modifiers: ["cmd"], key: "d" }}
+                  onAction={() => setShowDetail(!showDetail)}
                 />
                 <Action.Push
                   title="Create Person"

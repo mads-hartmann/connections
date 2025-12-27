@@ -8,27 +8,39 @@ open Test_helpers
    ============================================ *)
 
 let test_person_to_json () =
-  let person = { Model.Person.id = 1; name = "Alice"; tags = [] } in
+  let person = { Model.Person.id = 1; name = "Alice"; tags = []; metadata = [] } in
   let json = Model.Person.to_json person in
   match json with
   | `Assoc fields ->
       Alcotest.(check bool) "has id field" true (List.mem_assoc "id" fields);
       Alcotest.(check bool) "has name field" true (List.mem_assoc "name" fields);
-      Alcotest.(check bool) "has tags field" true (List.mem_assoc "tags" fields)
+      Alcotest.(check bool) "has tags field" true (List.mem_assoc "tags" fields);
+      Alcotest.(check bool) "has metadata field" true (List.mem_assoc "metadata" fields)
   | _ -> Alcotest.fail "expected JSON object"
 
-let test_person_of_json () =
-  let json =
-    `Assoc
-      [ ("id", `Int 1); ("name", `String "Bob"); ("tags", `List []) ]
+let test_person_to_json_with_metadata () =
+  let metadata =
+    [
+      {
+        Model.Person_metadata.id = 1;
+        person_id = 1;
+        field_type = Model.Metadata_field_type.Email;
+        value = "alice@example.com";
+      };
+    ]
   in
-  let person = Model.Person.of_json json in
-  Alcotest.(check int) "id matches" 1 person.id;
-  Alcotest.(check string) "name matches" "Bob" person.name
+  let person = { Model.Person.id = 1; name = "Alice"; tags = []; metadata } in
+  let json = Model.Person.to_json person in
+  match json with
+  | `Assoc fields -> (
+      match List.assoc_opt "metadata" fields with
+      | Some (`List [ _ ]) -> ()
+      | _ -> Alcotest.fail "expected metadata array with one item")
+  | _ -> Alcotest.fail "expected JSON object"
 
 let test_person_paginated_to_json () =
-  let alice : Model.Person.t = { id = 1; name = "Alice"; tags = [] } in
-  let bob : Model.Person.t = { id = 2; name = "Bob"; tags = [] } in
+  let alice : Model.Person.t = { id = 1; name = "Alice"; tags = []; metadata = [] } in
+  let bob : Model.Person.t = { id = 2; name = "Bob"; tags = []; metadata = [] } in
   let response =
     Model.Shared.Paginated.make ~data:[ alice; bob ] ~page:1 ~per_page:10
       ~total:2
@@ -46,7 +58,8 @@ let test_person_paginated_to_json () =
 let json_suite =
   [
     Alcotest.test_case "Person.to_json" `Quick test_person_to_json;
-    Alcotest.test_case "Person.of_json" `Quick test_person_of_json;
+    Alcotest.test_case "Person.to_json with metadata" `Quick
+      test_person_to_json_with_metadata;
     Alcotest.test_case "Person.paginated_to_json" `Quick
       test_person_paginated_to_json;
   ]
