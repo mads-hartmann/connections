@@ -20,6 +20,17 @@ module Feed = struct
   let list_to_json feeds = `List (List.map to_json feeds)
 end
 
+module Classified_profile = struct
+  let to_json (t : Types.Classified_profile.t) : Yojson.Safe.t =
+    `Assoc
+      [
+        ("url", `String t.url);
+        ("field_type", Model.Metadata_field_type.to_json_with_id t.field_type);
+      ]
+
+  let list_to_json profiles = `List (List.map to_json profiles)
+end
+
 module Author = struct
   let to_json (t : Types.Author.t) : Yojson.Safe.t =
     `Assoc
@@ -31,6 +42,7 @@ module Author = struct
         ("bio", string_opt_to_json t.bio);
         ("location", string_opt_to_json t.location);
         ("social_profiles", string_list_to_json t.social_profiles);
+        ("classified_profiles", Classified_profile.list_to_json t.classified_profiles);
       ]
 
   let opt_to_json = function Some a -> to_json a | None -> `Null

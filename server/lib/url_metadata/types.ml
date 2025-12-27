@@ -25,6 +25,22 @@ module Feed = struct
     && equal_format a.format b.format
 end
 
+module Classified_profile = struct
+  type t = {
+    url : string;
+    field_type : Model.Metadata_field_type.t;
+  }
+
+  let pp fmt t =
+    Format.fprintf fmt "{ url = %S; field_type = %s }" t.url
+      (Model.Metadata_field_type.name t.field_type)
+
+  let equal a b =
+    String.equal a.url b.url
+    && Model.Metadata_field_type.id a.field_type
+       = Model.Metadata_field_type.id b.field_type
+end
+
 module Author = struct
   type t = {
     name : string option;
@@ -34,6 +50,7 @@ module Author = struct
     bio : string option;
     location : string option;
     social_profiles : string list;
+    classified_profiles : Classified_profile.t list;
   }
 
   let empty =
@@ -45,6 +62,7 @@ module Author = struct
       bio = None;
       location = None;
       social_profiles = [];
+      classified_profiles = [];
     }
 
   let is_empty t =
@@ -64,12 +82,14 @@ module Author = struct
         (match a.location with Some _ -> a.location | None -> b.location);
       social_profiles =
         (match a.social_profiles with [] -> b.social_profiles | l -> l);
+      classified_profiles =
+        (match a.classified_profiles with [] -> b.classified_profiles | l -> l);
     }
 
   let pp fmt t =
     Format.fprintf fmt
       "@[<hov 2>{ name = %a;@ url = %a;@ email = %a;@ photo = %a;@ bio = %a;@ \
-       location = %a;@ social_profiles = [%a] }@]"
+       location = %a;@ social_profiles = [%a];@ classified_profiles = [%a] }@]"
       (Format.pp_print_option Format.pp_print_string)
       t.name
       (Format.pp_print_option Format.pp_print_string)
@@ -84,6 +104,8 @@ module Author = struct
       t.location
       (Format.pp_print_list ~pp_sep:Format.pp_print_space Format.pp_print_string)
       t.social_profiles
+      (Format.pp_print_list ~pp_sep:Format.pp_print_space Classified_profile.pp)
+      t.classified_profiles
 
   let equal a b =
     Option.equal String.equal a.name b.name
@@ -93,6 +115,8 @@ module Author = struct
     && Option.equal String.equal a.bio b.bio
     && Option.equal String.equal a.location b.location
     && List.equal String.equal a.social_profiles b.social_profiles
+    && List.equal Classified_profile.equal a.classified_profiles
+         b.classified_profiles
 end
 
 module Content = struct
