@@ -6,7 +6,7 @@ interface CreatePersonFormProps {
   revalidate: () => void;
 }
 
-export function CreatePersonForm({ revalidate }: CreatePersonFormProps) {
+export function PersonCreateForm({ revalidate }: CreatePersonFormProps) {
   const { pop, push } = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
 

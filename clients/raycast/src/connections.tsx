@@ -1,12 +1,12 @@
 import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
-import { CreatePersonForm } from "./components/create-person-form";
-import { FeedItem } from "./components/feed-item";
+import { PersonCreateForm } from "./components/person-create-form";
+import { FeedListItem } from "./components/feed-list-item";
 import { ImportOpml } from "./components/import-opml";
-import { ArticleItem } from "./components/article-item";
-import { PersonItem } from "./components/person-item";
-import { TagItem } from "./components/tag-item";
+import { ArticleListItem } from "./components/article-list-item";
+import { PersonListItem } from "./components/person-list-item";
+import { TagListItem } from "./components/tag-list-item";
 import * as Person from "./api/person";
 import * as Feed from "./api/feed";
 import * as Article from "./api/article";
@@ -20,7 +20,6 @@ export default function Command() {
   const [showConnectionsDetail, setShowConnectionsDetail] = useState(true);
   const [showArticlesDetail, setShowArticlesDetail] = useState(true);
 
-  // Fetch connections (people)
   const {
     isLoading: isLoadingConnections,
     data: connectionsData,
@@ -37,7 +36,6 @@ export default function Command() {
     execute: selectedView === "connections",
   });
 
-  // Fetch all feeds
   const {
     isLoading: isLoadingFeeds,
     data: feedsData,
@@ -54,7 +52,6 @@ export default function Command() {
     execute: selectedView === "feeds",
   });
 
-  // Fetch all articles
   const {
     isLoading: isLoadingArticles,
     data: articlesData,
@@ -71,7 +68,6 @@ export default function Command() {
     execute: selectedView === "articles",
   });
 
-  // Fetch all tags
   const {
     isLoading: isLoadingTags,
     data: tagsData,
@@ -88,33 +84,18 @@ export default function Command() {
     execute: selectedView === "tags",
   });
 
-  // Determine current loading state and pagination based on selected view
-  const isLoading =
-    selectedView === "connections"
-      ? isLoadingConnections
-      : selectedView === "feeds"
-        ? isLoadingFeeds
-        : selectedView === "articles"
-          ? isLoadingArticles
-          : isLoadingTags;
-
-  const pagination =
-    selectedView === "connections"
-      ? connectionsPagination
-      : selectedView === "feeds"
-        ? feedsPagination
-        : selectedView === "articles"
-          ? articlesPagination
-          : tagsPagination;
-
-  const searchBarPlaceholder =
-    selectedView === "connections"
-      ? "Search people..."
-      : selectedView === "feeds"
-        ? "Search feeds..."
-        : selectedView === "articles"
-          ? "Search articles..."
-          : "Search tags...";
+  const { isLoading, pagination, searchBarPlaceholder } = (() => {
+    switch (selectedView) {
+      case "articles":
+        return {isLoading: isLoadingArticles, pagination: articlesPagination, searchBarPlaceholder: "Search articles..."}
+      case "connections":
+        return {isLoading: isLoadingConnections, pagination: connectionsPagination, searchBarPlaceholder: "Search people..."}
+      case "feeds":
+        return {isLoading: isLoadingFeeds, pagination: feedsPagination, searchBarPlaceholder: "Search feeds..."}
+      case "tags":
+        return {isLoading: isLoadingTags, pagination: tagsPagination, searchBarPlaceholder: "Search tags..."}
+    }
+  })()
 
   return (
     <List
@@ -143,7 +124,7 @@ export default function Command() {
               title="Create Person"
               icon={Icon.Plus}
               shortcut={Keyboard.Shortcut.Common.New}
-              target={<CreatePersonForm revalidate={revalidateConnections} />}
+              target={<PersonCreateForm revalidate={revalidateConnections} />}
             />
             <Action.Push
               title="Import from OPML"
@@ -157,7 +138,7 @@ export default function Command() {
     >
       {selectedView === "connections" &&
         connectionsData?.map((person) => (
-          <PersonItem
+          <PersonListItem
             key={String(person.id)}
             person={person}
             revalidate={revalidateConnections}
@@ -167,11 +148,11 @@ export default function Command() {
         ))}
 
       {selectedView === "feeds" &&
-        feedsData?.map((feed) => <FeedItem key={String(feed.id)} feed={feed} revalidate={revalidateFeeds} />)}
+        feedsData?.map((feed) => <FeedListItem key={String(feed.id)} feed={feed} revalidate={revalidateFeeds} />)}
 
       {selectedView === "articles" &&
         articlesData?.map((article) => (
-          <ArticleItem
+          <ArticleListItem
             key={String(article.id)}
             article={article}
             revalidate={revalidateArticles}
@@ -181,7 +162,7 @@ export default function Command() {
         ))}
 
       {selectedView === "tags" &&
-        tagsData?.map((tag) => <TagItem key={String(tag.id)} tag={tag} revalidate={revalidateTags} />)}
+        tagsData?.map((tag) => <TagListItem key={String(tag.id)} tag={tag} revalidate={revalidateTags} />)}
     </List>
   );
 }

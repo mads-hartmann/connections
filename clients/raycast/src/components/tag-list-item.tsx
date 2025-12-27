@@ -1,15 +1,15 @@
 import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import * as Tag from "../api/tag";
 import { ArticleList } from "./article-list";
-import { CreateTagForm } from "./create-tag-form";
-import { EditTagForm } from "./edit-tag-form";
+import { TagCreateForm } from "./tag-create-form";
+import { TagEditForm } from "./tag-edit-form";
 
-interface TagItemProps {
+interface TagListItemProps {
   tag: Tag.Tag;
   revalidate: () => void;
 }
 
-export function TagItem({ tag, revalidate }: TagItemProps) {
+export function TagListItem({ tag, revalidate }: TagListItemProps) {
   const deleteTag = async () => {
     const deleted = await Tag.deleteTag(tag);
     if (deleted) {
@@ -29,13 +29,13 @@ export function TagItem({ tag, revalidate }: TagItemProps) {
             title="Edit Tag"
             icon={Icon.Pencil}
             shortcut={Keyboard.Shortcut.Common.Edit}
-            target={<EditTagForm tag={tag} revalidate={revalidate} />}
+            target={<TagEditForm tag={tag} revalidate={revalidate} />}
           />
           <Action.Push
             title="Create Tag"
             icon={Icon.Plus}
             shortcut={Keyboard.Shortcut.Common.New}
-            target={<CreateTagForm revalidate={revalidate} />}
+            target={<TagCreateForm revalidate={revalidate} />}
           />
           <Action
             title="Delete"

@@ -9,7 +9,7 @@ interface EditFeedFormProps {
   revalidate: () => void;
 }
 
-export function EditFeedForm({ feed, revalidate }: EditFeedFormProps) {
+export function FeedEditForm({ feed, revalidate }: EditFeedFormProps) {
   const { pop } = useNavigation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);

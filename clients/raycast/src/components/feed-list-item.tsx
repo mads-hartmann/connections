@@ -1,8 +1,8 @@
 import { Action, ActionPanel, Icon, Keyboard, List, showToast, Toast } from "@raycast/api";
 import * as Feed from "../api/feed";
 import { ArticleList } from "./article-list";
-import { CreateFeedForm } from "./create-feed-form";
-import { EditFeedForm } from "./edit-feed-form";
+import { FeedCreateForm } from "./feed-create-form";
+import { FeedEditForm } from "./feed-edit-form";
 
 function formatLastFetched(lastFetchedAt: string | null): string {
   if (!lastFetchedAt) {
@@ -12,14 +12,14 @@ function formatLastFetched(lastFetchedAt: string | null): string {
   return `Fetched ${date.toLocaleDateString()}`;
 }
 
-interface FeedItemProps {
+interface FeedListItemProps {
   feed: Feed.Feed;
   revalidate: () => void;
   /** If provided, shows Create Feed action */
   personId?: number;
 }
 
-export function FeedItem({ feed, revalidate, personId }: FeedItemProps) {
+export function FeedListItem({ feed, revalidate, personId }: FeedListItemProps) {
   const deleteFeed = async () => {
     const deleted = await Feed.deleteFeed(feed);
     if (deleted) {
@@ -61,14 +61,14 @@ export function FeedItem({ feed, revalidate, personId }: FeedItemProps) {
             title="Edit Feed"
             icon={Icon.Pencil}
             shortcut={Keyboard.Shortcut.Common.Edit}
-            target={<EditFeedForm feed={feed} revalidate={revalidate} />}
+            target={<FeedEditForm feed={feed} revalidate={revalidate} />}
           />
           {personId !== undefined && (
             <Action.Push
               title="Create Feed"
               icon={Icon.Plus}
               shortcut={Keyboard.Shortcut.Common.New}
-              target={<CreateFeedForm personId={personId} revalidate={revalidate} />}
+              target={<FeedCreateForm personId={personId} revalidate={revalidate} />}
             />
           )}
           <Action

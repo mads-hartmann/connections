@@ -6,7 +6,7 @@ interface CreateFeedFormProps {
   revalidate: () => void;
 }
 
-export function CreateFeedForm({ personId, revalidate }: CreateFeedFormProps) {
+export function FeedCreateForm({ personId, revalidate }: CreateFeedFormProps) {
   const { pop } = useNavigation();
 
   async function handleSubmit(values: { url: string; title: string }) {

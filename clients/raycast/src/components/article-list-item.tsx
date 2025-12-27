@@ -10,7 +10,7 @@ function formatDate(dateStr: string | null): string {
   return date.toLocaleDateString();
 }
 
-interface ArticleItemProps {
+interface ArticleListItemProps {
   article: Article.Article;
   revalidate: () => void;
   showDetail: boolean;
@@ -19,7 +19,7 @@ interface ArticleItemProps {
   onMarkAllRead?: () => void;
 }
 
-export function ArticleItem({ article, revalidate, showDetail, onToggleDetail, onMarkAllRead }: ArticleItemProps) {
+export function ArticleListItem({ article, revalidate, showDetail, onToggleDetail, onMarkAllRead }: ArticleListItemProps) {
   const isRead = article.read_at !== null;
 
   const toggleRead = async () => {

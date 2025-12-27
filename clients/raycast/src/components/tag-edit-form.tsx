@@ -2,11 +2,12 @@ import { Action, ActionPanel, Form, showToast, Toast, useNavigation } from "@ray
 import { useState } from "react";
 import * as Tag from "../api/tag";
 
-interface CreateTagFormProps {
+interface EditTagFormProps {
+  tag: Tag.Tag;
   revalidate: () => void;
 }
 
-export function CreateTagForm({ revalidate }: CreateTagFormProps) {
+export function TagEditForm({ tag, revalidate }: EditTagFormProps) {
   const { pop } = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -23,14 +24,14 @@ export function CreateTagForm({ revalidate }: CreateTagFormProps) {
 
     setIsLoading(true);
     try {
-      await Tag.createTag(name);
-      showToast({ style: Toast.Style.Success, title: "Tag created" });
+      await Tag.updateTag(tag.id, name);
+      showToast({ style: Toast.Style.Success, title: "Tag updated" });
       revalidate();
       pop();
     } catch (error) {
       showToast({
         style: Toast.Style.Failure,
-        title: "Failed to create tag",
+        title: "Failed to update tag",
         message: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
@@ -41,14 +42,14 @@ export function CreateTagForm({ revalidate }: CreateTagFormProps) {
   return (
     <Form
       isLoading={isLoading}
-      navigationTitle="Create Tag"
+      navigationTitle="Edit Tag"
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Create Tag" onSubmit={handleSubmit} />
+          <Action.SubmitForm title="Update Tag" onSubmit={handleSubmit} />
         </ActionPanel>
       }
     >
-      <Form.TextField id="name" title="Name" placeholder="Enter tag name" autoFocus />
+      <Form.TextField id="name" title="Name" defaultValue={tag.name} placeholder="Enter tag name" autoFocus />
     </Form>
   );
 }

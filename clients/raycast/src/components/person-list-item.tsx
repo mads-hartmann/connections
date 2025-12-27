@@ -1,7 +1,7 @@
 import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import * as Person from "../api/person";
 import { AddMetadataForm } from "./add-metadata-form";
-import { CreatePersonForm } from "./create-person-form";
+import { PersonCreateForm } from "./person-create-form";
 import { FeedList } from "./feed-list";
 import { ImportOpml } from "./import-opml";
 import { PersonDetailMetadata } from "./person-detail-metadata";
@@ -14,7 +14,7 @@ interface PersonItemProps {
   onToggleDetail: () => void;
 }
 
-export function PersonItem({ person, revalidate, showDetail, onToggleDetail }: PersonItemProps) {
+export function PersonListItem({ person, revalidate, showDetail, onToggleDetail }: PersonItemProps) {
   const deletePerson = async () => {
     await Person.deletePerson(person);
     revalidate();
@@ -55,7 +55,7 @@ export function PersonItem({ person, revalidate, showDetail, onToggleDetail }: P
             title="Create Person"
             icon={Icon.Plus}
             shortcut={Keyboard.Shortcut.Common.New}
-            target={<CreatePersonForm revalidate={revalidate} />}
+            target={<PersonCreateForm revalidate={revalidate} />}
           />
           <Action.Push
             title="Import from OPML"

@@ -3,7 +3,7 @@ import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import * as ArticleApi from "../api/article";
 import * as Tag from "../api/tag";
-import { ArticleItem } from "./article-item";
+import { ArticleListItem } from "./article-list-item";
 
 type ArticleListProps =
   | { feedId: number; feedTitle: string; tag?: never }
@@ -88,7 +88,7 @@ export function ArticleList(props: ArticleListProps) {
       }
     >
       {filteredData?.map((article) => (
-        <ArticleItem
+        <ArticleListItem
           key={String(article.id)}
           article={article}
           revalidate={revalidate}
