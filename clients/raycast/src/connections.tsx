@@ -1,63 +1,18 @@
-import { Action, ActionPanel, Icon, Keyboard, List, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import { CreatePersonForm } from "./components/create-person-form";
-import { FeedList } from "./components/feed-list";
+import { FeedItem } from "./components/feed-item";
 import { ImportOpml } from "./components/import-opml";
-import { ArticleList } from "./components/article-list";
-import { ArticleDetail } from "./components/article-detail";
-import { ArticleDetailMetadata } from "./components/article-detail-metadata";
-import { AddMetadataForm } from "./components/add-metadata-form";
+import { ArticleItem } from "./components/article-item";
+import { PersonItem } from "./components/person-item";
+import { TagItem } from "./components/tag-item";
 import * as Person from "./api/person";
 import * as Feed from "./api/feed";
 import * as Article from "./api/article";
 import * as Tag from "./api/tag";
 
 type ViewType = "connections" | "feeds" | "articles" | "tags";
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  return date.toLocaleDateString();
-}
-
-function getMetadataUrl(metadata: Person.PersonMetadata): string | null {
-  const value = metadata.value;
-  if (metadata.field_type.name === "Email") {
-    return `mailto:${value}`;
-  }
-  // For URLs, return as-is
-  if (value.startsWith("http://") || value.startsWith("https://")) {
-    return value;
-  }
-  return null;
-}
-
-function PersonDetailMetadata({ person }: { person: Person.Person }) {
-  return (
-    <List.Item.Detail
-      metadata={
-        <List.Item.Detail.Metadata>
-          <List.Item.Detail.Metadata.Label title="Name" text={person.name} />
-          <List.Item.Detail.Metadata.Label title="Feeds" text={String(person.feed_count)} />
-          <List.Item.Detail.Metadata.Label title="Articles" text={String(person.article_count)} />
-          {person.metadata.length > 0 && <List.Item.Detail.Metadata.Separator />}
-          {person.metadata.map((m) => {
-            const url = getMetadataUrl(m);
-            if (url) {
-              return (
-                <List.Item.Detail.Metadata.Link key={m.id} title={m.field_type.name} text={m.value} target={url} />
-              );
-            }
-            return <List.Item.Detail.Metadata.Label key={m.id} title={m.field_type.name} text={m.value} />;
-          })}
-        </List.Item.Detail.Metadata>
-      }
-    />
-  );
-}
-
-
 
 export default function Command() {
   const [selectedView, setSelectedView] = useState<ViewType>("connections");
@@ -121,6 +76,7 @@ export default function Command() {
     isLoading: isLoadingTags,
     data: tagsData,
     pagination: tagsPagination,
+    revalidate: revalidateTags,
   } = useFetch((options) => Tag.listUrl({ page: options.page + 1, query: searchText || undefined }), {
     mapResult(result: Tag.TagsResponse) {
       return {
@@ -131,46 +87,6 @@ export default function Command() {
     keepPreviousData: true,
     execute: selectedView === "tags",
   });
-
-  const deletePerson = async (person: Person.Person) => {
-    await Person.deletePerson(person);
-    revalidateConnections();
-  };
-
-  const deleteFeed = async (feed: Feed.Feed) => {
-    const deleted = await Feed.deleteFeed(feed);
-    if (deleted) {
-      revalidateFeeds();
-    }
-  };
-
-  const refreshFeed = async (feed: Feed.Feed) => {
-    try {
-      await Feed.refreshFeed(feed.id);
-      showToast({ style: Toast.Style.Success, title: "Feed refreshed" });
-      revalidateFeeds();
-    } catch (error) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to refresh feed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  };
-
-  const toggleArticleRead = async (article: Article.Article) => {
-    const isRead = article.read_at !== null;
-    try {
-      await Article.markArticleRead(article.id, !isRead);
-      revalidateArticles();
-    } catch (error) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to update article",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  };
 
   // Determine current loading state and pagination based on selected view
   const isLoading =
@@ -241,149 +157,31 @@ export default function Command() {
     >
       {selectedView === "connections" &&
         connectionsData?.map((person) => (
-          <List.Item
+          <PersonItem
             key={String(person.id)}
-            title={person.name}
-            accessories={[{ text: `${person.feed_count} feeds` }, { text: `${person.article_count} articles` }]}
-            detail={<PersonDetailMetadata person={person} />}
-            actions={
-              <ActionPanel>
-                <Action.Push
-                  title="View Feeds"
-                  icon={Icon.List}
-                  target={<FeedList personId={person.id} personName={person.name} />}
-                />
-                <Action.Push
-                  title="Add Metadata"
-                  icon={Icon.Plus}
-                  shortcut={{ modifiers: ["cmd"], key: "m" }}
-                  target={
-                    <AddMetadataForm personId={person.id} personName={person.name} revalidate={revalidateConnections} />
-                  }
-                />
-                <Action
-                  title={showConnectionsDetail ? "Hide Details" : "Show Details"}
-                  icon={showConnectionsDetail ? Icon.EyeDisabled : Icon.Eye}
-                  shortcut={{ modifiers: ["cmd"], key: "d" }}
-                  onAction={() => setShowConnectionsDetail(!showConnectionsDetail)}
-                />
-                <Action.Push
-                  title="Create Person"
-                  icon={Icon.Plus}
-                  shortcut={Keyboard.Shortcut.Common.New}
-                  target={<CreatePersonForm revalidate={revalidateConnections} />}
-                />
-                <Action.Push
-                  title="Import from OPML"
-                  icon={Icon.Download}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "i" }}
-                  target={<ImportOpml revalidate={revalidateConnections} />}
-                />
-                <Action
-                  title="Delete"
-                  icon={Icon.Trash}
-                  style={Action.Style.Destructive}
-                  onAction={() => deletePerson(person)}
-                  shortcut={Keyboard.Shortcut.Common.Remove}
-                />
-              </ActionPanel>
-            }
+            person={person}
+            revalidate={revalidateConnections}
+            showDetail={showConnectionsDetail}
+            onToggleDetail={() => setShowConnectionsDetail(!showConnectionsDetail)}
           />
         ))}
 
       {selectedView === "feeds" &&
-        feedsData?.map((feed) => (
-          <List.Item
-            key={String(feed.id)}
-            title={feed.title || feed.url}
-            subtitle={feed.title ? feed.url : undefined}
-            accessories={[{ text: formatDate(feed.last_fetched_at), tooltip: "Last fetched" }]}
-            actions={
-              <ActionPanel>
-                <Action.Push
-                  title="View Articles"
-                  icon={Icon.List}
-                  target={<ArticleList feedId={feed.id} feedTitle={feed.title || feed.url} />}
-                />
-                <Action
-                  title="Refresh Feed"
-                  icon={Icon.ArrowClockwise}
-                  onAction={() => refreshFeed(feed)}
-                  shortcut={{ modifiers: ["cmd"], key: "r" }}
-                />
-                <Action
-                  title="Delete"
-                  icon={Icon.Trash}
-                  style={Action.Style.Destructive}
-                  onAction={() => deleteFeed(feed)}
-                  shortcut={Keyboard.Shortcut.Common.Remove}
-                />
-              </ActionPanel>
-            }
-          />
-        ))}
+        feedsData?.map((feed) => <FeedItem key={String(feed.id)} feed={feed} revalidate={revalidateFeeds} />)}
 
       {selectedView === "articles" &&
-        articlesData?.map((article) => {
-          const isRead = article.read_at !== null;
-          return (
-            <List.Item
-              key={String(article.id)}
-              title={article.title || "Untitled"}
-              subtitle={showArticlesDetail ? undefined : article.author || undefined}
-              accessories={
-                showArticlesDetail
-                  ? undefined
-                  : [
-                      { text: formatDate(article.published_at) },
-                      { icon: isRead ? Icon.Checkmark : Icon.Circle, tooltip: isRead ? "Read" : "Unread" },
-                    ]
-              }
-              detail={<ArticleDetailMetadata article={article} />}
-              actions={
-                <ActionPanel>
-                  <Action.Push
-                    title="View Article"
-                    icon={Icon.Eye}
-                    target={<ArticleDetail article={article} revalidateArticles={revalidateArticles} />}
-                  />
-                  <Action.OpenInBrowser url={article.url} shortcut={Keyboard.Shortcut.Common.Open} />
-                  <Action
-                    title={isRead ? "Mark as Unread" : "Mark as Read"}
-                    icon={isRead ? Icon.Circle : Icon.Checkmark}
-                    onAction={() => toggleArticleRead(article)}
-                    shortcut={{ modifiers: ["cmd"], key: "m" }}
-                  />
-                  <Action
-                    title={showArticlesDetail ? "Hide Details" : "Show Details"}
-                    icon={showArticlesDetail ? Icon.EyeDisabled : Icon.Eye}
-                    shortcut={{ modifiers: ["cmd"], key: "d" }}
-                    onAction={() => setShowArticlesDetail(!showArticlesDetail)}
-                  />
-                  <Action.CopyToClipboard
-                    title="Copy URL"
-                    content={article.url}
-                    shortcut={Keyboard.Shortcut.Common.Copy}
-                  />
-                </ActionPanel>
-              }
-            />
-          );
-        })}
-
-      {selectedView === "tags" &&
-        tagsData?.map((tag) => (
-          <List.Item
-            key={String(tag.id)}
-            title={tag.name}
-            icon={Icon.Tag}
-            actions={
-              <ActionPanel>
-                <Action.Push title="View Articles" icon={Icon.List} target={<ArticleList tag={tag} />} />
-              </ActionPanel>
-            }
+        articlesData?.map((article) => (
+          <ArticleItem
+            key={String(article.id)}
+            article={article}
+            revalidate={revalidateArticles}
+            showDetail={showArticlesDetail}
+            onToggleDetail={() => setShowArticlesDetail(!showArticlesDetail)}
           />
         ))}
+
+      {selectedView === "tags" &&
+        tagsData?.map((tag) => <TagItem key={String(tag.id)} tag={tag} revalidate={revalidateTags} />)}
     </List>
   );
 }

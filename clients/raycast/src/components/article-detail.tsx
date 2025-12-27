@@ -1,5 +1,6 @@
-import { Action, ActionPanel, Detail, Icon, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Detail, Icon, Keyboard, showToast, Toast } from "@raycast/api";
 import { Article, markArticleRead } from "../api/article";
+import { ArticleEditForm } from "./article-edit-form";
 
 interface ArticleDetailProps {
   article: Article;
@@ -36,10 +37,13 @@ export function ArticleDetail({ article, revalidateArticles }: ArticleDetailProp
     }
   };
 
+  const tagsLine = article.tags.length > 0 ? `**Tags:** ${article.tags.map((t) => t.name).join(", ")}` : null;
+
   const metadata = [
     article.author ? `**Author:** ${article.author}` : null,
     `**Published:** ${formatDate(article.published_at)}`,
     isRead ? `**Read:** ${formatDate(article.read_at)}` : "**Status:** Unread",
+    tagsLine,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -63,6 +67,12 @@ ${article.content || "*No content available*"}
             title={isRead ? "Mark as Unread" : "Mark as Read"}
             icon={isRead ? Icon.Circle : Icon.Checkmark}
             onAction={toggleRead}
+          />
+          <Action.Push
+            title="Edit Article"
+            icon={Icon.Pencil}
+            shortcut={Keyboard.Shortcut.Common.Edit}
+            target={<ArticleEditForm article={article} revalidate={revalidateArticles} />}
           />
           <Action.CopyToClipboard title="Copy URL" content={article.url} />
         </ActionPanel>
