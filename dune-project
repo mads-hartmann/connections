@@ -8,6 +8,14 @@
 
 (formatting (enabled_for ocaml))
 
+(maintainers "Mads Hartmann <hello@mads-hartmann.com>")
+
+(authors "Mads Hartmann <hello@mads-hartmann.com>")
+
+(homepage "https://github.com/mads-hartmann/connections")
+
+(bug_reports "https://github.com/mads-hartmann/connections/issues")
+
 (package
  (name connections-server)
  (synopsis "A simple web server for managing connections (people)")
@@ -24,6 +32,7 @@
   (eio_main (>= 1.0))
   (piaf (>= 0.2.0))
   (syndic (>= 1.7.0))
+  (lambdasoup (>= 1.1.0))
   (logs (>= 0.7.0))
   (fmt (>= 0.9.0))
   (ocamlformat (>= 0.28.1))

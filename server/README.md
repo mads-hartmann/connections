@@ -36,9 +36,10 @@ Requires OCaml version 5.4.0
 opam switch create connections 5.4.0
 ```
 
-Install dependencies using opam:
+Install dependencies using opam. Note that [tapak](https://github.com/syaiful6/tapak) is not published to opam and must be pinned first:
 
 ```bash
+opam pin add tapak https://github.com/syaiful6/tapak.git -y
 opam install . --deps-only
 ```
 
