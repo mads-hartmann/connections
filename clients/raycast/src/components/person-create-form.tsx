@@ -75,7 +75,11 @@ export function PersonCreateForm({ revalidate }: CreatePersonFormProps) {
   );
 }
 
-async function createPerson(name: string, feeds?: Array<{ url: string; title: string | null }>) {
+async function createPerson(
+  name: string,
+  feeds?: Array<{ url: string; title: string | null }>,
+  profiles?: Array<Metadata.ClassifiedProfile>
+) {
   const response = await fetch("http://localhost:8080/persons", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -97,6 +101,20 @@ async function createPerson(name: string, feeds?: Array<{ url: string; title: st
           person_id: person.id,
           url: feed.url,
           title: feed.title,
+        }),
+      });
+    }
+  }
+
+  // Create metadata entries for profiles if provided
+  if (profiles && profiles.length > 0) {
+    for (const profile of profiles) {
+      await fetch(`http://localhost:8080/persons/${person.id}/metadata`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          field_type_id: profile.field_type.id,
+          value: profile.url,
         }),
       });
     }
@@ -126,6 +144,7 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
 
   const author = metadata.merged.author;
   const site = metadata.merged.site;
+  const classifiedProfiles = author?.classified_profiles ?? [];
 
   async function handleSubmit(values: Record<string, unknown>) {
     const name = values.name as string;
@@ -142,11 +161,19 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
     try {
       // Collect selected feeds from checkbox values
       const feedsToCreate = metadata.merged.feeds.filter((f) => values[`feed_${f.url}`] === true);
-      await createPerson(name.trim(), feedsToCreate);
+      // Collect selected metadata profiles from checkbox values
+      const profilesToCreate = classifiedProfiles.filter((p) => values[`profile_${p.url}`] === true);
+
+      const person = await createPerson(name.trim(), feedsToCreate, profilesToCreate);
+
+      const parts: string[] = [];
+      if (feedsToCreate.length > 0) parts.push(`${feedsToCreate.length} feed(s)`);
+      if (profilesToCreate.length > 0) parts.push(`${profilesToCreate.length} profile(s)`);
+
       showToast({
         style: Toast.Style.Success,
         title: "Person created",
-        message: feedsToCreate.length > 0 ? `Created with ${feedsToCreate.length} feed(s)` : undefined,
+        message: parts.length > 0 ? `Created with ${parts.join(" and ")}` : undefined,
       });
       revalidate();
       pop();
@@ -165,7 +192,6 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
   // Build info strings for display
   const detailParts: string[] = [];
   if (author?.location) detailParts.push(`📍 ${author.location}`);
-  if (author?.email) detailParts.push(`✉️ ${author.email}`);
 
   return (
     <Form
@@ -193,11 +219,6 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
       {/* Show extracted metadata as read-only info */}
       {detailParts.length > 0 && <Form.Description text={detailParts.join("  •  ")} />}
 
-      {/* Social profiles */}
-      {author?.social_profiles && author.social_profiles.length > 0 && (
-        <Form.Description title="Social" text={author.social_profiles.slice(0, 5).join("\n")} />
-      )}
-
       <Form.Separator />
 
       {/* Feeds Section with Checkboxes */}
@@ -214,6 +235,23 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
         ))
       ) : (
         <Form.Description title="Feeds" text="No RSS/Atom feeds discovered at this URL." />
+      )}
+
+      <Form.Separator />
+
+      {/* Social Profiles Section with Checkboxes */}
+      {classifiedProfiles.length > 0 ? (
+        classifiedProfiles.map((profile, index) => (
+          <Form.Checkbox
+            key={profile.url}
+            id={`profile_${profile.url}`}
+            title={index === 0 ? "Profiles" : ""}
+            label={`${profile.field_type.name}: ${profile.url}`}
+            defaultValue={true}
+          />
+        ))
+      ) : (
+        <Form.Description title="Profiles" text="No social profiles discovered at this URL." />
       )}
 
       {/* Site info if different from name */}
