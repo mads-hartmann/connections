@@ -57,6 +57,16 @@ let count_all_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
     "SELECT COUNT(*) FROM rss_feeds"
 
+let list_all_paginated_filtered_query =
+  Caqti_request.Infix.(Caqti_type.(t4 string string int int) ->* rss_feed_row_type)
+    (select_with_tags
+    ^ " WHERE f.title LIKE ? OR f.url LIKE ? ORDER BY f.created_at DESC LIMIT \
+       ? OFFSET ?")
+
+let count_all_filtered_query =
+  Caqti_request.Infix.(Caqti_type.(t2 string string) ->! Caqti_type.int)
+    "SELECT COUNT(*) FROM rss_feeds WHERE title LIKE ? OR url LIKE ?"
+
 let update_last_fetched_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
     "UPDATE rss_feeds SET last_fetched_at = datetime('now') WHERE id = ?"
@@ -175,20 +185,36 @@ let list_all () =
   |> Result.map (List.map tuple_to_feed)
 
 (* LIST ALL with pagination *)
-let list_all_paginated ~page ~per_page =
+let list_all_paginated ~page ~per_page ?query () =
   let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
+  let pattern = Option.map (fun q -> "%" ^ q ^ "%") query in
   let* total =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_all_query ())
-      pool
+    match pattern with
+    | None ->
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) -> Db.find count_all_query ())
+          pool
+    | Some p ->
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.find count_all_filtered_query (p, p))
+          pool
   in
   let+ rows =
-    Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.collect_list list_all_paginated_query (per_page, offset))
-      pool
+    match pattern with
+    | None ->
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.collect_list list_all_paginated_query (per_page, offset))
+          pool
+    | Some p ->
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.collect_list list_all_paginated_filtered_query
+              (p, p, per_page, offset))
+          pool
   in
   let data = List.map tuple_to_feed rows in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total

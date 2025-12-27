@@ -30,10 +30,13 @@ export function listUrl({ feedId, page }: { feedId: number; page: number }) {
   return `http://localhost:8080/feeds/${feedId}/articles?${params.toString()}`;
 }
 
-export function listAllUrl({ page, unread }: { page: number; unread?: boolean }) {
+export function listAllUrl({ page, unread, query }: { page: number; unread?: boolean; query?: string }) {
   const params = new URLSearchParams({ page: String(page), per_page: "20" });
   if (unread) {
     params.set("unread", "true");
+  }
+  if (query) {
+    params.set("query", query);
   }
   return `http://localhost:8080/articles?${params.toString()}`;
 }

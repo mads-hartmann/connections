@@ -22,8 +22,11 @@ export function listUrl({ personId, page }: { personId: number; page: number }) 
   return `http://localhost:8080/persons/${personId}/feeds?${params.toString()}`;
 }
 
-export function listAllUrl({ page }: { page: number }) {
+export function listAllUrl({ page, query }: { page: number; query?: string }) {
   const params = new URLSearchParams({ page: String(page), per_page: "20" });
+  if (query) {
+    params.set("query", query);
+  }
   return `http://localhost:8080/feeds?${params.toString()}`;
 }
 

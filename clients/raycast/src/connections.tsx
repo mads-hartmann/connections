@@ -46,7 +46,7 @@ export default function Command() {
     data: feedsData,
     pagination: feedsPagination,
     revalidate: revalidateFeeds,
-  } = useFetch((options) => Feed.listAllUrl({ page: options.page + 1 }), {
+  } = useFetch((options) => Feed.listAllUrl({ page: options.page + 1, query: searchText || undefined }), {
     mapResult(result: Feed.FeedsResponse) {
       return {
         data: result.data,
@@ -63,7 +63,7 @@ export default function Command() {
     data: articlesData,
     pagination: articlesPagination,
     revalidate: revalidateArticles,
-  } = useFetch((options) => Article.listAllUrl({ page: options.page + 1 }), {
+  } = useFetch((options) => Article.listAllUrl({ page: options.page + 1, query: searchText || undefined }), {
     mapResult(result: Article.ArticlesResponse) {
       return {
         data: result.data,

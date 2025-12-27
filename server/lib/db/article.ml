@@ -71,6 +71,16 @@ let count_all_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
     "SELECT COUNT(*) FROM articles"
 
+let list_all_filtered_query =
+  Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
+    (select_with_tags
+    ^ " WHERE a.title LIKE ? ORDER BY a.published_at DESC, a.created_at DESC \
+       LIMIT ? OFFSET ?")
+
+let count_all_filtered_query =
+  Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
+    "SELECT COUNT(*) FROM articles WHERE title LIKE ?"
+
 let list_unread_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->* article_row_type)
     (select_with_tags
@@ -80,6 +90,16 @@ let list_unread_query =
 let count_unread_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
     "SELECT COUNT(*) FROM articles WHERE read_at IS NULL"
+
+let list_unread_filtered_query =
+  Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
+    (select_with_tags
+    ^ " WHERE a.read_at IS NULL AND a.title LIKE ? ORDER BY a.published_at \
+       DESC, a.created_at DESC LIMIT ? OFFSET ?")
+
+let count_unread_filtered_query =
+  Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
+    "SELECT COUNT(*) FROM articles WHERE read_at IS NULL AND title LIKE ?"
 
 let list_by_tag_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
@@ -239,22 +259,31 @@ let list_by_feed ~feed_id ~page ~per_page =
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
 (* LIST ALL with pagination and optional unread filter *)
-let list_all ~page ~per_page ~unread_only =
+let list_all ~page ~per_page ~unread_only ?query () =
   let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
+  let pattern = Option.map (fun q -> "%" ^ q ^ "%") query in
   let* total =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
-        if unread_only then Db.find count_unread_query ()
-        else Db.find count_all_query ())
+        match unread_only, pattern with
+        | true, Some p -> Db.find count_unread_filtered_query p
+        | true, None -> Db.find count_unread_query ()
+        | false, Some p -> Db.find count_all_filtered_query p
+        | false, None -> Db.find count_all_query ())
       pool
   in
   let+ rows =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
-        if unread_only then Db.collect_list list_unread_query (per_page, offset)
-        else Db.collect_list list_all_query (per_page, offset))
+        match unread_only, pattern with
+        | true, Some p ->
+            Db.collect_list list_unread_filtered_query (p, per_page, offset)
+        | true, None -> Db.collect_list list_unread_query (per_page, offset)
+        | false, Some p ->
+            Db.collect_list list_all_filtered_query (p, per_page, offset)
+        | false, None -> Db.collect_list list_all_query (per_page, offset))
       pool
   in
   let data = List.map tuple_to_article rows in

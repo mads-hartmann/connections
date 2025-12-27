@@ -24,8 +24,8 @@ let list_by_person ~person_id ~page ~per_page =
   Db.Rss_feed.list_by_person ~person_id ~page ~per_page
   |> Result.map_error (fun err -> Error.Database err)
 
-let list_all_paginated ~page ~per_page =
-  Db.Rss_feed.list_all_paginated ~page ~per_page
+let list_all_paginated ~page ~per_page ?query () =
+  Db.Rss_feed.list_all_paginated ~page ~per_page ?query ()
   |> Result.map_error (fun err -> Error.Database err)
 
 let update ~id ~url ~title =

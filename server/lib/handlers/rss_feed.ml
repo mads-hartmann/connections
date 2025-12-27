@@ -86,10 +86,11 @@ let refresh _request id =
   Feed_fetcher.process_feed ~sw ~env feed;
   Handler_utils.json_response (`Assoc [ ("message", `String "Feed refreshed") ])
 
-let list_all (pagination : Pagination.Pagination.t) =
+let list_all request (pagination : Pagination.Pagination.t) =
+  let query = Handler_utils.query "query" request in
   let* paginated =
     Service.Rss_feed.list_all_paginated ~page:pagination.page
-      ~per_page:pagination.per_page
+      ~per_page:pagination.per_page ?query ()
     |> Handler_utils.or_feed_error
   in
   Handler_utils.json_response (Model.Rss_feed.paginated_to_json paginated)
@@ -103,7 +104,7 @@ let routes () =
     |> into list_by_person;
     get (s "feeds")
     |> guard Pagination.Pagination.pagination_guard
-    |> into list_all;
+    |> request |> into list_all;
     get (s "feeds" / int) |> request |> into get_feed;
     put (s "feeds" / int) |> request |> into update;
     delete (s "feeds" / int) |> request |> into delete_feed;
