@@ -1,5 +1,5 @@
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Article from "../api/article";
 import * as Tag from "../api/tag";
 
@@ -12,13 +12,18 @@ export function ArticleEditForm({ article, revalidate }: ArticleEditFormProps) {
   const { pop } = useNavigation();
   const [isLoading, setIsLoading] = useState(true);
   const [allTags, setAllTags] = useState<Tag.Tag[]>([]);
-  const [currentTagIds, setCurrentTagIds] = useState<string[]>(article.tags.map((t) => String(t.id)));
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const initialTagIds = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     async function loadTags() {
       try {
         const tags = await Tag.listAll();
         setAllTags(tags);
+        // Set initial selection from article tags, now that allTags is loaded
+        const articleTagIds = article.tags.map((t) => String(t.id));
+        setSelectedTagIds(articleTagIds);
+        initialTagIds.current = new Set(article.tags.map((t) => t.id));
       } catch (error) {
         showToast({
           style: Toast.Style.Failure,
@@ -30,16 +35,15 @@ export function ArticleEditForm({ article, revalidate }: ArticleEditFormProps) {
       }
     }
     loadTags();
-  }, []);
+  }, [article.id, article.tags]);
 
   async function handleSubmit(values: { tags: string[] }) {
     setIsLoading(true);
     try {
-      const selectedTagIds = new Set(values.tags.map((id) => parseInt(id, 10)));
-      const currentIds = new Set(article.tags.map((t) => t.id));
+      const newTagIds = new Set(values.tags.map((id) => parseInt(id, 10)));
 
-      const tagsToAdd = [...selectedTagIds].filter((id) => !currentIds.has(id));
-      const tagsToRemove = [...currentIds].filter((id) => !selectedTagIds.has(id));
+      const tagsToAdd = [...newTagIds].filter((id) => !initialTagIds.current.has(id));
+      const tagsToRemove = [...initialTagIds.current].filter((id) => !newTagIds.has(id));
 
       await Promise.all([
         ...tagsToAdd.map((tagId) => Tag.addToArticle(article.id, tagId)),
@@ -83,7 +87,7 @@ export function ArticleEditForm({ article, revalidate }: ArticleEditFormProps) {
       <Form.Description title="Title" text={article.title || "Untitled"} />
       <Form.Description title="URL" text={article.url} />
       <Form.Separator />
-      <Form.TagPicker id="tags" title="Tags" value={currentTagIds} onChange={setCurrentTagIds}>
+      <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
         {allTags.map((tag) => (
           <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
         ))}

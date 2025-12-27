@@ -1,5 +1,5 @@
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Feed from "../api/feed";
 import * as Tag from "../api/tag";
 
@@ -12,14 +12,17 @@ export function EditFeedForm({ feed, revalidate }: EditFeedFormProps) {
   const { pop } = useNavigation();
   const [isLoading, setIsLoading] = useState(true);
   const [allTags, setAllTags] = useState<Tag.Tag[]>([]);
-  const [currentTagIds, setCurrentTagIds] = useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const initialTagIds = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     async function loadData() {
       try {
         const [tags, feedTags] = await Promise.all([Tag.listAll(), Tag.listByFeed(feed.id)]);
         setAllTags(tags);
-        setCurrentTagIds(feedTags.map((t) => String(t.id)));
+        const tagIds = feedTags.map((t) => String(t.id));
+        setSelectedTagIds(tagIds);
+        initialTagIds.current = new Set(feedTags.map((t) => t.id));
       } catch (error) {
         showToast({
           style: Toast.Style.Failure,
@@ -40,11 +43,10 @@ export function EditFeedForm({ feed, revalidate }: EditFeedFormProps) {
       await Feed.updateFeed(feed.id, values.url, values.title);
 
       // Update tags
-      const selectedTagIds = new Set(values.tags.map((id) => parseInt(id, 10)));
-      const currentIds = new Set(currentTagIds.map((id) => parseInt(id, 10)));
+      const newTagIds = new Set(values.tags.map((id) => parseInt(id, 10)));
 
-      const tagsToAdd = [...selectedTagIds].filter((id) => !currentIds.has(id));
-      const tagsToRemove = [...currentIds].filter((id) => !selectedTagIds.has(id));
+      const tagsToAdd = [...newTagIds].filter((id) => !initialTagIds.current.has(id));
+      const tagsToRemove = [...initialTagIds.current].filter((id) => !newTagIds.has(id));
 
       await Promise.all([
         ...tagsToAdd.map((tagId) => Tag.addToFeed(feed.id, tagId)),
@@ -77,7 +79,7 @@ export function EditFeedForm({ feed, revalidate }: EditFeedFormProps) {
     >
       <Form.TextField id="url" title="URL" defaultValue={feed.url} placeholder="https://example.com/feed.xml" />
       <Form.TextField id="title" title="Title" defaultValue={feed.title || ""} placeholder="Feed title" />
-      <Form.TagPicker id="tags" title="Tags" value={currentTagIds} onChange={setCurrentTagIds}>
+      <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
         {allTags.map((tag) => (
           <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
         ))}

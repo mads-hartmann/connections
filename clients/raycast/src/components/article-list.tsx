@@ -5,6 +5,7 @@ import * as ArticleApi from "../api/article";
 import * as Tag from "../api/tag";
 import { ArticleDetail } from "./article-detail";
 import { ArticleDetailMetadata } from "./article-detail-metadata";
+import { ArticleEditForm } from "./article-edit-form";
 
 type ArticleListProps =
   | { feedId: number; feedTitle: string; tag?: never }
@@ -137,6 +138,12 @@ export function ArticleList(props: ArticleListProps) {
                   icon={isRead ? Icon.Circle : Icon.Checkmark}
                   onAction={() => toggleRead(article)}
                   shortcut={{ modifiers: ["cmd"], key: "m" }}
+                />
+                <Action.Push
+                  title="Edit Article"
+                  icon={Icon.Pencil}
+                  shortcut={Keyboard.Shortcut.Common.Edit}
+                  target={<ArticleEditForm article={article} revalidate={revalidate} />}
                 />
                 <Action
                   title={showDetail ? "Hide Details" : "Show Details"}

@@ -1,5 +1,5 @@
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Person from "../api/person";
 import * as Tag from "../api/tag";
 
@@ -12,14 +12,17 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
   const { pop } = useNavigation();
   const [isLoading, setIsLoading] = useState(true);
   const [allTags, setAllTags] = useState<Tag.Tag[]>([]);
-  const [currentTagIds, setCurrentTagIds] = useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const initialTagIds = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     async function loadData() {
       try {
         const [tags, personTags] = await Promise.all([Tag.listAll(), Tag.listByPerson(person.id)]);
         setAllTags(tags);
-        setCurrentTagIds(personTags.map((t) => String(t.id)));
+        const tagIds = personTags.map((t) => String(t.id));
+        setSelectedTagIds(tagIds);
+        initialTagIds.current = new Set(personTags.map((t) => t.id));
       } catch (error) {
         showToast({
           style: Toast.Style.Failure,
@@ -50,11 +53,10 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
       await Person.updatePerson(person.id, name);
 
       // Update tags
-      const selectedTagIds = new Set(values.tags.map((id) => parseInt(id, 10)));
-      const currentIds = new Set(currentTagIds.map((id) => parseInt(id, 10)));
+      const newTagIds = new Set(values.tags.map((id) => parseInt(id, 10)));
 
-      const tagsToAdd = [...selectedTagIds].filter((id) => !currentIds.has(id));
-      const tagsToRemove = [...currentIds].filter((id) => !selectedTagIds.has(id));
+      const tagsToAdd = [...newTagIds].filter((id) => !initialTagIds.current.has(id));
+      const tagsToRemove = [...initialTagIds.current].filter((id) => !newTagIds.has(id));
 
       await Promise.all([
         ...tagsToAdd.map((tagId) => Tag.addToPerson(person.id, tagId)),
@@ -86,7 +88,7 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
       }
     >
       <Form.TextField id="name" title="Name" defaultValue={person.name} placeholder="Person name" />
-      <Form.TagPicker id="tags" title="Tags" value={currentTagIds} onChange={setCurrentTagIds}>
+      <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
         {allTags.map((tag) => (
           <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
         ))}
