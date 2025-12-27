@@ -2,28 +2,17 @@ import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import { CreatePersonForm } from "./components/create-person-form";
-import { FeedList } from "./components/feed-list";
 import { FeedItem } from "./components/feed-item";
 import { ImportOpml } from "./components/import-opml";
-import { ArticleList } from "./components/article-list";
 import { ArticleItem } from "./components/article-item";
-import { AddMetadataForm } from "./components/add-metadata-form";
-import { CreateTagForm } from "./components/create-tag-form";
-import { EditTagForm } from "./components/edit-tag-form";
-import { PersonEditForm } from "./components/person-edit-form";
-import { PersonDetailMetadata } from "./components/person-detail-metadata";
+import { PersonItem } from "./components/person-item";
+import { TagItem } from "./components/tag-item";
 import * as Person from "./api/person";
 import * as Feed from "./api/feed";
 import * as Article from "./api/article";
 import * as Tag from "./api/tag";
 
 type ViewType = "connections" | "feeds" | "articles" | "tags";
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  return date.toLocaleDateString();
-}
 
 export default function Command() {
   const [selectedView, setSelectedView] = useState<ViewType>("connections");
@@ -99,11 +88,6 @@ export default function Command() {
     execute: selectedView === "tags",
   });
 
-  const deletePerson = async (person: Person.Person) => {
-    await Person.deletePerson(person);
-    revalidateConnections();
-  };
-
   // Determine current loading state and pagination based on selected view
   const isLoading =
     selectedView === "connections"
@@ -173,59 +157,12 @@ export default function Command() {
     >
       {selectedView === "connections" &&
         connectionsData?.map((person) => (
-          <List.Item
+          <PersonItem
             key={String(person.id)}
-            title={person.name}
-            accessories={[{ text: `${person.feed_count} feeds` }, { text: `${person.article_count} articles` }]}
-            detail={<PersonDetailMetadata person={person} />}
-            actions={
-              <ActionPanel>
-                <Action.Push
-                  title="View Feeds"
-                  icon={Icon.List}
-                  target={<FeedList personId={person.id} personName={person.name} />}
-                />
-                <Action.Push
-                  title="Add Metadata"
-                  icon={Icon.Plus}
-                  shortcut={{ modifiers: ["cmd"], key: "m" }}
-                  target={
-                    <AddMetadataForm personId={person.id} personName={person.name} revalidate={revalidateConnections} />
-                  }
-                />
-                <Action.Push
-                  title="Edit Person"
-                  icon={Icon.Pencil}
-                  shortcut={Keyboard.Shortcut.Common.Edit}
-                  target={<PersonEditForm person={person} revalidate={revalidateConnections} />}
-                />
-                <Action
-                  title={showConnectionsDetail ? "Hide Details" : "Show Details"}
-                  icon={showConnectionsDetail ? Icon.EyeDisabled : Icon.Eye}
-                  shortcut={{ modifiers: ["cmd"], key: "d" }}
-                  onAction={() => setShowConnectionsDetail(!showConnectionsDetail)}
-                />
-                <Action.Push
-                  title="Create Person"
-                  icon={Icon.Plus}
-                  shortcut={Keyboard.Shortcut.Common.New}
-                  target={<CreatePersonForm revalidate={revalidateConnections} />}
-                />
-                <Action.Push
-                  title="Import from OPML"
-                  icon={Icon.Download}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "i" }}
-                  target={<ImportOpml revalidate={revalidateConnections} />}
-                />
-                <Action
-                  title="Delete"
-                  icon={Icon.Trash}
-                  style={Action.Style.Destructive}
-                  onAction={() => deletePerson(person)}
-                  shortcut={Keyboard.Shortcut.Common.Remove}
-                />
-              </ActionPanel>
-            }
+            person={person}
+            revalidate={revalidateConnections}
+            showDetail={showConnectionsDetail}
+            onToggleDetail={() => setShowConnectionsDetail(!showConnectionsDetail)}
           />
         ))}
 
@@ -244,42 +181,7 @@ export default function Command() {
         ))}
 
       {selectedView === "tags" &&
-        tagsData?.map((tag) => (
-          <List.Item
-            key={String(tag.id)}
-            title={tag.name}
-            icon={Icon.Tag}
-            actions={
-              <ActionPanel>
-                <Action.Push title="View Articles" icon={Icon.List} target={<ArticleList tag={tag} />} />
-                <Action.Push
-                  title="Edit Tag"
-                  icon={Icon.Pencil}
-                  shortcut={Keyboard.Shortcut.Common.Edit}
-                  target={<EditTagForm tag={tag} revalidate={revalidateTags} />}
-                />
-                <Action.Push
-                  title="Create Tag"
-                  icon={Icon.Plus}
-                  shortcut={Keyboard.Shortcut.Common.New}
-                  target={<CreateTagForm revalidate={revalidateTags} />}
-                />
-                <Action
-                  title="Delete"
-                  icon={Icon.Trash}
-                  style={Action.Style.Destructive}
-                  onAction={async () => {
-                    const deleted = await Tag.deleteTag(tag);
-                    if (deleted) {
-                      revalidateTags();
-                    }
-                  }}
-                  shortcut={Keyboard.Shortcut.Common.Remove}
-                />
-              </ActionPanel>
-            }
-          />
-        ))}
+        tagsData?.map((tag) => <TagItem key={String(tag.id)} tag={tag} revalidate={revalidateTags} />)}
     </List>
   );
 }
