@@ -33,6 +33,7 @@ function getMetadataUrl(metadata: Person.PersonMetadata): string | null {
 }
 
 function PersonDetailMetadata({ person }: { person: Person.Person }) {
+  const metadata = person.metadata ?? [];
   return (
     <List.Item.Detail
       metadata={
@@ -40,8 +41,8 @@ function PersonDetailMetadata({ person }: { person: Person.Person }) {
           <List.Item.Detail.Metadata.Label title="Name" text={person.name} />
           <List.Item.Detail.Metadata.Label title="Feeds" text={String(person.feed_count)} />
           <List.Item.Detail.Metadata.Label title="Articles" text={String(person.article_count)} />
-          {person.metadata.length > 0 && <List.Item.Detail.Metadata.Separator />}
-          {person.metadata.map((m) => {
+          {metadata.length > 0 && <List.Item.Detail.Metadata.Separator />}
+          {metadata.map((m) => {
             const url = getMetadataUrl(m);
             if (url) {
               return (
