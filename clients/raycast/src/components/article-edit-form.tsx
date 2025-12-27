@@ -1,5 +1,5 @@
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
-import { useFetch } from "@raycast/utils";
+import { usePromise } from "@raycast/utils";
 import { useState } from "react";
 import * as Article from "../api/article";
 import * as Tag from "../api/tag";
@@ -14,9 +14,7 @@ export function ArticleEditForm({ article, revalidate }: ArticleEditFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(article.tags.map((t) => String(t.id)));
 
-  const { isLoading: isLoadingAllTags, data: allTags } = useFetch<Tag.Tag[]>(Tag.listAllUrl(), {
-    mapResult: (result: Tag.TagsResponse) => ({ data: result.data }),
-  });
+  const { isLoading: isLoadingAllTags, data: allTags } = usePromise(Tag.listAll);
 
   const isLoading = isLoadingAllTags || isSubmitting;
 

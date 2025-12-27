@@ -1,5 +1,5 @@
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
-import { useFetch } from "@raycast/utils";
+import { useFetch, usePromise } from "@raycast/utils";
 import { useState } from "react";
 import * as Feed from "../api/feed";
 import * as Tag from "../api/tag";
@@ -14,9 +14,7 @@ export function EditFeedForm({ feed, revalidate }: EditFeedFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
-  const { isLoading: isLoadingAllTags, data: allTags } = useFetch<Tag.Tag[]>(Tag.listAllUrl(), {
-    mapResult: (result: Tag.TagsResponse) => ({ data: result.data }),
-  });
+  const { isLoading: isLoadingAllTags, data: allTags } = usePromise(Tag.listAll);
 
   const { isLoading: isLoadingFeedTags, data: feedTags, revalidate: revalidateFeedTags } = useFetch<Tag.Tag[]>(
     Tag.listByFeedUrl(feed.id),

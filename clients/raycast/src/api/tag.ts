@@ -23,8 +23,24 @@ export function listUrl({ page, query }: { page: number; query?: string }) {
   return `${BASE_URL}/tags?${params.toString()}`;
 }
 
-export function listAllUrl() {
-  return `${BASE_URL}/tags?per_page=1000`;
+export async function listAll(): Promise<Tag[]> {
+  const allTags: Tag[] = [];
+  let page = 1;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await fetch(`${BASE_URL}/tags?page=${page}&per_page=100`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to fetch tags");
+    }
+    const data: TagsResponse = await response.json();
+    allTags.push(...data.data);
+    hasMore = page < data.total_pages;
+    page++;
+  }
+
+  return allTags;
 }
 
 export function listByPersonUrl(personId: number) {

@@ -1,5 +1,5 @@
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
-import { useFetch } from "@raycast/utils";
+import { useFetch, usePromise } from "@raycast/utils";
 import { useState } from "react";
 import * as Person from "../api/person";
 import * as Tag from "../api/tag";
@@ -14,9 +14,7 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
-  const { isLoading: isLoadingAllTags, data: allTags } = useFetch<Tag.Tag[]>(Tag.listAllUrl(), {
-    mapResult: (result: Tag.TagsResponse) => ({ data: result.data }),
-  });
+  const { isLoading: isLoadingAllTags, data: allTags } = usePromise(Tag.listAll);
 
   const { isLoading: isLoadingPersonTags, data: personTags, revalidate: revalidatePersonTags } = useFetch<Tag.Tag[]>(
     Tag.listByPersonUrl(person.id),
