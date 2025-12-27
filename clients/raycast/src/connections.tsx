@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Icon, Keyboard, List, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import { CreatePersonForm } from "./components/create-person-form";
@@ -6,8 +6,7 @@ import { FeedList } from "./components/feed-list";
 import { FeedItem } from "./components/feed-item";
 import { ImportOpml } from "./components/import-opml";
 import { ArticleList } from "./components/article-list";
-import { ArticleDetail } from "./components/article-detail";
-import { ArticleDetailMetadata } from "./components/article-detail-metadata";
+import { ArticleItem } from "./components/article-item";
 import { AddMetadataForm } from "./components/add-metadata-form";
 import { CreateTagForm } from "./components/create-tag-form";
 import { EditTagForm } from "./components/edit-tag-form";
@@ -103,20 +102,6 @@ export default function Command() {
   const deletePerson = async (person: Person.Person) => {
     await Person.deletePerson(person);
     revalidateConnections();
-  };
-
-  const toggleArticleRead = async (article: Article.Article) => {
-    const isRead = article.read_at !== null;
-    try {
-      await Article.markArticleRead(article.id, !isRead);
-      revalidateArticles();
-    } catch (error) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to update article",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
   };
 
   // Determine current loading state and pagination based on selected view
@@ -248,52 +233,15 @@ export default function Command() {
         feedsData?.map((feed) => <FeedItem key={String(feed.id)} feed={feed} revalidate={revalidateFeeds} />)}
 
       {selectedView === "articles" &&
-        articlesData?.map((article) => {
-          const isRead = article.read_at !== null;
-          return (
-            <List.Item
-              key={String(article.id)}
-              title={article.title || "Untitled"}
-              subtitle={showArticlesDetail ? undefined : article.author || undefined}
-              accessories={
-                showArticlesDetail
-                  ? undefined
-                  : [
-                      { text: formatDate(article.published_at) },
-                      { icon: isRead ? Icon.Checkmark : Icon.Circle, tooltip: isRead ? "Read" : "Unread" },
-                    ]
-              }
-              detail={<ArticleDetailMetadata article={article} />}
-              actions={
-                <ActionPanel>
-                  <Action.Push
-                    title="View Article"
-                    icon={Icon.Eye}
-                    target={<ArticleDetail article={article} revalidateArticles={revalidateArticles} />}
-                  />
-                  <Action.OpenInBrowser url={article.url} shortcut={Keyboard.Shortcut.Common.Open} />
-                  <Action
-                    title={isRead ? "Mark as Unread" : "Mark as Read"}
-                    icon={isRead ? Icon.Circle : Icon.Checkmark}
-                    onAction={() => toggleArticleRead(article)}
-                    shortcut={{ modifiers: ["cmd"], key: "m" }}
-                  />
-                  <Action
-                    title={showArticlesDetail ? "Hide Details" : "Show Details"}
-                    icon={showArticlesDetail ? Icon.EyeDisabled : Icon.Eye}
-                    shortcut={{ modifiers: ["cmd"], key: "d" }}
-                    onAction={() => setShowArticlesDetail(!showArticlesDetail)}
-                  />
-                  <Action.CopyToClipboard
-                    title="Copy URL"
-                    content={article.url}
-                    shortcut={Keyboard.Shortcut.Common.Copy}
-                  />
-                </ActionPanel>
-              }
-            />
-          );
-        })}
+        articlesData?.map((article) => (
+          <ArticleItem
+            key={String(article.id)}
+            article={article}
+            revalidate={revalidateArticles}
+            showDetail={showArticlesDetail}
+            onToggleDetail={() => setShowArticlesDetail(!showArticlesDetail)}
+          />
+        ))}
 
       {selectedView === "tags" &&
         tagsData?.map((tag) => (

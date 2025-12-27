@@ -1,21 +1,13 @@
-import { Action, ActionPanel, Alert, confirmAlert, Icon, Keyboard, List, showToast, Toast } from "@raycast/api";
+import { Alert, confirmAlert, List, showToast, Toast } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import * as ArticleApi from "../api/article";
 import * as Tag from "../api/tag";
-import { ArticleDetail } from "./article-detail";
-import { ArticleDetailMetadata } from "./article-detail-metadata";
-import { ArticleEditForm } from "./article-edit-form";
+import { ArticleItem } from "./article-item";
 
 type ArticleListProps =
   | { feedId: number; feedTitle: string; tag?: never }
   | { tag: Tag.Tag; feedId?: never; feedTitle?: never };
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  return date.toLocaleDateString();
-}
 
 async function confirmMarkAllRead(feedTitle: string): Promise<boolean> {
   return await confirmAlert({
@@ -52,20 +44,6 @@ export function ArticleList(props: ArticleListProps) {
   );
 
   const filteredData = showUnreadOnly ? data?.filter((article) => article.read_at === null) : data;
-
-  const toggleRead = async (article: ArticleApi.Article) => {
-    const isRead = article.read_at !== null;
-    try {
-      await ArticleApi.markArticleRead(article.id, !isRead);
-      revalidate();
-    } catch (error) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to update article",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  };
 
   const markAllRead = async () => {
     if (isTagView) return;
@@ -109,66 +87,16 @@ export function ArticleList(props: ArticleListProps) {
         </List.Dropdown>
       }
     >
-      {filteredData?.map((article) => {
-        const isRead = article.read_at !== null;
-        return (
-          <List.Item
-            key={String(article.id)}
-            title={article.title || "Untitled"}
-            subtitle={showDetail ? undefined : article.author || undefined}
-            accessories={
-              showDetail
-                ? undefined
-                : [
-                    { text: formatDate(article.published_at) },
-                    { icon: isRead ? Icon.Checkmark : Icon.Circle, tooltip: isRead ? "Read" : "Unread" },
-                  ]
-            }
-            detail={<ArticleDetailMetadata article={article} />}
-            actions={
-              <ActionPanel>
-                <Action.Push
-                  title="View Article"
-                  icon={Icon.Eye}
-                  target={<ArticleDetail article={article} revalidateArticles={revalidate} />}
-                />
-                <Action.OpenInBrowser url={article.url} shortcut={Keyboard.Shortcut.Common.Open} />
-                <Action
-                  title={isRead ? "Mark as Unread" : "Mark as Read"}
-                  icon={isRead ? Icon.Circle : Icon.Checkmark}
-                  onAction={() => toggleRead(article)}
-                  shortcut={{ modifiers: ["cmd"], key: "m" }}
-                />
-                <Action.Push
-                  title="Edit Article"
-                  icon={Icon.Pencil}
-                  shortcut={Keyboard.Shortcut.Common.Edit}
-                  target={<ArticleEditForm article={article} revalidate={revalidate} />}
-                />
-                <Action
-                  title={showDetail ? "Hide Details" : "Show Details"}
-                  icon={showDetail ? Icon.EyeDisabled : Icon.Eye}
-                  shortcut={{ modifiers: ["cmd"], key: "d" }}
-                  onAction={() => setShowDetail(!showDetail)}
-                />
-                {!isTagView && (
-                  <Action
-                    title="Mark All as Read"
-                    icon={Icon.CheckCircle}
-                    onAction={markAllRead}
-                    shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
-                  />
-                )}
-                <Action.CopyToClipboard
-                  title="Copy URL"
-                  content={article.url}
-                  shortcut={Keyboard.Shortcut.Common.Copy}
-                />
-              </ActionPanel>
-            }
-          />
-        );
-      })}
+      {filteredData?.map((article) => (
+        <ArticleItem
+          key={String(article.id)}
+          article={article}
+          revalidate={revalidate}
+          showDetail={showDetail}
+          onToggleDetail={() => setShowDetail(!showDetail)}
+          onMarkAllRead={isTagView ? undefined : markAllRead}
+        />
+      ))}
     </List>
   );
 }
