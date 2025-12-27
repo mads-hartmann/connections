@@ -1,5 +1,6 @@
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
-import { useEffect, useRef, useState } from "react";
+import { useFetch } from "@raycast/utils";
+import { useState } from "react";
 import * as Article from "../api/article";
 import * as Tag from "../api/tag";
 
@@ -10,40 +11,25 @@ interface ArticleEditFormProps {
 
 export function ArticleEditForm({ article, revalidate }: ArticleEditFormProps) {
   const { pop } = useNavigation();
-  const [isLoading, setIsLoading] = useState(true);
-  const [allTags, setAllTags] = useState<Tag.Tag[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const initialTagIds = useRef<Set<number>>(new Set());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(article.tags.map((t) => String(t.id)));
 
-  useEffect(() => {
-    async function loadTags() {
-      try {
-        const tags = await Tag.listAll();
-        setAllTags(tags);
-        // Set initial selection from article tags, now that allTags is loaded
-        const articleTagIds = article.tags.map((t) => String(t.id));
-        setSelectedTagIds(articleTagIds);
-        initialTagIds.current = new Set(article.tags.map((t) => t.id));
-      } catch (error) {
-        showToast({
-          style: Toast.Style.Failure,
-          title: "Failed to load tags",
-          message: error instanceof Error ? error.message : "Unknown error",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadTags();
-  }, [article.id, article.tags]);
+  const { isLoading: isLoadingAllTags, data: allTags } = useFetch<Tag.Tag[]>(Tag.listAllUrl(), {
+    mapResult: (result: Tag.TagsResponse) => ({ data: result.data }),
+  });
+
+  const isLoading = isLoadingAllTags || isSubmitting;
+
+  // Use article.tags as the source of truth for initial state
+  const initialTagIds = new Set(article.tags.map((t) => t.id));
 
   async function handleSubmit(values: { tags: string[] }) {
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
       const newTagIds = new Set(values.tags.map((id) => parseInt(id, 10)));
 
-      const tagsToAdd = [...newTagIds].filter((id) => !initialTagIds.current.has(id));
-      const tagsToRemove = [...initialTagIds.current].filter((id) => !newTagIds.has(id));
+      const tagsToAdd = [...newTagIds].filter((id) => !initialTagIds.has(id));
+      const tagsToRemove = [...initialTagIds].filter((id) => !newTagIds.has(id));
 
       await Promise.all([
         ...tagsToAdd.map((tagId) => Tag.addToArticle(article.id, tagId)),
@@ -70,7 +56,7 @@ export function ArticleEditForm({ article, revalidate }: ArticleEditFormProps) {
         message: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   }
 
@@ -88,7 +74,7 @@ export function ArticleEditForm({ article, revalidate }: ArticleEditFormProps) {
       <Form.Description title="URL" text={article.url} />
       <Form.Separator />
       <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
-        {allTags.map((tag) => (
+        {allTags?.map((tag) => (
           <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
         ))}
       </Form.TagPicker>

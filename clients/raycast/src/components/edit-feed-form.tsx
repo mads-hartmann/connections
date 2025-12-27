@@ -1,5 +1,6 @@
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
-import { useEffect, useRef, useState } from "react";
+import { useFetch } from "@raycast/utils";
+import { useState } from "react";
 import * as Feed from "../api/feed";
 import * as Tag from "../api/tag";
 
@@ -10,43 +11,32 @@ interface EditFeedFormProps {
 
 export function EditFeedForm({ feed, revalidate }: EditFeedFormProps) {
   const { pop } = useNavigation();
-  const [isLoading, setIsLoading] = useState(true);
-  const [allTags, setAllTags] = useState<Tag.Tag[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const initialTagIds = useRef<Set<number>>(new Set());
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [tags, feedTags] = await Promise.all([Tag.listAll(), Tag.listByFeed(feed.id)]);
-        setAllTags(tags);
-        const tagIds = feedTags.map((t) => String(t.id));
-        setSelectedTagIds(tagIds);
-        initialTagIds.current = new Set(feedTags.map((t) => t.id));
-      } catch (error) {
-        showToast({
-          style: Toast.Style.Failure,
-          title: "Failed to load data",
-          message: error instanceof Error ? error.message : "Unknown error",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadData();
-  }, [feed.id]);
+  const { isLoading: isLoadingAllTags, data: allTags } = useFetch<Tag.Tag[]>(Tag.listAllUrl(), {
+    mapResult: (result: Tag.TagsResponse) => ({ data: result.data }),
+  });
+
+  const { isLoading: isLoadingFeedTags, data: feedTags, revalidate: revalidateFeedTags } = useFetch<Tag.Tag[]>(
+    Tag.listByFeedUrl(feed.id),
+    {
+      onData: (tags) => setSelectedTagIds(tags.map((t) => String(t.id))),
+    },
+  );
+
+  const isLoading = isLoadingAllTags || isLoadingFeedTags || isSubmitting;
 
   async function handleSubmit(values: { url: string; title: string; tags: string[] }) {
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
-      // Update feed
       await Feed.updateFeed(feed.id, values.url, values.title);
 
-      // Update tags
       const newTagIds = new Set(values.tags.map((id) => parseInt(id, 10)));
+      const currentTagIds = new Set(feedTags?.map((t) => t.id) ?? []);
 
-      const tagsToAdd = [...newTagIds].filter((id) => !initialTagIds.current.has(id));
-      const tagsToRemove = [...initialTagIds.current].filter((id) => !newTagIds.has(id));
+      const tagsToAdd = [...newTagIds].filter((id) => !currentTagIds.has(id));
+      const tagsToRemove = [...currentTagIds].filter((id) => !newTagIds.has(id));
 
       await Promise.all([
         ...tagsToAdd.map((tagId) => Tag.addToFeed(feed.id, tagId)),
@@ -54,6 +44,7 @@ export function EditFeedForm({ feed, revalidate }: EditFeedFormProps) {
       ]);
 
       showToast({ style: Toast.Style.Success, title: "Feed updated" });
+      revalidateFeedTags();
       revalidate();
       pop();
     } catch (error) {
@@ -63,7 +54,7 @@ export function EditFeedForm({ feed, revalidate }: EditFeedFormProps) {
         message: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   }
 
@@ -80,7 +71,7 @@ export function EditFeedForm({ feed, revalidate }: EditFeedFormProps) {
       <Form.TextField id="url" title="URL" defaultValue={feed.url} placeholder="https://example.com/feed.xml" />
       <Form.TextField id="title" title="Title" defaultValue={feed.title || ""} placeholder="Feed title" />
       <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
-        {allTags.map((tag) => (
+        {allTags?.map((tag) => (
           <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
         ))}
       </Form.TagPicker>
