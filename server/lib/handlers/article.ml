@@ -2,20 +2,12 @@ open Tapak
 open Handler_utils.Syntax
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-(* Store sw and env for HTTP requests - set by main *)
-let sw_ref : Eio.Switch.t option ref = ref None
-let env_ref : Eio_unix.Stdenv.base option ref = ref None
+let get_context = Handler_context.get_context
 
-let set_context ~sw ~env =
-  sw_ref := Some sw;
-  env_ref := Some env
-
-let get_context () =
-  match (!sw_ref, !env_ref) with
-  | Some sw, Some env -> (sw, env)
-  | _ -> failwith "Handler context not initialized"
-
-let list_by_feed (pagination : Pagination.Pagination.t) feed_id =
+let list_by_feed request feed_id =
+  let* pagination =
+    Pagination.Pagination.extract request |> Handler_utils.or_bad_request
+  in
   let* _ = Service.Rss_feed.get ~id:feed_id |> Handler_utils.or_feed_error in
   let* paginated =
     Service.Article.list_by_feed ~feed_id ~page:pagination.page
@@ -24,7 +16,10 @@ let list_by_feed (pagination : Pagination.Pagination.t) feed_id =
   in
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)
 
-let list_all request (pagination : Pagination.Pagination.t) =
+let list_all request =
+  let* pagination =
+    Pagination.Pagination.extract request |> Handler_utils.or_bad_request
+  in
   let unread_only = Handler_utils.query "unread" request = Some "true" in
   let tag = Handler_utils.query "tag" request in
   let query = Handler_utils.query "query" request in
@@ -77,14 +72,10 @@ let refresh_metadata _request id =
 let routes () =
   let open Tapak.Router in
   [
-    get (s "feeds" / int / s "articles")
-    |> guard Pagination.Pagination.pagination_guard
-    |> into list_by_feed;
+    get (s "feeds" / int / s "articles") |> request |> into list_by_feed;
     post (s "feeds" / int / s "articles" / s "mark-all-read")
     |> request |> into mark_all_read;
-    get (s "articles")
-    |> guard Pagination.Pagination.pagination_guard
-    |> request |> into list_all;
+    get (s "articles") |> request |> into list_all;
     get (s "articles" / int) |> request |> into get_article;
     post (s "articles" / int / s "read") |> request |> into mark_read;
     post (s "articles" / int / s "refresh-metadata")

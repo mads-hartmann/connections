@@ -17,6 +17,7 @@
   syndic
   logs
   lambdasoup
-  uri)
+  uri
+  digestif)
  (preprocess
   (pps ppx_yojson_conv)))

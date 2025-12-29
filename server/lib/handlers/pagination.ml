@@ -1,12 +1,9 @@
 open Tapak
 
-type Request_guard.error += Invalid_pagination
-
 module Pagination = struct
   type t = { page : int; per_page : int }
 
-  let pagination_guard : t Request_guard.t =
-   fun req ->
+  let extract req =
     let uri = Request.uri req in
     match
       (Uri.get_query_param uri "page", Uri.get_query_param uri "per_page")
@@ -16,15 +13,15 @@ module Pagination = struct
         | Some page, Some per_page
           when page > 0 && per_page > 0 && per_page <= 100 ->
             Ok { page; per_page }
-        | _ -> Error Invalid_pagination)
+        | _ -> Error "Invalid pagination parameters")
     | Some page_str, None -> (
         match int_of_string_opt page_str with
         | Some page when page > 0 -> Ok { page; per_page = 20 }
-        | _ -> Error Invalid_pagination)
+        | _ -> Error "Invalid page parameter")
     | None, Some per_page_str -> (
         match int_of_string_opt per_page_str with
         | Some per_page when per_page > 0 && per_page <= 100 ->
             Ok { page = 1; per_page }
-        | _ -> Error Invalid_pagination)
+        | _ -> Error "Invalid per_page parameter")
     | None, None -> Ok { page = 1; per_page = 20 }
 end

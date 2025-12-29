@@ -1,6 +1,13 @@
-(* Row type definitions - 3 fields with tags JSON *)
-let person_row_type = Caqti_type.(t3 int string string)
-let person_with_counts_row_type = Caqti_type.(t5 int string string int int)
+(* Row type definitions *)
+(* id, name, tags_json, profile_image_url, metadata_updated_at *)
+let person_row_type =
+  Caqti_type.(t5 int string string (option string) (option string))
+
+(* id, name, tags_json, feed_count, article_count, profile_image_url, metadata_updated_at *)
+let person_with_counts_row_type =
+  Caqti_type.(
+    t2 (t5 int string string int int) (t2 (option string) (option string)))
+
 let metadata_row_type = Caqti_type.(t4 int int int string)
 
 let insert_query =
@@ -14,7 +21,9 @@ let select_with_tags =
            COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
                      FROM person_tags pt
                      JOIN tags t ON pt.tag_id = t.id
-                     WHERE pt.person_id = p.id), '[]') as tags
+                     WHERE pt.person_id = p.id), '[]') as tags,
+           p.profile_image_url,
+           p.metadata_updated_at
     FROM persons p
   |}
 
@@ -50,7 +59,9 @@ let list_with_counts_query =
                   JOIN tags t ON pt.tag_id = t.id
                   WHERE pt.person_id = p.id), '[]') as tags,
         COUNT(DISTINCT f.id) as feed_count,
-        COUNT(a.id) as article_count
+        COUNT(a.id) as article_count,
+        p.profile_image_url,
+        p.metadata_updated_at
       FROM persons p
       LEFT JOIN rss_feeds f ON f.person_id = p.id
       LEFT JOIN articles a ON a.feed_id = f.id
@@ -71,7 +82,9 @@ let list_with_counts_filtered_query =
                   JOIN tags t ON pt.tag_id = t.id
                   WHERE pt.person_id = p.id), '[]') as tags,
         COUNT(DISTINCT f.id) as feed_count,
-        COUNT(a.id) as article_count
+        COUNT(a.id) as article_count,
+        p.profile_image_url,
+        p.metadata_updated_at
       FROM persons p
       LEFT JOIN rss_feeds f ON f.person_id = p.id
       LEFT JOIN articles a ON a.feed_id = f.id
@@ -84,6 +97,19 @@ let list_with_counts_filtered_query =
 let update_query =
   Caqti_request.Infix.(Caqti_type.(t2 string int) ->. Caqti_type.unit)
     "UPDATE persons SET name = ? WHERE id = ?"
+
+let update_profile_image_query =
+  Caqti_request.Infix.(
+    Caqti_type.(t3 (option string) string int) ->. Caqti_type.unit)
+    "UPDATE persons SET profile_image_url = ?, metadata_updated_at = ? WHERE id = ?"
+
+let list_needing_metadata_refresh_query =
+  Caqti_request.Infix.(Caqti_type.(t2 string int) ->* person_row_type)
+    (select_with_tags
+    ^ {| WHERE p.metadata_updated_at IS NULL
+         OR p.metadata_updated_at < ?
+         ORDER BY p.metadata_updated_at ASC NULLS FIRST
+         LIMIT ? |})
 
 let delete_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
@@ -132,10 +158,20 @@ let group_metadata_by_person metadata =
   Hashtbl.iter (fun k v -> Hashtbl.replace tbl k (List.rev v)) tbl;
   tbl
 
-let tuple_to_person (id, name, tags_json) =
-  { Model.Person.id; name; tags = Tag_json.parse tags_json; metadata = [] }
+let tuple_to_person (id, name, tags_json, profile_image_url, metadata_updated_at)
+    =
+  {
+    Model.Person.id;
+    name;
+    tags = Tag_json.parse tags_json;
+    metadata = [];
+    profile_image_url;
+    metadata_updated_at;
+  }
 
-let tuple_to_person_with_counts (id, name, tags_json, feed_count, article_count) =
+let tuple_to_person_with_counts
+    ((id, name, tags_json, feed_count, article_count), (profile_image_url, metadata_updated_at))
+    =
   {
     Model.Person.id;
     name;
@@ -143,6 +179,8 @@ let tuple_to_person_with_counts (id, name, tags_json, feed_count, article_count)
     feed_count;
     article_count;
     metadata = [];
+    profile_image_url;
+    metadata_updated_at;
   }
 
 let attach_metadata metadata_tbl (person : Model.Person.t) =
@@ -302,3 +340,26 @@ let list_with_counts ~page ~per_page ?query () =
   in
   let data = List.map (attach_metadata_with_counts metadata_tbl) persons in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
+
+let update_profile_image ~id ~profile_image_url ~metadata_updated_at =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let+ () =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        Db.exec update_profile_image_query
+          (profile_image_url, metadata_updated_at, id))
+      pool
+  in
+  ()
+
+let list_needing_metadata_refresh ~older_than ~limit =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let+ rows =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        Db.collect_list list_needing_metadata_refresh_query (older_than, limit))
+      pool
+  in
+  List.map tuple_to_person rows

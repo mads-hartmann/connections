@@ -2,7 +2,10 @@ open Tapak
 open Handler_utils.Syntax
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-let list request (pagination : Pagination.Pagination.t) =
+let list request =
+  let* pagination =
+    Pagination.Pagination.extract request |> Handler_utils.or_bad_request
+  in
   let query = Handler_utils.query "query" request in
   let* response =
     Service.Tag.list ~page:pagination.page ~per_page:pagination.per_page ?query
@@ -94,9 +97,7 @@ let remove_from_article _request article_id tag_id =
 let routes () =
   let open Tapak.Router in
   [
-    get (s "tags")
-    |> guard Pagination.Pagination.pagination_guard
-    |> request |> into list;
+    get (s "tags") |> request |> into list;
     get (s "tags" / int) |> request |> into get_tag;
     post (s "tags") |> request |> into create;
     patch (s "tags" / int) |> request |> into update_tag;

@@ -2,7 +2,12 @@ open Tapak
 open Handler_utils.Syntax
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-let list request (pagination : Pagination.Pagination.t) =
+let get_context = Handler_context.get_context
+
+let list request =
+  let* pagination =
+    Pagination.Pagination.extract request |> Handler_utils.or_bad_request
+  in
   let query = Handler_utils.query "query" request in
   let* paginated =
     Service.Person.list_with_counts ~page:pagination.page
@@ -48,14 +53,22 @@ let delete_person _request id =
   let* () = Service.Person.delete ~id |> Handler_utils.or_person_error in
   Response.of_string ~body:"" `No_content
 
+let refresh_metadata _request id =
+  let sw, env = get_context () in
+  let* person =
+    Service.Person.refresh_metadata ~sw ~env ~id
+    |> Handler_utils.or_person_error
+  in
+  Handler_utils.json_response (Model.Person.to_json person)
+
 let routes () =
   let open Tapak.Router in
   [
-    get (s "persons")
-    |> guard Pagination.Pagination.pagination_guard
-    |> request |> into list;
+    get (s "persons") |> request |> into list;
     get (s "persons" / int) |> request |> into get_person;
     post (s "persons") |> request |> into create;
     put (s "persons" / int) |> request |> into update;
     delete (s "persons" / int) |> request |> into delete_person;
+    post (s "persons" / int / s "refresh-metadata")
+    |> request |> into refresh_metadata;
   ]

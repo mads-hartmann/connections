@@ -1,21 +1,11 @@
 open Handler_utils.Syntax
 
-(* Store sw and env for HTTP requests - set by main *)
-let sw_ref : Eio.Switch.t option ref = ref None
-let env_ref : Eio_unix.Stdenv.base option ref = ref None
+let set_context = Handler_context.set_context
+let get_context = Handler_context.get_context
 
-let set_context ~sw ~env =
-  sw_ref := Some sw;
-  env_ref := Some env
-
-let get_context () =
-  match (!sw_ref, !env_ref) with
-  | Some sw, Some env -> (sw, env)
-  | _ -> failwith "Handler context not initialized"
-
-let extract request =
+let extract req =
   let* url =
-    Handler_utils.query "url" request
+    Handler_utils.query "url" req
     |> Handler_utils.or_not_found "Missing 'url' query parameter"
   in
   let* valid_url =
@@ -27,6 +17,5 @@ let extract request =
   in
   Handler_utils.json_response (Url_metadata.full_response_to_json result)
 
-let routes () =
-  let open Tapak.Router in
-  [ get (s "url-metadata") |> request |> into extract ]
+let routes () : Tapak.Router.route list =
+  [ Tapak.Router.into extract (Tapak.Router.request (Tapak.Router.get (Tapak.Router.s "url-metadata"))) ]

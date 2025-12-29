@@ -2,18 +2,7 @@ open Tapak
 open Handler_utils.Syntax
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-(* Store sw and env for feed processing - set by main *)
-let sw_ref : Eio.Switch.t option ref = ref None
-let env_ref : Eio_unix.Stdenv.base option ref = ref None
-
-let set_context ~sw ~env =
-  sw_ref := Some sw;
-  env_ref := Some env
-
-let get_context () =
-  match (!sw_ref, !env_ref) with
-  | Some sw, Some env -> (sw, env)
-  | _ -> failwith "Handler context not initialized"
+let get_context = Handler_context.get_context
 
 type create_request = {
   person_id : int;
@@ -40,7 +29,10 @@ let create request person_id =
     in
     Handler_utils.json_response ~status:`Created (Model.Rss_feed.to_json feed)
 
-let list_by_person (pagination : Pagination.Pagination.t) person_id =
+let list_by_person request person_id =
+  let* pagination =
+    Pagination.Pagination.extract request |> Handler_utils.or_bad_request
+  in
   let* _ = Service.Person.get ~id:person_id |> Handler_utils.or_person_error in
   let* paginated =
     Service.Rss_feed.list_by_person ~person_id ~page:pagination.page
@@ -86,7 +78,10 @@ let refresh _request id =
   Feed_fetcher.process_feed ~sw ~env feed;
   Handler_utils.json_response (`Assoc [ ("message", `String "Feed refreshed") ])
 
-let list_all request (pagination : Pagination.Pagination.t) =
+let list_all request =
+  let* pagination =
+    Pagination.Pagination.extract request |> Handler_utils.or_bad_request
+  in
   let query = Handler_utils.query "query" request in
   let* paginated =
     Service.Rss_feed.list_all_paginated ~page:pagination.page
@@ -99,12 +94,8 @@ let routes () =
   let open Tapak.Router in
   [
     post (s "persons" / int / s "feeds") |> request |> into create;
-    get (s "persons" / int / s "feeds")
-    |> guard Pagination.Pagination.pagination_guard
-    |> into list_by_person;
-    get (s "feeds")
-    |> guard Pagination.Pagination.pagination_guard
-    |> request |> into list_all;
+    get (s "persons" / int / s "feeds") |> request |> into list_by_person;
+    get (s "feeds") |> request |> into list_all;
     get (s "feeds" / int) |> request |> into get_feed;
     put (s "feeds" / int) |> request |> into update;
     delete (s "feeds" / int) |> request |> into delete_feed;

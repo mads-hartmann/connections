@@ -8,14 +8,25 @@ open Test_helpers
    ============================================ *)
 
 let test_person_to_json () =
-  let person = { Model.Person.id = 1; name = "Alice"; tags = []; metadata = [] } in
+  let person =
+    {
+      Model.Person.id = 1;
+      name = "Alice";
+      tags = [];
+      metadata = [];
+      profile_image_url = None;
+      metadata_updated_at = None;
+    }
+  in
   let json = Model.Person.to_json person in
   match json with
   | `Assoc fields ->
       Alcotest.(check bool) "has id field" true (List.mem_assoc "id" fields);
       Alcotest.(check bool) "has name field" true (List.mem_assoc "name" fields);
       Alcotest.(check bool) "has tags field" true (List.mem_assoc "tags" fields);
-      Alcotest.(check bool) "has metadata field" true (List.mem_assoc "metadata" fields)
+      Alcotest.(check bool)
+        "has metadata field" true
+        (List.mem_assoc "metadata" fields)
   | _ -> Alcotest.fail "expected JSON object"
 
 let test_person_to_json_with_metadata () =
@@ -29,7 +40,16 @@ let test_person_to_json_with_metadata () =
       };
     ]
   in
-  let person = { Model.Person.id = 1; name = "Alice"; tags = []; metadata } in
+  let person =
+    {
+      Model.Person.id = 1;
+      name = "Alice";
+      tags = [];
+      metadata;
+      profile_image_url = None;
+      metadata_updated_at = None;
+    }
+  in
   let json = Model.Person.to_json person in
   match json with
   | `Assoc fields -> (
@@ -39,8 +59,26 @@ let test_person_to_json_with_metadata () =
   | _ -> Alcotest.fail "expected JSON object"
 
 let test_person_paginated_to_json () =
-  let alice : Model.Person.t = { id = 1; name = "Alice"; tags = []; metadata = [] } in
-  let bob : Model.Person.t = { id = 2; name = "Bob"; tags = []; metadata = [] } in
+  let alice : Model.Person.t =
+    {
+      id = 1;
+      name = "Alice";
+      tags = [];
+      metadata = [];
+      profile_image_url = None;
+      metadata_updated_at = None;
+    }
+  in
+  let bob : Model.Person.t =
+    {
+      id = 2;
+      name = "Bob";
+      tags = [];
+      metadata = [];
+      profile_image_url = None;
+      metadata_updated_at = None;
+    }
+  in
   let response =
     Model.Shared.Paginated.make ~data:[ alice; bob ] ~page:1 ~per_page:10
       ~total:2

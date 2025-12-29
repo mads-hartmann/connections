@@ -12,6 +12,7 @@ module Author = Types.Author
 module Content = Types.Content
 module Site = Types.Site
 module Extract_opengraph = Extract_opengraph
+module Gravatar = Gravatar
 
 type t = Types.t = {
   url : string;

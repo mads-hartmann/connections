@@ -1,4 +1,11 @@
-type t = { id : int; name : string; tags : Tag.t list; metadata : Person_metadata.t list }
+type t = {
+  id : int;
+  name : string;
+  tags : Tag.t list;
+  metadata : Person_metadata.t list;
+  profile_image_url : string option;
+  metadata_updated_at : string option;
+}
 
 type t_with_counts = {
   id : int;
@@ -7,7 +14,11 @@ type t_with_counts = {
   feed_count : int;
   article_count : int;
   metadata : Person_metadata.t list;
+  profile_image_url : string option;
+  metadata_updated_at : string option;
 }
+
+let option_to_json = function Some s -> `String s | None -> `Null
 
 let to_json (t : t) =
   `Assoc
@@ -16,6 +27,8 @@ let to_json (t : t) =
       ("name", `String t.name);
       ("tags", `List (List.map Tag.yojson_of_t t.tags));
       ("metadata", `List (List.map Person_metadata.to_json t.metadata));
+      ("profile_image_url", option_to_json t.profile_image_url);
+      ("metadata_updated_at", option_to_json t.metadata_updated_at);
     ]
 
 let to_json_with_counts (t : t_with_counts) =
@@ -27,6 +40,8 @@ let to_json_with_counts (t : t_with_counts) =
       ("feed_count", `Int t.feed_count);
       ("article_count", `Int t.article_count);
       ("metadata", `List (List.map Person_metadata.to_json t.metadata));
+      ("profile_image_url", option_to_json t.profile_image_url);
+      ("metadata_updated_at", option_to_json t.metadata_updated_at);
     ]
 
 let paginated_to_json response = Shared.Paginated.to_json to_json response

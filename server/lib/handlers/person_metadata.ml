@@ -2,6 +2,8 @@ open Tapak
 open Handler_utils.Syntax
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
+let get_context = Handler_context.get_context
+
 type create_request = { field_type_id : int; value : string } [@@deriving yojson]
 type update_request = { value : string } [@@deriving yojson]
 
@@ -15,6 +17,19 @@ let create request person_id =
     let* metadata =
       Service.Person_metadata.create ~person_id ~field_type_id ~value
       |> Handler_utils.or_person_metadata_error
+    in
+    (* Trigger metadata refresh when a Website is added *)
+    let is_website =
+      Model.Metadata_field_type.of_id field_type_id
+      |> Option.map (fun ft -> ft = Model.Metadata_field_type.Website)
+      |> Option.value ~default:false
+    in
+    let () =
+      if is_website then begin
+        let sw, env = get_context () in
+        let _ = Service.Person.refresh_metadata ~sw ~env ~id:person_id in
+        ()
+      end
     in
     Handler_utils.json_response ~status:`Created
       (Model.Person_metadata.to_json metadata)
