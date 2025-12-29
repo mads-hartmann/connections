@@ -29,8 +29,10 @@ let run db_path port no_scheduler =
   Handlers.Rss_feed.set_context ~sw ~env;
   Handlers.Import.set_context ~sw ~env;
   Handlers.Metadata.set_context ~sw ~env;
-  (* Start background RSS feed scheduler unless disabled *)
-  if not no_scheduler then Scheduler.start ~sw ~env;
+  (* Start background schedulers unless disabled *)
+  if not no_scheduler then (
+    Scheduler.start ~sw ~env;
+    Og_fetcher.start ~sw ~env);
   Log.info (fun m ->
       m "Starting server on port %d with database %s%s" port db_path
         (if no_scheduler then " (scheduler disabled)" else ""));
