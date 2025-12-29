@@ -25,10 +25,11 @@ let run db_path port no_scheduler =
   (* Initialize database *)
   Db.Pool.init ~sw ~stdenv:env db_path;
   Db.Pool.apply_schema ();
-  (* Set handler contexts for feed refresh, OPML import, and URL metadata *)
+  (* Set handler contexts for feed refresh, OPML import, URL metadata, and article refresh *)
   Handlers.Rss_feed.set_context ~sw ~env;
   Handlers.Import.set_context ~sw ~env;
   Handlers.Metadata.set_context ~sw ~env;
+  Handlers.Article.set_context ~sw ~env;
   (* Start background schedulers unless disabled *)
   if not no_scheduler then (
     Scheduler.start ~sw ~env;
