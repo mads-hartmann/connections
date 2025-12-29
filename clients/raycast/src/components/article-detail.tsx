@@ -1,5 +1,5 @@
 import { Action, ActionPanel, Detail, Icon, Keyboard, showToast, Toast } from "@raycast/api";
-import { Article, markArticleRead } from "../api/article";
+import { Article, markArticleRead, refreshArticleMetadata } from "../api/article";
 import { ArticleEditForm } from "./article-edit-form";
 
 interface ArticleDetailProps {
@@ -37,6 +37,23 @@ export function ArticleDetail({ article, revalidateArticles }: ArticleDetailProp
     }
   };
 
+  const refreshMetadata = async () => {
+    const toast = await showToast({
+      style: Toast.Style.Animated,
+      title: "Fetching metadata...",
+    });
+    try {
+      await refreshArticleMetadata(article.id);
+      revalidateArticles();
+      toast.style = Toast.Style.Success;
+      toast.title = "Metadata refreshed";
+    } catch (error) {
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to refresh metadata";
+      toast.message = error instanceof Error ? error.message : "Unknown error";
+    }
+  };
+
   const tagsLine = article.tags.length > 0 ? `**Tags:** ${article.tags.map((t) => t.name).join(", ")}` : null;
 
   const metadata = [
@@ -48,13 +65,16 @@ export function ArticleDetail({ article, revalidateArticles }: ArticleDetailProp
     .filter(Boolean)
     .join("\n\n");
 
+  const imageUrl = article.og_image || article.image_url;
+  const imageLine = imageUrl ? `![](${imageUrl})\n\n` : "";
+
   const markdown = `# ${article.title || "Untitled"}
 
-${metadata}
+${imageLine}${metadata}
 
 ---
 
-${article.content || "*No content available*"}
+${article.og_description || article.content || "*No content available*"}
 `;
 
   return (
@@ -73,6 +93,12 @@ ${article.content || "*No content available*"}
             icon={Icon.Pencil}
             shortcut={Keyboard.Shortcut.Common.Edit}
             target={<ArticleEditForm article={article} revalidate={revalidateArticles} />}
+          />
+          <Action
+            title="Refresh Metadata"
+            icon={Icon.ArrowClockwise}
+            shortcut={{ modifiers: ["cmd"], key: "r" }}
+            onAction={refreshMetadata}
           />
           <Action.CopyToClipboard title="Copy URL" content={article.url} />
         </ActionPanel>

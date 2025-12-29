@@ -1,10 +1,14 @@
-(* Article row type with tags JSON: 11 fields split as t2 of (t5, t6) *)
+(* Article row type with tags JSON and OG fields: 17 fields *)
+(* Split as t2 of (t5, t2 of (t6, t6)) *)
 let article_row_type =
   Caqti_type.(
     t2
       (t5 int int (option string) string (option string))
-      (t6 (option string) (option string) (option string) string (option string)
-         string))
+      (t2
+         (t6 (option string) (option string) (option string) string
+            (option string) string)
+         (t6 (option string) (option string) (option string) (option string)
+            (option string) (option string))))
 
 (* Upsert input type: 7 fields *)
 let upsert_input_type =
@@ -26,11 +30,12 @@ let tags_subquery =
      JOIN tags t ON at.tag_id = t.id
      WHERE at.article_id = a.id)|}
 
-(* Base SELECT with tags JSON aggregation *)
+(* Base SELECT with tags JSON aggregation and OG fields *)
 let select_with_tags =
   Printf.sprintf
     {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
-       COALESCE(%s, '[]') as tags
+       COALESCE(%s, '[]') as tags,
+       a.og_title, a.og_description, a.og_image, a.og_site_name, a.og_fetched_at, a.og_fetch_error
 FROM articles a|}
     tags_subquery
 
@@ -38,7 +43,8 @@ FROM articles a|}
 let select_with_tags_filtered_by_tag =
   Printf.sprintf
     {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
-       COALESCE(%s, '[]') as tags
+       COALESCE(%s, '[]') as tags,
+       a.og_title, a.og_description, a.og_image, a.og_site_name, a.og_fetched_at, a.og_fetch_error
 FROM articles a
 INNER JOIN article_tags at_filter ON a.id = at_filter.article_id
 INNER JOIN tags t_filter ON at_filter.tag_id = t_filter.id|}
@@ -133,6 +139,29 @@ let count_by_tag_unread_query =
       WHERE t.name = ? AND a.read_at IS NULL
     |}
 
+(* List articles needing OG fetch: never fetched OR failed > 24h ago *)
+let list_needing_og_fetch_query =
+  Caqti_request.Infix.(Caqti_type.int ->* article_row_type)
+    (select_with_tags
+    ^ {| WHERE a.og_fetched_at IS NULL
+         OR (a.og_fetch_error IS NOT NULL
+             AND a.og_fetched_at < datetime('now', '-1 day'))
+       ORDER BY a.created_at DESC
+       LIMIT ?|})
+
+(* Update OG metadata for an article *)
+let update_og_metadata_query =
+  Caqti_request.Infix.(
+    Caqti_type.(
+      t2
+        (t4 (option string) (option string) (option string) (option string))
+        (t3 string (option string) int))
+    ->. Caqti_type.unit)
+    {|UPDATE articles
+      SET og_title = ?, og_description = ?, og_image = ?, og_site_name = ?,
+          og_fetched_at = ?, og_fetch_error = ?
+      WHERE id = ?|}
+
 let mark_read_query =
   Caqti_request.Infix.(Caqti_type.(t2 (option string) int) ->. Caqti_type.unit)
     "UPDATE articles SET read_at = ? WHERE id = ?"
@@ -153,7 +182,9 @@ let exists_query =
 (* Helper to convert DB tuple to Model.Article.t *)
 let tuple_to_article
     ( (id, feed_id, title, url, published_at),
-      (content, author, image_url, created_at, read_at, tags_json) ) =
+      ( (content, author, image_url, created_at, read_at, tags_json),
+        (og_title, og_description, og_image, og_site_name, og_fetched_at,
+         og_fetch_error) ) ) =
   {
     Model.Article.id;
     feed_id;
@@ -166,6 +197,12 @@ let tuple_to_article
     created_at;
     read_at;
     tags = Tag_json.parse tags_json;
+    og_title;
+    og_description;
+    og_image;
+    og_site_name;
+    og_fetched_at;
+    og_fetch_error;
   }
 
 (* UPSERT - returns true if inserted, false if duplicate *)
@@ -311,6 +348,47 @@ let list_by_tag ~tag ~page ~per_page ~unread_only =
   in
   let data = List.map tuple_to_article rows in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
+
+(* LIST articles needing OG fetch *)
+let list_needing_og_fetch ~limit =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.collect_list list_needing_og_fetch_query limit)
+    pool
+  |> Result.map (List.map tuple_to_article)
+
+(* OG metadata update input *)
+type og_metadata_input = {
+  og_title : string option;
+  og_description : string option;
+  og_image : string option;
+  og_site_name : string option;
+  og_fetch_error : string option;
+}
+
+(* UPDATE OG metadata *)
+let update_og_metadata ~id (input : og_metadata_input) =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let now = Unix.gettimeofday () in
+  let tm = Unix.gmtime now in
+  let og_fetched_at =
+    Printf.sprintf "%04d-%02d-%02d %02d:%02d:%02d" (tm.Unix.tm_year + 1900)
+      (tm.Unix.tm_mon + 1) tm.Unix.tm_mday tm.Unix.tm_hour tm.Unix.tm_min
+      tm.Unix.tm_sec
+  in
+  let params =
+    ( (input.og_title, input.og_description, input.og_image, input.og_site_name),
+      (og_fetched_at, input.og_fetch_error, id) )
+  in
+  let* () =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        Db.exec update_og_metadata_query params)
+      pool
+  in
+  get ~id
 
 (* MARK READ/UNREAD *)
 let mark_read ~id ~read =

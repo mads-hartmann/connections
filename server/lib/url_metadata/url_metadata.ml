@@ -6,11 +6,12 @@
 
 module Log = (val Logs.src_log (Logs.Src.create "url_metadata") : Logs.LOG)
 
-(* Re-export types *)
+(* Re-export types and extractors *)
 module Feed = Types.Feed
 module Author = Types.Author
 module Content = Types.Content
 module Site = Types.Site
+module Extract_opengraph = Extract_opengraph
 
 type t = Types.t = {
   url : string;

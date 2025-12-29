@@ -12,6 +12,12 @@ type t = {
   created_at : string;
   read_at : string option;
   tags : Tag.t list;
+  og_title : string option; [@yojson.option]
+  og_description : string option; [@yojson.option]
+  og_image : string option; [@yojson.option]
+  og_site_name : string option; [@yojson.option]
+  og_fetched_at : string option; [@yojson.option]
+  og_fetch_error : string option; [@yojson.option]
 }
 [@@deriving yojson]
 

@@ -55,6 +55,12 @@ CREATE TABLE IF NOT EXISTS articles (
   image_url TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   read_at TEXT,
+  og_title TEXT,
+  og_description TEXT,
+  og_image TEXT,
+  og_site_name TEXT,
+  og_fetched_at TEXT,
+  og_fetch_error TEXT,
   FOREIGN KEY (feed_id) REFERENCES rss_feeds(id) ON DELETE CASCADE,
   UNIQUE(feed_id, url)
 );
@@ -71,6 +77,7 @@ CREATE TABLE IF NOT EXISTS article_tags (
 -- Indexes for articles table
 CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id);
 CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at);
+CREATE INDEX IF NOT EXISTS idx_articles_og_fetched_at ON articles(og_fetched_at);
 
 -- Indexes for tag lookups
 CREATE INDEX IF NOT EXISTS idx_person_tags_person_id ON person_tags(person_id);

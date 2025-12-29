@@ -2,6 +2,19 @@ open Tapak
 open Handler_utils.Syntax
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
+(* Store sw and env for HTTP requests - set by main *)
+let sw_ref : Eio.Switch.t option ref = ref None
+let env_ref : Eio_unix.Stdenv.base option ref = ref None
+
+let set_context ~sw ~env =
+  sw_ref := Some sw;
+  env_ref := Some env
+
+let get_context () =
+  match (!sw_ref, !env_ref) with
+  | Some sw, Some env -> (sw, env)
+  | _ -> failwith "Handler context not initialized"
+
 let list_by_feed (pagination : Pagination.Pagination.t) feed_id =
   let* _ = Service.Rss_feed.get ~id:feed_id |> Handler_utils.or_feed_error in
   let* paginated =
@@ -49,6 +62,18 @@ let delete_article _request id =
   let* () = Service.Article.delete ~id |> Handler_utils.or_article_error in
   Response.of_string ~body:"" `No_content
 
+let refresh_metadata _request id =
+  let* article = Service.Article.get ~id |> Handler_utils.or_article_error in
+  let sw, env = get_context () in
+  let* updated =
+    Og_fetcher.fetch_for_article ~sw ~env article
+    |> Handler_utils.or_db_error
+  in
+  let* result =
+    updated |> Handler_utils.or_not_found "Article not found after update"
+  in
+  Handler_utils.json_response (Model.Article.to_json result)
+
 let routes () =
   let open Tapak.Router in
   [
@@ -62,5 +87,7 @@ let routes () =
     |> request |> into list_all;
     get (s "articles" / int) |> request |> into get_article;
     post (s "articles" / int / s "read") |> request |> into mark_read;
+    post (s "articles" / int / s "refresh-metadata")
+    |> request |> into refresh_metadata;
     delete (s "articles" / int) |> request |> into delete_article;
   ]
