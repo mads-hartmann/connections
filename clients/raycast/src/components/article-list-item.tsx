@@ -35,6 +35,23 @@ export function ArticleListItem({ article, revalidate, showDetail, onToggleDetai
     }
   };
 
+  const refreshMetadata = async () => {
+    const toast = await showToast({
+      style: Toast.Style.Animated,
+      title: "Fetching metadata...",
+    });
+    try {
+      await Article.refreshArticleMetadata(article.id);
+      revalidate();
+      toast.style = Toast.Style.Success;
+      toast.title = "Metadata refreshed";
+    } catch (error) {
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to refresh metadata";
+      toast.message = error instanceof Error ? error.message : "Unknown error";
+    }
+  };
+
   return (
     <List.Item
       key={String(article.id)}
@@ -83,6 +100,12 @@ export function ArticleListItem({ article, revalidate, showDetail, onToggleDetai
               shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
             />
           )}
+          <Action
+            title="Refresh Metadata"
+            icon={Icon.ArrowClockwise}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
+            onAction={refreshMetadata}
+          />
           <Action.CopyToClipboard title="Copy URL" content={article.url} shortcut={Keyboard.Shortcut.Common.Copy} />
         </ActionPanel>
       }
