@@ -100,10 +100,10 @@ let routes () =
   [
     post (s "persons" / int / s "feeds") |> request |> into create;
     get (s "persons" / int / s "feeds")
-    |> guard Pagination.Pagination.pagination_guard
+    |> extract Pagination.Pagination.pagination_extractor
     |> into list_by_person;
     get (s "feeds")
-    |> guard Pagination.Pagination.pagination_guard
+    |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_all;
     get (s "feeds" / int) |> request |> into get_feed;
     put (s "feeds" / int) |> request |> into update;

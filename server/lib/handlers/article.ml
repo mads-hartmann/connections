@@ -78,12 +78,12 @@ let routes () =
   let open Tapak.Router in
   [
     get (s "feeds" / int / s "articles")
-    |> guard Pagination.Pagination.pagination_guard
+    |> extract Pagination.Pagination.pagination_extractor
     |> into list_by_feed;
     post (s "feeds" / int / s "articles" / s "mark-all-read")
     |> request |> into mark_all_read;
     get (s "articles")
-    |> guard Pagination.Pagination.pagination_guard
+    |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_all;
     get (s "articles" / int) |> request |> into get_article;
     post (s "articles" / int / s "read") |> request |> into mark_read;

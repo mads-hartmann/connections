@@ -13,7 +13,7 @@ let get_context () =
   | Some sw, Some env -> (sw, env)
   | _ -> failwith "Handler context not initialized"
 
-let extract request =
+let handler request =
   let* url =
     Handler_utils.query "url" request
     |> Handler_utils.or_not_found "Missing 'url' query parameter"
@@ -29,4 +29,4 @@ let extract request =
 
 let routes () =
   let open Tapak.Router in
-  [ get (s "url-metadata") |> request |> into extract ]
+  [ get (s "url-metadata") |> request |> into handler ]

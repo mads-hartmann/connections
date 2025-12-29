@@ -52,7 +52,7 @@ let routes () =
   let open Tapak.Router in
   [
     get (s "persons")
-    |> guard Pagination.Pagination.pagination_guard
+    |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list;
     get (s "persons" / int) |> request |> into get_person;
     post (s "persons") |> request |> into create;
