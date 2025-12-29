@@ -38,23 +38,19 @@ export function ArticleDetail({ article, revalidateArticles }: ArticleDetailProp
   };
 
   const refreshMetadata = async () => {
+    const toast = await showToast({
+      style: Toast.Style.Animated,
+      title: "Fetching metadata...",
+    });
     try {
-      showToast({
-        style: Toast.Style.Animated,
-        title: "Fetching metadata...",
-      });
       await refreshArticleMetadata(article.id);
       revalidateArticles();
-      showToast({
-        style: Toast.Style.Success,
-        title: "Metadata refreshed",
-      });
+      toast.style = Toast.Style.Success;
+      toast.title = "Metadata refreshed";
     } catch (error) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to refresh metadata",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to refresh metadata";
+      toast.message = error instanceof Error ? error.message : "Unknown error";
     }
   };
 
