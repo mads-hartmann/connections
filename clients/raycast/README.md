@@ -19,14 +19,9 @@ To install a production build:
 
 ```bash
 npm install
-npm run build
+npm run publish-local
 ```
 
-Then:
+Then in Raycast, run the "Import Extension" command and select the `clients/raycast/dist` directory.
 
-1. Update `dist/package.json` with the following (this is needed until we publish to the store)
-    ```
-    "name": "connections-live",
-    "title": "Connections - Live",
-    ```
-2. In Raycast, run the "Import Extension" command and select the `clients/raycast/dist` directory.
+This builds the extension and renames it to "Connections - Live" so it can coexist with the dev version.
