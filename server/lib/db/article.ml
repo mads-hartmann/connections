@@ -1,22 +1,23 @@
-(* Article row type with tags JSON: 11 fields split as t2 of (t5, t6) *)
+(* Article row type with tags JSON: 12 fields split as t2 of (t6, t6) *)
 let article_row_type =
   Caqti_type.(
     t2
-      (t5 int int (option string) string (option string))
+      (t6 int int (option string) string (option string) (option string))
       (t6 (option string) (option string) (option string) string (option string)
          string))
 
-(* Upsert input type: 7 fields *)
+(* Upsert input type: 8 fields *)
 let upsert_input_type =
   Caqti_type.(
-    t7 int (option string) string (option string) (option string)
-      (option string) (option string))
+    t2
+      (t4 int (option string) string (option string))
+      (t4 (option string) (option string) (option string) (option string)))
 
 let upsert_query =
   Caqti_request.Infix.(upsert_input_type ->. Caqti_type.unit)
     {|
-      INSERT OR IGNORE INTO articles (feed_id, title, url, published_at, content, author, image_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT OR IGNORE INTO articles (feed_id, title, url, published_at, content_html, summary, author, image_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     |}
 
 (* Tags subquery - reused across all article queries *)
@@ -29,7 +30,7 @@ let tags_subquery =
 (* Base SELECT with tags JSON aggregation *)
 let select_with_tags =
   Printf.sprintf
-    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content_html, a.summary, a.author, a.image_url, a.created_at, a.read_at,
        COALESCE(%s, '[]') as tags
 FROM articles a|}
     tags_subquery
@@ -37,7 +38,7 @@ FROM articles a|}
 (* Base SELECT for tag-filtered queries (needs JOIN for filtering) *)
 let select_with_tags_filtered_by_tag =
   Printf.sprintf
-    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content_html, a.summary, a.author, a.image_url, a.created_at, a.read_at,
        COALESCE(%s, '[]') as tags
 FROM articles a
 INNER JOIN article_tags at_filter ON a.id = at_filter.article_id
@@ -152,15 +153,16 @@ let exists_query =
 
 (* Helper to convert DB tuple to Model.Article.t *)
 let tuple_to_article
-    ( (id, feed_id, title, url, published_at),
-      (content, author, image_url, created_at, read_at, tags_json) ) =
+    ( (id, feed_id, title, url, published_at, content_html),
+      (summary, author, image_url, created_at, read_at, tags_json) ) =
   {
     Model.Article.id;
     feed_id;
     title;
     url;
     published_at;
-    content;
+    content_html;
+    summary;
     author;
     image_url;
     created_at;
@@ -175,18 +177,19 @@ type create_input = {
   title : string option;
   url : string;
   published_at : string option;
-  content : string option;
+  content_html : string option;
+  summary : string option;
   author : string option;
   image_url : string option;
 }
 
 let upsert (input : create_input) =
   let pool = Pool.get () in
-  let { feed_id; title; url; published_at; content; author; image_url } =
+  let { feed_id; title; url; published_at; content_html; summary; author; image_url } =
     input
   in
   let params =
-    (feed_id, title, url, published_at, content, author, image_url)
+    ((feed_id, title, url, published_at), (content_html, summary, author, image_url))
   in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec upsert_query params)
@@ -205,14 +208,15 @@ let upsert_many inputs =
               title;
               url;
               published_at;
-              content;
+              content_html;
+              summary;
               author;
               image_url;
             } =
               input
             in
             let params =
-              (feed_id, title, url, published_at, content, author, image_url)
+              ((feed_id, title, url, published_at), (content_html, summary, author, image_url))
             in
             match Db.exec upsert_query params with
             | Error err -> Error err

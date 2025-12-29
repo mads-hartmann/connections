@@ -1,12 +1,6 @@
 import { Icon, List } from "@raycast/api";
 import { Article } from "../api/article";
 
-function truncateContent(content: string | null, maxLength: number = 1000): string {
-  if (!content) return "*No content available*";
-  if (content.length <= maxLength) return content;
-  return content.substring(0, maxLength) + "...";
-}
-
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "Unknown";
   const date = new Date(dateStr);
@@ -15,9 +9,10 @@ function formatDate(dateStr: string | null): string {
 
 export function ArticleDetailMetadata({ article }: { article: Article }) {
   const isRead = article.read_at !== null;
+  const summary = article.summary || "*No summary available*";
   return (
     <List.Item.Detail
-      markdown={truncateContent(article.content)}
+      markdown={summary}
       metadata={
         <List.Item.Detail.Metadata>
           <List.Item.Detail.Metadata.Label title="Title" text={article.title || "Untitled"} />

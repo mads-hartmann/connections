@@ -6,7 +6,8 @@ type t = {
   title : string option; [@yojson.option]
   url : string;
   published_at : string option; [@yojson.option]
-  content : string option; [@yojson.option]
+  content_html : string option; [@yojson.option]
+  summary : string option; [@yojson.option]
   author : string option; [@yojson.option]
   image_url : string option; [@yojson.option]
   created_at : string;

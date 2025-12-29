@@ -9,7 +9,8 @@ export interface Article {
   title: string | null;
   url: string;
   published_at: string | null;
-  content: string | null;
+  content_html: string | null;
+  summary: string | null;
   author: string | null;
   image_url: string | null;
   created_at: string;

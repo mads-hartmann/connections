@@ -5,13 +5,19 @@ let ptime_to_string (ptime : Ptime.t) : string =
   let (y, m, d), ((hh, mm, ss), _tz) = Ptime.to_date_time ptime in
   Printf.sprintf "%04d-%02d-%02d %02d:%02d:%02d" y m d hh mm ss
 
-(* Extract text from Syndic RSS2 story *)
-let rss2_story_to_title_and_content (story : Syndic.Rss2.story) :
-    string option * string option =
+(* Extract title from RSS2 story *)
+let rss2_story_to_title (story : Syndic.Rss2.story) : string option =
   match story with
-  | Syndic.Rss2.All (title, _, description) -> (Some title, Some description)
-  | Syndic.Rss2.Title title -> (Some title, None)
-  | Syndic.Rss2.Description (_, description) -> (None, Some description)
+  | Syndic.Rss2.All (title, _, _) -> Some title
+  | Syndic.Rss2.Title title -> Some title
+  | Syndic.Rss2.Description _ -> None
+
+(* Extract description from RSS2 story *)
+let rss2_story_to_description (story : Syndic.Rss2.story) : string option =
+  match story with
+  | Syndic.Rss2.All (_, _, description) -> Some description
+  | Syndic.Rss2.Title _ -> None
+  | Syndic.Rss2.Description (_, description) -> Some description
 
 (* Extract image URL from RSS2 enclosure if it's an image *)
 let rss2_enclosure_to_image (enclosure : Syndic.Rss2.enclosure option) :
@@ -41,10 +47,22 @@ type article_with_tags = {
   tags : string list;
 }
 
-(* Convert RSS2 item to our article format with tags *)
+(* Convert RSS2 item to our article format with tags.
+   RSS2 has:
+   - story: contains title and/or description (typically a synopsis, often HTML)
+   - content: from content:encoded extension, the full article (HTML)
+   
+   Strategy:
+   - content_html = content:encoded if present, else description
+   - summary = description (as text) if content:encoded exists, else generate from content_html *)
 let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
     article_with_tags option =
-  let title, content = rss2_story_to_title_and_content item.story in
+  let title = rss2_story_to_title item.story in
+  let description = rss2_story_to_description item.story in
+  let content_encoded =
+    let _, content_str = item.content in
+    if String.length content_str > 0 then Some content_str else None
+  in
   let url =
     match item.link with
     | Some link -> Some (Uri.to_string link)
@@ -56,13 +74,28 @@ let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
   match url with
   | None -> None (* Skip items without URL *)
   | Some url ->
+      let content_html =
+        match content_encoded with
+        | Some c -> Some c
+        | None -> description
+      in
+      let summary =
+        match content_encoded with
+        | Some _ ->
+            (* Have full content, use description as summary *)
+            Html_text.to_summary ~html:description ~text:None
+        | None ->
+            (* No full content, generate summary from description *)
+            Html_text.to_summary ~html:content_html ~text:None
+      in
       let article =
         {
           Db.Article.feed_id;
           title;
           url;
           published_at = Option.map ptime_to_string item.pubDate;
-          content;
+          content_html;
+          summary;
           author = item.author;
           image_url = rss2_enclosure_to_image item.enclosure;
         }
@@ -70,7 +103,26 @@ let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
       let tags = rss2_item_categories item in
       Some { article; tags }
 
-(* Convert Atom entry to our article format with tags *)
+(* Extract text from Atom text_construct *)
+let atom_text_construct_to_string (tc : Syndic.Atom.text_construct) :
+    string option =
+  match tc with
+  | Syndic.Atom.Text t -> Some t
+  | Syndic.Atom.Html (_, t) -> Some t
+  | Syndic.Atom.Xhtml _ -> None
+
+(* Check if Atom text_construct is plain text (not HTML) *)
+let atom_text_construct_is_plain (tc : Syndic.Atom.text_construct) : bool =
+  match tc with Syndic.Atom.Text _ -> true | _ -> false
+
+(* Convert Atom entry to our article format with tags.
+   Atom has:
+   - content: full entry content (Text, Html, Xhtml, Mime, or Src)
+   - summary: short abstract/excerpt
+   
+   Strategy:
+   - content_html = content if present, else summary
+   - summary = entry.summary (as text) if present, else generate from content_html *)
 let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
     article_with_tags option =
   (* Get URL from links - prefer alternate, fallback to first link *)
@@ -95,21 +147,40 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
         match entry.title with
         | Syndic.Atom.Text t -> Some t
         | Syndic.Atom.Html (_, t) -> Some t
-        | Syndic.Atom.Xhtml (_, _) -> None
+        | Syndic.Atom.Xhtml _ -> None
       in
-      let content =
+      (* Extract content from entry.content *)
+      let entry_content =
         match entry.content with
         | Some (Syndic.Atom.Text t) -> Some t
         | Some (Syndic.Atom.Html (_, t)) -> Some t
-        | Some (Syndic.Atom.Xhtml (_, _)) -> None
+        | Some (Syndic.Atom.Xhtml _) -> None
         | Some (Syndic.Atom.Mime _) -> None
         | Some (Syndic.Atom.Src _) -> None
-        | None -> (
-            match entry.summary with
-            | Some (Syndic.Atom.Text t) -> Some t
-            | Some (Syndic.Atom.Html (_, t)) -> Some t
-            | Some (Syndic.Atom.Xhtml (_, _)) -> None
-            | None -> None)
+        | None -> None
+      in
+      (* Extract summary from entry.summary *)
+      let entry_summary = Option.bind entry.summary atom_text_construct_to_string in
+      let entry_summary_is_plain =
+        Option.map atom_text_construct_is_plain entry.summary
+        |> Option.value ~default:false
+      in
+      (* content_html: prefer content, fallback to summary *)
+      let content_html =
+        match entry_content with Some c -> Some c | None -> entry_summary
+      in
+      (* summary: use entry.summary if available, else generate from content *)
+      let summary =
+        match entry_summary, entry_summary_is_plain with
+        | Some s, true ->
+            (* Plain text summary, just truncate *)
+            Html_text.to_summary ~html:None ~text:(Some s)
+        | Some s, false ->
+            (* HTML summary, convert to text *)
+            Html_text.to_summary ~html:(Some s) ~text:None
+        | None, _ ->
+            (* No summary, generate from content *)
+            Html_text.to_summary ~html:content_html ~text:None
       in
       let author =
         let first_author, _ = entry.authors in
@@ -135,7 +206,8 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
             (match entry.published with
             | Some p -> Some (ptime_to_string p)
             | None -> Some (ptime_to_string entry.updated));
-          content;
+          content_html;
+          summary;
           author;
           image_url;
         }
