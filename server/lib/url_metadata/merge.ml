@@ -34,6 +34,12 @@ let classify_profiles ~email ~social_profiles : Types.Classified_profile.t list 
           else if host_matches ~domain:"bsky.app" host
                   || host_matches ~domain:"bsky.social" host
           then Bluesky
+          else if host_matches ~domain:"youtube.com" host then YouTube
+          else if host_matches ~domain:"mastodon.social" host
+                  || host_matches ~domain:"mastodon.online" host
+                  || host_matches ~domain:"fosstodon.org" host
+                  || host_matches ~domain:"hachyderm.io" host
+          then Mastodon
           else Other
   in
   let from_email =
