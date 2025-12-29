@@ -2,10 +2,18 @@ open Connections_server
 
 module Log = (val Logs.src_log (Logs.Src.create "main") : Logs.LOG)
 
-let setup_logging () =
-  Fmt_tty.setup_std_outputs ();
+let setup_logging log_file =
+  let formatter =
+    match log_file with
+    | None ->
+        Fmt_tty.setup_std_outputs ();
+        Format.err_formatter
+    | Some path ->
+        let oc = open_out_gen [ Open_append; Open_creat ] 0o644 path in
+        Format.formatter_of_out_channel oc
+  in
   Logs.set_level (Some Logs.Info);
-  Logs.set_reporter (Logs_fmt.reporter ());
+  Logs.set_reporter (Logs_fmt.reporter ~dst:formatter ());
   (* Silence verbose Piaf/HTTP logging *)
   let noisy_prefixes = [ "piaf"; "httpun"; "h2"; "gluten"; "ssl" ] in
   List.iter
@@ -18,8 +26,8 @@ let setup_logging () =
       then Logs.Src.set_level src (Some Logs.Warning))
     (Logs.Src.list ())
 
-let run db_path port no_scheduler =
-  setup_logging ();
+let run db_path port no_scheduler log_file =
+  setup_logging log_file;
   Eio_main.run @@ fun env ->
   Eio.Switch.run @@ fun sw ->
   (* Initialize database *)
@@ -57,9 +65,13 @@ let no_scheduler =
   let doc = "Disable the background RSS feed scheduler." in
   Arg.(value & flag & info [ "no-scheduler" ] ~doc)
 
+let log_file =
+  let doc = "Path to log file. If not specified, logs to stderr." in
+  Arg.(value & opt (some string) None & info [ "log-file" ] ~docv:"PATH" ~doc)
+
 let run_cmd =
   let doc = "Connections server for managing people and their RSS feeds" in
   let info = Cmd.info "connections-server" ~doc in
-  Cmd.v info Term.(const run $ db_path $ port $ no_scheduler)
+  Cmd.v info Term.(const run $ db_path $ port $ no_scheduler $ log_file)
 
 let () = exit (Cmd.eval run_cmd)

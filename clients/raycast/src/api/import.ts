@@ -1,3 +1,5 @@
+import { getServerUrl } from "./config";
+
 export interface FeedInfo {
   url: string;
   title: string | null;
@@ -30,7 +32,7 @@ export interface ConfirmResponse {
 }
 
 export async function previewOpml(opmlContent: string): Promise<PreviewResponse> {
-  const response = await fetch("http://localhost:8080/import/opml/preview", {
+  const response = await fetch(`${getServerUrl()}/import/opml/preview`, {
     method: "POST",
     headers: { "Content-Type": "text/xml" },
     body: opmlContent,
@@ -43,7 +45,7 @@ export async function previewOpml(opmlContent: string): Promise<PreviewResponse>
 }
 
 export async function confirmImport(request: ConfirmRequest): Promise<ConfirmResponse> {
-  const response = await fetch("http://localhost:8080/import/opml/confirm", {
+  const response = await fetch(`${getServerUrl()}/import/opml/confirm`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),

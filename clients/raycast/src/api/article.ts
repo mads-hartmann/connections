@@ -1,3 +1,5 @@
+import { getServerUrl } from "./config";
+
 export interface Tag {
   id: number;
   name: string;
@@ -27,7 +29,7 @@ export interface ArticlesResponse {
 
 export function listUrl({ feedId, page }: { feedId: number; page: number }) {
   const params = new URLSearchParams({ page: String(page), per_page: "20" });
-  return `http://localhost:8080/feeds/${feedId}/articles?${params.toString()}`;
+  return `${getServerUrl()}/feeds/${feedId}/articles?${params.toString()}`;
 }
 
 export function listAllUrl({ page, unread, query }: { page: number; unread?: boolean; query?: string }) {
@@ -38,16 +40,16 @@ export function listAllUrl({ page, unread, query }: { page: number; unread?: boo
   if (query) {
     params.set("query", query);
   }
-  return `http://localhost:8080/articles?${params.toString()}`;
+  return `${getServerUrl()}/articles?${params.toString()}`;
 }
 
 export function listByTagUrl({ tag, page }: { tag: string; page: number }) {
   const params = new URLSearchParams({ page: String(page), per_page: "20", tag });
-  return `http://localhost:8080/articles?${params.toString()}`;
+  return `${getServerUrl()}/articles?${params.toString()}`;
 }
 
 export async function markArticleRead(id: number, read: boolean): Promise<Article> {
-  const response = await fetch(`http://localhost:8080/articles/${id}/read`, {
+  const response = await fetch(`${getServerUrl()}/articles/${id}/read`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ read }),
@@ -64,7 +66,7 @@ export interface MarkAllReadResponse {
 }
 
 export async function markAllArticlesRead(feedId: number): Promise<MarkAllReadResponse> {
-  const response = await fetch(`http://localhost:8080/feeds/${feedId}/articles/mark-all-read`, {
+  const response = await fetch(`${getServerUrl()}/feeds/${feedId}/articles/mark-all-read`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
   });

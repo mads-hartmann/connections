@@ -1,4 +1,5 @@
 import { Alert, confirmAlert } from "@raycast/api";
+import { getServerUrl } from "./config";
 
 export interface Feed {
   id: number;
@@ -19,7 +20,7 @@ export interface FeedsResponse {
 
 export function listUrl({ personId, page }: { personId: number; page: number }) {
   const params = new URLSearchParams({ page: String(page), per_page: "20" });
-  return `http://localhost:8080/persons/${personId}/feeds?${params.toString()}`;
+  return `${getServerUrl()}/persons/${personId}/feeds?${params.toString()}`;
 }
 
 export function listAllUrl({ page, query }: { page: number; query?: string }) {
@@ -27,11 +28,11 @@ export function listAllUrl({ page, query }: { page: number; query?: string }) {
   if (query) {
     params.set("query", query);
   }
-  return `http://localhost:8080/feeds?${params.toString()}`;
+  return `${getServerUrl()}/feeds?${params.toString()}`;
 }
 
 export async function createFeed(personId: number, url: string, title: string) {
-  const response = await fetch(`http://localhost:8080/persons/${personId}/feeds`, {
+  const response = await fetch(`${getServerUrl()}/persons/${personId}/feeds`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ person_id: personId, url, title }),
@@ -44,7 +45,7 @@ export async function createFeed(personId: number, url: string, title: string) {
 }
 
 export async function updateFeed(id: number, url: string, title: string) {
-  const response = await fetch(`http://localhost:8080/feeds/${id}`, {
+  const response = await fetch(`${getServerUrl()}/feeds/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url, title }),
@@ -67,7 +68,7 @@ export async function deleteFeed(feed: Feed) {
       },
     })
   ) {
-    await fetch(`http://localhost:8080/feeds/${feed.id}`, {
+    await fetch(`${getServerUrl()}/feeds/${feed.id}`, {
       method: "DELETE",
     });
     return true;
@@ -76,7 +77,7 @@ export async function deleteFeed(feed: Feed) {
 }
 
 export async function refreshFeed(id: number) {
-  const response = await fetch(`http://localhost:8080/feeds/${id}/refresh`, {
+  const response = await fetch(`${getServerUrl()}/feeds/${id}/refresh`, {
     method: "POST",
   });
   if (!response.ok) {

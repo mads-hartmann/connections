@@ -13,6 +13,16 @@
     "Other"
   ],
   "license": "MIT",
+  "preferences": [
+    {
+      "name": "serverUrl",
+      "title": "Server URL",
+      "description": "URL of the Connections server",
+      "type": "textfield",
+      "required": true,
+      "default": "http://localhost:8080"
+    }
+  ],
   "commands": [
     {
       "name": "connections",

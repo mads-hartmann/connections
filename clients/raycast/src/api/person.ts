@@ -1,5 +1,6 @@
 import { Alert, confirmAlert } from "@raycast/api";
 import { Tag } from "./tag";
+import { getServerUrl } from "./config";
 
 export interface MetadataFieldType {
   id: number;
@@ -52,11 +53,11 @@ export function listUrl({ page, query }: { page: number; query?: string }) {
   if (query) {
     params.append("query", query);
   }
-  return `http://localhost:8080/persons?${params.toString()}`;
+  return `${getServerUrl()}/persons?${params.toString()}`;
 }
 
 export async function getPerson(id: number): Promise<PersonDetail> {
-  const response = await fetch(`http://localhost:8080/persons/${id}`);
+  const response = await fetch(`${getServerUrl()}/persons/${id}`);
   if (!response.ok) {
     throw new Error("Failed to fetch person");
   }
@@ -64,7 +65,7 @@ export async function getPerson(id: number): Promise<PersonDetail> {
 }
 
 export async function updatePerson(id: number, name: string): Promise<PersonDetail> {
-  const response = await fetch(`http://localhost:8080/persons/${id}`, {
+  const response = await fetch(`${getServerUrl()}/persons/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
@@ -87,14 +88,14 @@ export async function deletePerson(person: Person) {
       },
     })
   ) {
-    await fetch(`http://localhost:8080/persons/${person.id}`, {
+    await fetch(`${getServerUrl()}/persons/${person.id}`, {
       method: "DELETE",
     });
   }
 }
 
 export async function createMetadata(personId: number, fieldTypeId: number, value: string): Promise<PersonMetadata> {
-  const response = await fetch(`http://localhost:8080/persons/${personId}/metadata`, {
+  const response = await fetch(`${getServerUrl()}/persons/${personId}/metadata`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ field_type_id: fieldTypeId, value }),
@@ -107,7 +108,7 @@ export async function createMetadata(personId: number, fieldTypeId: number, valu
 }
 
 export async function updateMetadata(personId: number, metadataId: number, value: string): Promise<PersonMetadata> {
-  const response = await fetch(`http://localhost:8080/persons/${personId}/metadata/${metadataId}`, {
+  const response = await fetch(`${getServerUrl()}/persons/${personId}/metadata/${metadataId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ value }),
@@ -120,7 +121,7 @@ export async function updateMetadata(personId: number, metadataId: number, value
 }
 
 export async function deleteMetadata(personId: number, metadataId: number): Promise<void> {
-  const response = await fetch(`http://localhost:8080/persons/${personId}/metadata/${metadataId}`, {
+  const response = await fetch(`${getServerUrl()}/persons/${personId}/metadata/${metadataId}`, {
     method: "DELETE",
   });
   if (!response.ok) {
