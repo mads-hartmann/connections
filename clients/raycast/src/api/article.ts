@@ -84,7 +84,7 @@ export async function markAllArticlesRead(feedId: number): Promise<MarkAllReadRe
 }
 
 export async function refreshArticleMetadata(id: number): Promise<Article> {
-  const response = await fetch(`http://localhost:8080/articles/${id}/refresh-metadata`, {
+  const response = await fetch(`${getServerUrl()}/articles/${id}/refresh-metadata`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
   });
