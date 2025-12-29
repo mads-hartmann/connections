@@ -1,11 +1,11 @@
 open Tapak
 
-type Request_guard.error += Invalid_pagination
+type Tapak.Router.extractor_error += Invalid_pagination
 
 module Pagination = struct
   type t = { page : int; per_page : int }
 
-  let pagination_guard : t Request_guard.t =
+  let pagination_extractor : t Tapak.Router.extractor =
    fun req ->
     let uri = Request.uri req in
     match

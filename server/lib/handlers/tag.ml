@@ -95,7 +95,7 @@ let routes () =
   let open Tapak.Router in
   [
     get (s "tags")
-    |> guard Pagination.Pagination.pagination_guard
+    |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list;
     get (s "tags" / int) |> request |> into get_tag;
     post (s "tags") |> request |> into create;
