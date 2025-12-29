@@ -44,7 +44,7 @@
     "typescript": "^5.8.2"
   },
   "scripts": {
-    "build": "ray build",
+    "build": "ray build -o dist",
     "dev": "ray develop",
     "fix-lint": "ray lint --fix",
     "lint": "ray lint",

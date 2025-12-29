@@ -12,6 +12,8 @@
         <string>__HOME__/Library/Application Support/Connections/connections.db</string>
         <string>--log-file</string>
         <string>__HOME__/Library/Logs/Connections/server.log</string>
+        <string>--port</string>
+        <string>8765</string>
     </array>
 
     <key>RunAtLoad</key>

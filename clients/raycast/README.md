@@ -22,13 +22,11 @@ npm install
 npm run build
 ```
 
-Then in Raycast, run the "Import Extension" command and select the `clients/raycast` directory.
+Then:
 
-## Configuration
-
-The extension has a configurable server URL preference (default: `http://localhost:8080`).
-
-To change it:
-1. Open Raycast Preferences (`Cmd+,`)
-2. Go to Extensions > Connections
-3. Update the "Server URL" field
+1. Update `dist/package.json` with the following (this is needed until we publish to the store)
+    ```
+    "name": "connections-live",
+    "title": "Connections - Live",
+    ```
+2. In Raycast, run the "Import Extension" command and select the `clients/raycast/dist` directory.
