@@ -1,5 +1,6 @@
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
 import { useState } from "react";
+import { getServerUrl } from "../api/config";
 import * as Metadata from "../api/metadata";
 
 interface CreatePersonFormProps {
@@ -80,7 +81,7 @@ async function createPerson(
   feeds?: Array<{ url: string; title: string | null }>,
   profiles?: Array<Metadata.ClassifiedProfile>
 ) {
-  const response = await fetch("http://localhost:8080/persons", {
+  const response = await fetch(`${getServerUrl()}/persons`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
@@ -94,7 +95,7 @@ async function createPerson(
   // Create feeds if provided
   if (feeds && feeds.length > 0) {
     for (const feed of feeds) {
-      await fetch(`http://localhost:8080/persons/${person.id}/feeds`, {
+      await fetch(`${getServerUrl()}/persons/${person.id}/feeds`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,7 +110,7 @@ async function createPerson(
   // Create metadata entries for profiles if provided
   if (profiles && profiles.length > 0) {
     for (const profile of profiles) {
-      await fetch(`http://localhost:8080/persons/${person.id}/metadata`, {
+      await fetch(`${getServerUrl()}/persons/${person.id}/metadata`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
