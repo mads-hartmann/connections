@@ -1,4 +1,5 @@
 import { Alert, confirmAlert } from "@raycast/api";
+import { getServerUrl } from "./config";
 
 export interface Tag {
   id: number;
@@ -13,14 +14,12 @@ export interface TagsResponse {
   total_pages: number;
 }
 
-const BASE_URL = "http://localhost:8080";
-
 export function listUrl({ page, query }: { page: number; query?: string }) {
   const params = new URLSearchParams({ page: String(page), per_page: "20" });
   if (query) {
     params.set("query", query);
   }
-  return `${BASE_URL}/tags?${params.toString()}`;
+  return `${getServerUrl()}/tags?${params.toString()}`;
 }
 
 export async function listAll(): Promise<Tag[]> {
@@ -29,7 +28,7 @@ export async function listAll(): Promise<Tag[]> {
   let hasMore = true;
 
   while (hasMore) {
-    const response = await fetch(`${BASE_URL}/tags?page=${page}&per_page=100`);
+    const response = await fetch(`${getServerUrl()}/tags?page=${page}&per_page=100`);
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || "Failed to fetch tags");
@@ -44,15 +43,15 @@ export async function listAll(): Promise<Tag[]> {
 }
 
 export function listByPersonUrl(personId: number) {
-  return `${BASE_URL}/persons/${personId}/tags`;
+  return `${getServerUrl()}/persons/${personId}/tags`;
 }
 
 export function listByFeedUrl(feedId: number) {
-  return `${BASE_URL}/feeds/${feedId}/tags`;
+  return `${getServerUrl()}/feeds/${feedId}/tags`;
 }
 
 export async function getTag(id: number): Promise<Tag> {
-  const response = await fetch(`${BASE_URL}/tags/${id}`);
+  const response = await fetch(`${getServerUrl()}/tags/${id}`);
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to fetch tag");
@@ -61,7 +60,7 @@ export async function getTag(id: number): Promise<Tag> {
 }
 
 export async function createTag(name: string): Promise<Tag> {
-  const response = await fetch(`${BASE_URL}/tags`, {
+  const response = await fetch(`${getServerUrl()}/tags`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
@@ -74,7 +73,7 @@ export async function createTag(name: string): Promise<Tag> {
 }
 
 export async function updateTag(id: number, name: string): Promise<Tag> {
-  const response = await fetch(`${BASE_URL}/tags/${id}`, {
+  const response = await fetch(`${getServerUrl()}/tags/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
@@ -97,7 +96,7 @@ export async function deleteTag(tag: Tag): Promise<boolean> {
       },
     })
   ) {
-    const response = await fetch(`${BASE_URL}/tags/${tag.id}`, {
+    const response = await fetch(`${getServerUrl()}/tags/${tag.id}`, {
       method: "DELETE",
     });
     if (!response.ok) {
@@ -112,7 +111,7 @@ export async function deleteTag(tag: Tag): Promise<boolean> {
 // Person-Tag associations
 
 export async function listByPerson(personId: number): Promise<Tag[]> {
-  const response = await fetch(`${BASE_URL}/persons/${personId}/tags`);
+  const response = await fetch(`${getServerUrl()}/persons/${personId}/tags`);
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to fetch person tags");
@@ -121,7 +120,7 @@ export async function listByPerson(personId: number): Promise<Tag[]> {
 }
 
 export async function addToPerson(personId: number, tagId: number): Promise<void> {
-  const response = await fetch(`${BASE_URL}/persons/${personId}/tags/${tagId}`, {
+  const response = await fetch(`${getServerUrl()}/persons/${personId}/tags/${tagId}`, {
     method: "POST",
   });
   if (!response.ok) {
@@ -131,7 +130,7 @@ export async function addToPerson(personId: number, tagId: number): Promise<void
 }
 
 export async function removeFromPerson(personId: number, tagId: number): Promise<void> {
-  const response = await fetch(`${BASE_URL}/persons/${personId}/tags/${tagId}`, {
+  const response = await fetch(`${getServerUrl()}/persons/${personId}/tags/${tagId}`, {
     method: "DELETE",
   });
   if (!response.ok) {
@@ -143,7 +142,7 @@ export async function removeFromPerson(personId: number, tagId: number): Promise
 // Feed-Tag associations
 
 export async function listByFeed(feedId: number): Promise<Tag[]> {
-  const response = await fetch(`${BASE_URL}/feeds/${feedId}/tags`);
+  const response = await fetch(`${getServerUrl()}/feeds/${feedId}/tags`);
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to fetch feed tags");
@@ -152,7 +151,7 @@ export async function listByFeed(feedId: number): Promise<Tag[]> {
 }
 
 export async function addToFeed(feedId: number, tagId: number): Promise<void> {
-  const response = await fetch(`${BASE_URL}/feeds/${feedId}/tags/${tagId}`, {
+  const response = await fetch(`${getServerUrl()}/feeds/${feedId}/tags/${tagId}`, {
     method: "POST",
   });
   if (!response.ok) {
@@ -162,7 +161,7 @@ export async function addToFeed(feedId: number, tagId: number): Promise<void> {
 }
 
 export async function removeFromFeed(feedId: number, tagId: number): Promise<void> {
-  const response = await fetch(`${BASE_URL}/feeds/${feedId}/tags/${tagId}`, {
+  const response = await fetch(`${getServerUrl()}/feeds/${feedId}/tags/${tagId}`, {
     method: "DELETE",
   });
   if (!response.ok) {
@@ -174,7 +173,7 @@ export async function removeFromFeed(feedId: number, tagId: number): Promise<voi
 // Article-Tag associations
 
 export async function addToArticle(articleId: number, tagId: number): Promise<void> {
-  const response = await fetch(`${BASE_URL}/articles/${articleId}/tags/${tagId}`, {
+  const response = await fetch(`${getServerUrl()}/articles/${articleId}/tags/${tagId}`, {
     method: "POST",
   });
   if (!response.ok) {
@@ -184,7 +183,7 @@ export async function addToArticle(articleId: number, tagId: number): Promise<vo
 }
 
 export async function removeFromArticle(articleId: number, tagId: number): Promise<void> {
-  const response = await fetch(`${BASE_URL}/articles/${articleId}/tags/${tagId}`, {
+  const response = await fetch(`${getServerUrl()}/articles/${articleId}/tags/${tagId}`, {
     method: "DELETE",
   });
   if (!response.ok) {

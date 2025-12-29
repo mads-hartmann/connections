@@ -27,6 +27,11 @@ It's written in OCaml (>= 5.4.0) and takes advantage of the new effects system w
 | `-p`, `--port` | `PORT` | `8080` | Port to listen on |
 | `--db` | `DB_PATH` | `connections.db` | Path to SQLite database file |
 | `--no-scheduler` | - | `false` | Disable background RSS feed scheduler |
+| `--log-file` | - | stderr | Path to log file (if not set, logs to stderr) |
+
+## Installation
+
+See [macOS Daemon Installation](../docs/macos-daemon-installation.md)
 
 ## Development
 

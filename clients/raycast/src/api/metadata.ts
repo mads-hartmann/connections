@@ -1,3 +1,5 @@
+import { getServerUrl } from "./config";
+
 export interface Feed {
   url: string;
   title: string | null;
@@ -135,7 +137,7 @@ export interface MetadataResponse {
 
 export async function fetchMetadata(url: string): Promise<MetadataResponse> {
   const params = new URLSearchParams({ url });
-  const response = await fetch(`http://localhost:8080/url-metadata?${params.toString()}`);
+  const response = await fetch(`${getServerUrl()}/url-metadata?${params.toString()}`);
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to fetch metadata");
