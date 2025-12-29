@@ -165,7 +165,7 @@ function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewF
       // Collect selected metadata profiles from checkbox values
       const profilesToCreate = classifiedProfiles.filter((p) => values[`profile_${p.url}`] === true);
 
-      const person = await createPerson(name.trim(), feedsToCreate, profilesToCreate);
+      await createPerson(name.trim(), feedsToCreate, profilesToCreate);
 
       const parts: string[] = [];
       if (feedsToCreate.length > 0) parts.push(`${feedsToCreate.length} feed(s)`);
