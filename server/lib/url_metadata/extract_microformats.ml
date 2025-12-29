@@ -137,6 +137,93 @@ let extract_rel_me ~base_url soup =
   |> List.filter_map (fun node ->
       Option.map (Util.resolve_url ~base_url) (Soup.attribute "href" node))
 
+(* Known social platform domains for fallback detection *)
+let social_domains =
+  [
+    "twitter.com";
+    "x.com";
+    "github.com";
+    "linkedin.com";
+    "bsky.app";
+    "bsky.social";
+    "mastodon.social";
+    "youtube.com";
+    "instagram.com";
+    "facebook.com";
+    "threads.net";
+  ]
+
+(* Check if a URL is a social profile link (not a specific post/status) *)
+let is_social_profile_url url =
+  let uri = Uri.of_string url in
+  let host = Option.map String.lowercase_ascii (Uri.host uri) in
+  let path = Uri.path uri in
+  let query = Uri.query uri in
+  let is_social_domain h =
+    List.exists
+      (fun domain ->
+        String.equal h domain || String.ends_with ~suffix:("." ^ domain) h)
+      social_domains
+  in
+  match host with
+  | None -> false
+  | Some h when not (is_social_domain h) -> false
+  | Some h ->
+      let segments =
+        String.split_on_char '/' path
+        |> List.filter (fun s -> String.length s > 0)
+      in
+      (* Filter out specific posts/statuses - we want profile links only *)
+      let is_status_url =
+        List.exists
+          (fun segment ->
+            String.equal segment "status"
+            || String.equal segment "statuses"
+            || String.equal segment "posts"
+            || String.equal segment "p"
+            || String.equal segment "watch")
+          segments
+      in
+      (* For GitHub, profile is just /username - filter out repos and query pages *)
+      let is_github_non_profile =
+        (String.equal h "github.com" || String.ends_with ~suffix:".github.com" h)
+        && (List.length segments > 1 || List.length query > 0)
+      in
+      (* For YouTube, profile is /@username or /c/channel or /channel/id *)
+      let is_youtube_profile =
+        (String.equal h "youtube.com" || String.ends_with ~suffix:".youtube.com" h)
+        && (match segments with
+            | [ username ] when String.starts_with ~prefix:"@" username -> true
+            | [ "c"; _ ] -> true
+            | [ "channel"; _ ] -> true
+            | [ "user"; _ ] -> true
+            | _ -> false)
+      in
+      let is_youtube = String.equal h "youtube.com" || String.ends_with ~suffix:".youtube.com" h in
+      (not is_status_url)
+      && not is_github_non_profile
+      && (not is_youtube || is_youtube_profile)
+
+(* Extract social links by URL pattern as fallback when rel="me" is missing *)
+let extract_social_links_by_pattern ~base_url soup =
+  let seen = Hashtbl.create 16 in
+  Soup.select "a[href]" soup
+  |> Soup.to_list
+  |> List.filter_map (fun node ->
+      Option.bind (Soup.attribute "href" node) (fun href ->
+          let url = Util.resolve_url ~base_url href in
+          if is_social_profile_url url && not (Hashtbl.mem seen url) then begin
+            Hashtbl.add seen url ();
+            Some url
+          end
+          else None))
+
+(* Extract mailto links *)
+let extract_mailto_links soup =
+  Soup.select "a[href^='mailto:']" soup
+  |> Soup.to_list
+  |> List.filter_map (fun node -> Soup.attribute "href" node)
+
 let extract ~base_url soup : t =
   let cards =
     Soup.select ".h-card" soup |> Soup.to_list
@@ -148,4 +235,13 @@ let extract ~base_url soup : t =
     |> List.map (parse_h_entry ~base_url)
   in
   let rel_me = extract_rel_me ~base_url soup in
-  { cards; entries; rel_me }
+  (* Use rel="me" links if available, otherwise fall back to URL pattern detection *)
+  let social_links =
+    match rel_me with
+    | [] ->
+        let by_pattern = extract_social_links_by_pattern ~base_url soup in
+        let mailto = extract_mailto_links soup in
+        by_pattern @ mailto
+    | _ -> rel_me
+  in
+  { cards; entries; rel_me = social_links }
