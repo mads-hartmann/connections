@@ -15,6 +15,12 @@ export interface Article {
   created_at: string;
   read_at: string | null;
   tags: Tag[];
+  og_title: string | null;
+  og_description: string | null;
+  og_image: string | null;
+  og_site_name: string | null;
+  og_fetched_at: string | null;
+  og_fetch_error: string | null;
 }
 
 export interface ArticlesResponse {
@@ -71,6 +77,18 @@ export async function markAllArticlesRead(feedId: number): Promise<MarkAllReadRe
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to mark all articles as read");
+  }
+  return response.json();
+}
+
+export async function refreshArticleMetadata(id: number): Promise<Article> {
+  const response = await fetch(`http://localhost:8080/articles/${id}/refresh-metadata`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to refresh article metadata");
   }
   return response.json();
 }

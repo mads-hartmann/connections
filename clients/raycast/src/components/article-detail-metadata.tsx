@@ -7,6 +7,13 @@ function truncateContent(content: string | null, maxLength: number = 1000): stri
   return content.substring(0, maxLength) + "...";
 }
 
+function buildMarkdown(article: Article): string {
+  const imageUrl = article.og_image || article.image_url;
+  const imageLine = imageUrl ? `![](${imageUrl})\n\n` : "";
+  const content = article.og_description || article.content;
+  return imageLine + truncateContent(content);
+}
+
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "Unknown";
   const date = new Date(dateStr);
@@ -17,7 +24,7 @@ export function ArticleDetailMetadata({ article }: { article: Article }) {
   const isRead = article.read_at !== null;
   return (
     <List.Item.Detail
-      markdown={truncateContent(article.content)}
+      markdown={buildMarkdown(article)}
       metadata={
         <List.Item.Detail.Metadata>
           <List.Item.Detail.Metadata.Label title="Title" text={article.title || "Untitled"} />
