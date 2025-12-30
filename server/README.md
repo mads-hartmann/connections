@@ -53,6 +53,56 @@ opam install . --deps-only
 - Tests: `dune test`
 - Updating snapshots `dune exec server/bin/update_snapshots.exe`
 
+## Module Conventions
+
+This project follows a consistent module structure for all types. Each module that defines a primary type should:
+
+1. **Use `.mli` interface files** to define the public API and enforce abstraction
+2. **Define an abstract type `t`** as the module's primary type
+3. **Provide accessor functions** instead of exposing record fields directly
+4. **Include `pp` and `equal` functions** for debugging and testing
+
+### Example
+
+For a module `person.ml` defining a person type:
+
+**`person.mli`** (interface):
+```ocaml
+type t
+
+val create : name:string -> email:string -> t
+val name : t -> string
+val email : t -> string
+val pp : Format.formatter -> t -> unit
+val equal : t -> t -> bool
+```
+
+**`person.ml`** (implementation):
+```ocaml
+type t = { name : string; email : string }
+
+let create ~name ~email = { name; email }
+let name t = t.name
+let email t = t.email
+let pp fmt t = Format.fprintf fmt "%s <%s>" t.name t.email
+let equal a b = String.equal a.name b.name && String.equal a.email b.email
+```
+
+### Benefits
+
+- **Encapsulation**: Internal representation can change without breaking callers
+- **Documentation**: The `.mli` file serves as documentation for the public API
+- **Type safety**: Prevents accidental direct field access or construction
+- **Testability**: `pp` and `equal` enable better test output and assertions
+
+### Directory Structure
+
+The project uses `(include_subdirs qualified)` in dune, so files in subdirectories become qualified modules:
+
+- `model/person.ml` → `Model.Person`
+- `db/article.ml` → `Db.Article`
+- `url_metadata/types.ml` → `Url_metadata.Types`
+
 ## Tests
 
 Run all tests with `dune test`. The test suite includes:

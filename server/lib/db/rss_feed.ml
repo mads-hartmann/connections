@@ -74,15 +74,8 @@ let update_last_fetched_query =
 (* Helper to convert DB tuple to Model.Rss_feed.t *)
 let tuple_to_feed
     (id, person_id, url, title, created_at, last_fetched_at, tags_json) =
-  {
-    Model.Rss_feed.id;
-    person_id;
-    url;
-    title;
-    created_at;
-    last_fetched_at;
-    tags = Tag_json.parse tags_json;
-  }
+  Model.Rss_feed.create ~id ~person_id ~url ~title ~created_at ~last_fetched_at
+    ~tags:(Tag_json.parse tags_json)
 
 (* CREATE *)
 let create ~person_id ~url ~title =
@@ -143,9 +136,13 @@ let update ~id ~url ~title =
       match current_feed_opt with
       | None -> Ok None
       | Some current_feed ->
-          let new_url = Option.value url ~default:current_feed.url in
+          let new_url =
+            Option.value url ~default:(Model.Rss_feed.url current_feed)
+          in
           let new_title =
-            match title with Some _ -> title | None -> current_feed.title
+            match title with
+            | Some _ -> title
+            | None -> Model.Rss_feed.title current_feed
           in
           let* () =
             Caqti_eio.Pool.use

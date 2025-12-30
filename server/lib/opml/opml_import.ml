@@ -157,9 +157,10 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
         match result with
         | Error err -> Error (caqti_err err)
         | Ok tag ->
-            Hashtbl.add tag_cache name tag.id;
+            let tag_id = Model.Tag.id tag in
+            Hashtbl.add tag_cache name tag_id;
             incr created_tags;
-            Ok tag.id)
+            Ok tag_id)
   in
   (* Process each person *)
   let rec process_people = function
@@ -170,13 +171,14 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
         match person_result with
         | Error err -> Error (caqti_err err)
         | Ok created_person -> (
+            let created_person_id = Model.Person.id created_person in
             incr created_people;
             (* Create feeds for this person *)
             let rec create_feeds = function
               | [] -> Ok ()
               | (feed : feed_info) :: rest -> (
                   let feed_result =
-                    Db.Rss_feed.create ~person_id:created_person.id
+                    Db.Rss_feed.create ~person_id:created_person_id
                       ~url:feed.url ~title:feed.title
                   in
                   match feed_result with
@@ -196,7 +198,7 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
                       | Error msg -> Error msg
                       | Ok tag_id -> (
                           match
-                            Db.Tag.add_to_person ~person_id:created_person.id
+                            Db.Tag.add_to_person ~person_id:created_person_id
                               ~tag_id
                           with
                           | Error err -> Error (caqti_err err)

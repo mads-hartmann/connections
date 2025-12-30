@@ -69,13 +69,15 @@ let extract_og_metadata html : Db.Article.og_metadata_input =
 (* Fetch OG metadata for a single article *)
 let fetch_for_article ~sw ~env (article : Model.Article.t) :
     (Model.Article.t option, Caqti_error.t) result =
-  Log.info (fun m -> m "Fetching OG metadata for article %d: %s" article.id article.url);
+  let article_id = Model.Article.id article in
+  let article_url = Model.Article.url article in
+  Log.info (fun m -> m "Fetching OG metadata for article %d: %s" article_id article_url);
   let og_input =
-    match fetch_html ~sw ~env article.url with
+    match fetch_html ~sw ~env article_url with
     | Ok html -> extract_og_metadata html
     | Error err ->
         Log.warn (fun m ->
-            m "Failed to fetch OG for article %d: %s" article.id err);
+            m "Failed to fetch OG for article %d: %s" article_id err);
         {
           Db.Article.og_title = None;
           og_description = None;
@@ -84,7 +86,7 @@ let fetch_for_article ~sw ~env (article : Model.Article.t) :
           og_fetch_error = Some err;
         }
   in
-  Db.Article.update_og_metadata ~id:article.id og_input
+  Db.Article.update_og_metadata ~id:article_id og_input
 
 (* Process a batch of articles needing OG fetch *)
 let process_batch ~sw ~env () : int =
@@ -103,7 +105,8 @@ let process_batch ~sw ~env () : int =
           | Ok _ -> ()
           | Error err ->
               Log.err (fun m ->
-                  m "Failed to update OG metadata for article %d: %a" article.id
+                  m "Failed to update OG metadata for article %d: %a"
+                    (Model.Article.id article)
                     Caqti_error.pp err))
         articles;
       count

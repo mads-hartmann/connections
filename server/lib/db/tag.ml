@@ -58,14 +58,14 @@ let get_by_person_query =
     "SELECT t.id, t.name FROM tags t INNER JOIN person_tags pt ON t.id = \
      pt.tag_id WHERE pt.person_id = ? ORDER BY t.name"
 
-let tuple_to_tag (id, name) = { Model.Tag.id; name }
+let tuple_to_tag (id, name) = Model.Tag.create ~id ~name
 
 let create ~name =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
     pool
-  |> Result.map (fun id -> { Model.Tag.id; name })
+  |> Result.map (fun id -> Model.Tag.create ~id ~name)
 
 let get ~id =
   let pool = Pool.get () in
@@ -166,7 +166,7 @@ let update ~id ~name =
             Db.exec update_query (name, id))
           pool
       in
-      Some { Model.Tag.id; name }
+      Some (Model.Tag.create ~id ~name)
 
 let add_to_person ~person_id ~tag_id =
   let pool = Pool.get () in

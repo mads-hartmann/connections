@@ -8,7 +8,7 @@ let parse_tag_object = function
       let id = Option.bind (List.assoc_opt "id" fields) int_of_json in
       let name = Option.bind (List.assoc_opt "name" fields) string_of_json in
       (match (id, name) with
-      | Some id, Some name -> Some { Model.Tag.id; name }
+      | Some id, Some name -> Some (Model.Tag.create ~id ~name)
       | _ -> None)
   | _ -> None
 

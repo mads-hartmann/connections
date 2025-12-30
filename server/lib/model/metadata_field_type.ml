@@ -54,3 +54,18 @@ let to_json_with_id t = yojson_of_with_id { id = id t; name = name t }
 
 let all_to_json () =
   `List (List.map (fun t -> to_json_with_id t) all)
+
+let pp fmt t = Format.fprintf fmt "%s" (name t)
+
+let equal a b =
+  match (a, b) with
+  | Bluesky, Bluesky -> true
+  | Email, Email -> true
+  | GitHub, GitHub -> true
+  | LinkedIn, LinkedIn -> true
+  | Mastodon, Mastodon -> true
+  | Website, Website -> true
+  | X, X -> true
+  | YouTube, YouTube -> true
+  | Other, Other -> true
+  | _ -> false

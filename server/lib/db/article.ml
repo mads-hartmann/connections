@@ -185,25 +185,9 @@ let tuple_to_article
       ( (content, author, image_url, created_at, read_at, tags_json),
         (og_title, og_description, og_image, og_site_name, og_fetched_at,
          og_fetch_error) ) ) =
-  {
-    Model.Article.id;
-    feed_id;
-    title;
-    url;
-    published_at;
-    content;
-    author;
-    image_url;
-    created_at;
-    read_at;
-    tags = Tag_json.parse tags_json;
-    og_title;
-    og_description;
-    og_image;
-    og_site_name;
-    og_fetched_at;
-    og_fetch_error;
-  }
+  Model.Article.create ~id ~feed_id ~title ~url ~published_at ~content ~author
+    ~image_url ~created_at ~read_at ~tags:(Tag_json.parse tags_json) ~og_title
+    ~og_description ~og_image ~og_site_name ~og_fetched_at ~og_fetch_error
 
 (* UPSERT - returns true if inserted, false if duplicate *)
 

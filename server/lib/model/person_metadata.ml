@@ -1,5 +1,11 @@
 type t = { id : int; person_id : int; field_type : Metadata_field_type.t; value : string }
 
+let id t = t.id
+let person_id t = t.person_id
+let field_type t = t.field_type
+let value t = t.value
+let create ~id ~person_id ~field_type ~value = { id; person_id; field_type; value }
+
 let to_json t =
   `Assoc
     [
@@ -14,3 +20,13 @@ let compare_by_field_type_name a b =
     (Metadata_field_type.name b.field_type)
 
 let sort_by_field_type_name items = List.sort compare_by_field_type_name items
+
+let pp fmt t =
+  Format.fprintf fmt "{ id = %d; person_id = %d; field_type = %a; value = %S }"
+    t.id t.person_id Metadata_field_type.pp t.field_type t.value
+
+let equal a b =
+  Int.equal a.id b.id
+  && Int.equal a.person_id b.person_id
+  && Metadata_field_type.equal a.field_type b.field_type
+  && String.equal a.value b.value

@@ -21,7 +21,7 @@ let setup_person_and_feed () =
   | Error err -> Alcotest.fail ("create person failed: " ^ caqti_err err)
   | Ok person -> (
       let feed_result =
-        Db.Rss_feed.create ~person_id:person.id
+        Db.Rss_feed.create ~person_id:(Model.Person.id person)
           ~url:"https://example.com/feed.xml" ~title:(Some "Test Feed")
       in
       match feed_result with
