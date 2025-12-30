@@ -140,12 +140,6 @@ let tuple_to_person_with_counts (id, name, tags_json, feed_count, article_count)
   Model.Person.create_with_counts ~id ~name ~tags:(Tag_json.parse tags_json)
     ~feed_count ~article_count ~metadata:[]
 
-let attach_metadata metadata_tbl (person : Model.Person.t) =
-  let metadata =
-    Option.value ~default:[] (Hashtbl.find_opt metadata_tbl (Model.Person.id person))
-  in
-  Model.Person.with_metadata person metadata
-
 let attach_metadata_with_counts metadata_tbl (person : Model.Person.t_with_counts) =
   let metadata =
     Option.value ~default:[]
