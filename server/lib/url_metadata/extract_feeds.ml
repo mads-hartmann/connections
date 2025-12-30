@@ -17,7 +17,7 @@ let extract_feed ~base_url node : Types.Feed.t option =
   match (rel, type_attr, href) with
   | Some rel, Some mime, Some href when String.equal rel "alternate" ->
       bind (format_of_mime_type mime) (fun format ->
-          let url = Util.resolve_url ~base_url href in
+          let url = Html_helpers.resolve_url ~base_url href in
           let title = Soup.attribute "title" node in
           Some { Types.Feed.url; title; format })
   | _ -> None

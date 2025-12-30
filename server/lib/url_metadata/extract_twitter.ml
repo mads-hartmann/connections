@@ -41,3 +41,20 @@ let extract soup : t =
     description = find_property props "twitter:description";
     image = find_property props "twitter:image";
   }
+
+let pp fmt t =
+  Format.fprintf fmt "{ card_type = %a; site = %a; creator = %a }"
+    (Format.pp_print_option Format.pp_print_string)
+    t.card_type
+    (Format.pp_print_option Format.pp_print_string)
+    t.site
+    (Format.pp_print_option Format.pp_print_string)
+    t.creator
+
+let equal a b =
+  Option.equal String.equal a.card_type b.card_type
+  && Option.equal String.equal a.site b.site
+  && Option.equal String.equal a.creator b.creator
+  && Option.equal String.equal a.title b.title
+  && Option.equal String.equal a.description b.description
+  && Option.equal String.equal a.image b.image
