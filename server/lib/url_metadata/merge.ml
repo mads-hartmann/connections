@@ -5,7 +5,8 @@
 let first_some options = List.find_opt Option.is_some options |> Option.join
 
 (* Classify social profiles into typed metadata fields *)
-let classify_profiles ~email ~social_profiles : Types.Classified_profile.t list =
+let classify_profiles ~email ~social_profiles : Types.Classified_profile.t list
+    =
   let seen = Hashtbl.create 16 in
   let dominated_by_email url =
     match email with
@@ -26,19 +27,22 @@ let classify_profiles ~email ~social_profiles : Types.Classified_profile.t list 
       match get_host url with
       | None -> Other
       | Some host ->
-          if host_matches ~domain:"twitter.com" host
-             || host_matches ~domain:"x.com" host
+          if
+            host_matches ~domain:"twitter.com" host
+            || host_matches ~domain:"x.com" host
           then X
           else if host_matches ~domain:"github.com" host then GitHub
           else if host_matches ~domain:"linkedin.com" host then LinkedIn
-          else if host_matches ~domain:"bsky.app" host
-                  || host_matches ~domain:"bsky.social" host
+          else if
+            host_matches ~domain:"bsky.app" host
+            || host_matches ~domain:"bsky.social" host
           then Bluesky
           else if host_matches ~domain:"youtube.com" host then YouTube
-          else if host_matches ~domain:"mastodon.social" host
-                  || host_matches ~domain:"mastodon.online" host
-                  || host_matches ~domain:"fosstodon.org" host
-                  || host_matches ~domain:"hachyderm.io" host
+          else if
+            host_matches ~domain:"mastodon.social" host
+            || host_matches ~domain:"mastodon.online" host
+            || host_matches ~domain:"fosstodon.org" host
+            || host_matches ~domain:"hachyderm.io" host
           then Mastodon
           else Other
   in
@@ -125,7 +129,14 @@ let merge_author ~(microformats : Extract_microformats.h_card option)
   in
   (* Merge in priority order *)
   let candidates =
-    [ from_microformats; from_json_ld; from_og; from_twitter; from_html; from_rel_me ]
+    [
+      from_microformats;
+      from_json_ld;
+      from_og;
+      from_twitter;
+      from_html;
+      from_rel_me;
+    ]
   in
   match List.filter_map Fun.id candidates with
   | [] -> None

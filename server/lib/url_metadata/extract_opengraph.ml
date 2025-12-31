@@ -64,3 +64,30 @@ let extract soup : t =
     modified_time = find_property props "article:modified_time";
     tags = find_all_properties props "article:tag";
   }
+
+let pp fmt t =
+  Format.fprintf fmt
+    "{ title = %a; og_type = %a; url = %a; image = %a; description = %a }"
+    (Format.pp_print_option Format.pp_print_string)
+    t.title
+    (Format.pp_print_option Format.pp_print_string)
+    t.og_type
+    (Format.pp_print_option Format.pp_print_string)
+    t.url
+    (Format.pp_print_option Format.pp_print_string)
+    t.image
+    (Format.pp_print_option Format.pp_print_string)
+    t.description
+
+let equal a b =
+  Option.equal String.equal a.title b.title
+  && Option.equal String.equal a.og_type b.og_type
+  && Option.equal String.equal a.url b.url
+  && Option.equal String.equal a.image b.image
+  && Option.equal String.equal a.description b.description
+  && Option.equal String.equal a.site_name b.site_name
+  && Option.equal String.equal a.locale b.locale
+  && Option.equal String.equal a.author b.author
+  && Option.equal String.equal a.published_time b.published_time
+  && Option.equal String.equal a.modified_time b.modified_time
+  && List.equal String.equal a.tags b.tags

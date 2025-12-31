@@ -183,3 +183,41 @@ let extract soup : extracted =
       ([], []) raw
   in
   { persons = List.rev persons; articles = List.rev articles; raw }
+
+let pp_person fmt p =
+  Format.fprintf fmt "{ name = %a; url = %a }"
+    (Format.pp_print_option Format.pp_print_string)
+    p.name
+    (Format.pp_print_option Format.pp_print_string)
+    p.url
+
+let equal_person a b =
+  Option.equal String.equal a.name b.name
+  && Option.equal String.equal a.url b.url
+  && Option.equal String.equal a.image b.image
+  && Option.equal String.equal a.email b.email
+  && Option.equal String.equal a.job_title b.job_title
+  && List.equal String.equal a.same_as b.same_as
+
+let pp_article fmt a =
+  Format.fprintf fmt "{ headline = %a; author = %a }"
+    (Format.pp_print_option Format.pp_print_string)
+    a.headline
+    (Format.pp_print_option pp_person)
+    a.author
+
+let equal_article a b =
+  Option.equal String.equal a.headline b.headline
+  && Option.equal equal_person a.author b.author
+  && Option.equal String.equal a.date_published b.date_published
+  && Option.equal String.equal a.date_modified b.date_modified
+  && Option.equal String.equal a.description b.description
+  && Option.equal String.equal a.image b.image
+
+let pp fmt t =
+  Format.fprintf fmt "{ persons = [%d]; articles = [%d]; raw = [%d] }"
+    (List.length t.persons) (List.length t.articles) (List.length t.raw)
+
+let equal a b =
+  List.equal equal_person a.persons b.persons
+  && List.equal equal_article a.articles b.articles

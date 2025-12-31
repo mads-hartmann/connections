@@ -2,7 +2,9 @@ open Tapak
 open Handler_utils.Syntax
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-type create_request = { field_type_id : int; value : string } [@@deriving yojson]
+type create_request = { field_type_id : int; value : string }
+[@@deriving yojson]
+
 type update_request = { value : string } [@@deriving yojson]
 
 let create request person_id =
@@ -10,7 +12,8 @@ let create request person_id =
     Handler_utils.parse_json_body create_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
-  if String.trim value = "" then Handler_utils.bad_request "Value cannot be empty"
+  if String.trim value = "" then
+    Handler_utils.bad_request "Value cannot be empty"
   else
     let* metadata =
       Service.Person_metadata.create ~person_id ~field_type_id ~value
@@ -24,7 +27,8 @@ let update request person_id metadata_id =
     Handler_utils.parse_json_body update_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
-  if String.trim value = "" then Handler_utils.bad_request "Value cannot be empty"
+  if String.trim value = "" then
+    Handler_utils.bad_request "Value cannot be empty"
   else
     let* metadata =
       Service.Person_metadata.update ~id:metadata_id ~person_id ~value

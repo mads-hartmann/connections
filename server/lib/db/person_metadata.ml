@@ -39,13 +39,11 @@ let get_with_person_check_query =
 
 let tuple_to_metadata (id, person_id, field_type_id, value) =
   match Model.Metadata_field_type.of_id field_type_id with
-  | Some field_type -> Some { Model.Person_metadata.id; person_id; field_type; value }
+  | Some field_type ->
+      Some (Model.Person_metadata.create ~id ~person_id ~field_type ~value)
   | None -> None
 
-type create_error =
-  [ `Invalid_field_type
-  | `Caqti of Caqti_error.t
-  ]
+type create_error = [ `Invalid_field_type | `Caqti of Caqti_error.t ]
 
 let create ~person_id ~field_type_id ~value =
   let pool = Pool.get () in
@@ -60,7 +58,8 @@ let create ~person_id ~field_type_id ~value =
       in
       match result with
       | Error e -> Error (`Caqti e)
-      | Ok id -> Ok { Model.Person_metadata.id; person_id; field_type; value })
+      | Ok id ->
+          Ok (Model.Person_metadata.create ~id ~person_id ~field_type ~value))
 
 let get ~id =
   let pool = Pool.get () in
@@ -104,7 +103,9 @@ let update ~id ~value =
       in
       match Model.Metadata_field_type.of_id field_type_id with
       | Some field_type ->
-          Ok (Some { Model.Person_metadata.id; person_id; field_type; value })
+          Ok
+            (Some
+               (Model.Person_metadata.create ~id ~person_id ~field_type ~value))
       | None -> Ok None)
 
 let delete ~id =

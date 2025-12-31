@@ -1,11 +1,6 @@
 (* OPML Parser - extracts feed URLs, titles, and tags from OPML files *)
 
-type feed_entry = {
-  url : string;
-  title : string option;
-  tags : string list;
-}
-
+type feed_entry = { url : string; title : string option; tags : string list }
 type parse_result = { feeds : feed_entry list; errors : string list }
 
 (* Extract attribute value from attribute list *)

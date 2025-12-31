@@ -8,28 +8,26 @@ open Test_helpers
    ============================================ *)
 
 let test_person_to_json () =
-  let person = { Model.Person.id = 1; name = "Alice"; tags = []; metadata = [] } in
+  let person = Model.Person.create ~id:1 ~name:"Alice" ~tags:[] ~metadata:[] in
   let json = Model.Person.to_json person in
   match json with
   | `Assoc fields ->
       Alcotest.(check bool) "has id field" true (List.mem_assoc "id" fields);
       Alcotest.(check bool) "has name field" true (List.mem_assoc "name" fields);
       Alcotest.(check bool) "has tags field" true (List.mem_assoc "tags" fields);
-      Alcotest.(check bool) "has metadata field" true (List.mem_assoc "metadata" fields)
+      Alcotest.(check bool)
+        "has metadata field" true
+        (List.mem_assoc "metadata" fields)
   | _ -> Alcotest.fail "expected JSON object"
 
 let test_person_to_json_with_metadata () =
   let metadata =
     [
-      {
-        Model.Person_metadata.id = 1;
-        person_id = 1;
-        field_type = Model.Metadata_field_type.Email;
-        value = "alice@example.com";
-      };
+      Model.Person_metadata.create ~id:1 ~person_id:1
+        ~field_type:Model.Metadata_field_type.Email ~value:"alice@example.com";
     ]
   in
-  let person = { Model.Person.id = 1; name = "Alice"; tags = []; metadata } in
+  let person = Model.Person.create ~id:1 ~name:"Alice" ~tags:[] ~metadata in
   let json = Model.Person.to_json person in
   match json with
   | `Assoc fields -> (
@@ -39,8 +37,8 @@ let test_person_to_json_with_metadata () =
   | _ -> Alcotest.fail "expected JSON object"
 
 let test_person_paginated_to_json () =
-  let alice : Model.Person.t = { id = 1; name = "Alice"; tags = []; metadata = [] } in
-  let bob : Model.Person.t = { id = 2; name = "Bob"; tags = []; metadata = [] } in
+  let alice = Model.Person.create ~id:1 ~name:"Alice" ~tags:[] ~metadata:[] in
+  let bob = Model.Person.create ~id:2 ~name:"Bob" ~tags:[] ~metadata:[] in
   let response =
     Model.Shared.Paginated.make ~data:[ alice; bob ] ~page:1 ~per_page:10
       ~total:2
@@ -77,8 +75,9 @@ let test_db_person_create () =
   match result with
   | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok person ->
-      Alcotest.(check string) "name matches" "Test Person" person.name;
-      Alcotest.(check bool) "id is positive" true (person.id > 0)
+      Alcotest.(check string)
+        "name matches" "Test Person" (Model.Person.name person);
+      Alcotest.(check bool) "id is positive" true (Model.Person.id person > 0)
 
 let test_db_person_get () =
   with_eio @@ fun ~sw ~env ->
@@ -87,13 +86,15 @@ let test_db_person_get () =
   match create_result with
   | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok created -> (
-      let get_result = Db.Person.get ~id:created.id in
+      let get_result = Db.Person.get ~id:(Model.Person.id created) in
       match get_result with
       | Error err -> Alcotest.fail ("get failed: " ^ caqti_err err)
       | Ok None -> Alcotest.fail "person not found"
       | Ok (Some person) ->
-          Alcotest.(check int) "id matches" created.id person.id;
-          Alcotest.(check string) "name matches" "Get Test" person.name)
+          Alcotest.(check int)
+            "id matches" (Model.Person.id created) (Model.Person.id person);
+          Alcotest.(check string)
+            "name matches" "Get Test" (Model.Person.name person))
 
 let test_db_person_list () =
   with_eio @@ fun ~sw ~env ->
@@ -116,13 +117,15 @@ let test_db_person_update () =
   | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok created -> (
       let update_result =
-        Db.Person.update ~id:created.id ~name:"Updated Name"
+        Db.Person.update ~id:(Model.Person.id created) ~name:"Updated Name"
       in
       match update_result with
       | Error err -> Alcotest.fail ("update failed: " ^ caqti_err err)
       | Ok None -> Alcotest.fail "person not found for update"
       | Ok (Some updated) ->
-          Alcotest.(check string) "name updated" "Updated Name" updated.name)
+          Alcotest.(check string)
+            "name updated" "Updated Name"
+            (Model.Person.name updated))
 
 let test_db_person_delete () =
   with_eio @@ fun ~sw ~env ->
@@ -131,12 +134,13 @@ let test_db_person_delete () =
   match create_result with
   | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok created -> (
-      let delete_result = Db.Person.delete ~id:created.id in
+      let created_id = Model.Person.id created in
+      let delete_result = Db.Person.delete ~id:created_id in
       match delete_result with
       | Error err -> Alcotest.fail ("delete failed: " ^ caqti_err err)
       | Ok false -> Alcotest.fail "delete returned false"
       | Ok true -> (
-          let get_result = Db.Person.get ~id:created.id in
+          let get_result = Db.Person.get ~id:created_id in
           match get_result with
           | Error err ->
               Alcotest.fail ("get after delete failed: " ^ caqti_err err)

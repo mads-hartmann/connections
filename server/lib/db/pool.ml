@@ -1,5 +1,3 @@
-let caqti_error_to_string err = Format.asprintf "%a" Caqti_error.pp err
-
 (* Database connection pool *)
 let pool_ref : (Caqti_eio.connection, Caqti_error.t) Caqti_eio.Pool.t option ref
     =
@@ -59,5 +57,4 @@ let exec_sql sql =
   apply statements
 
 (* Apply database schema embedded at build time from schema.sql *)
-let apply_schema () =
-  exec_sql Schema_sql.content
+let apply_schema () = exec_sql Schema_sql.content

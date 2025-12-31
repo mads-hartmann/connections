@@ -33,7 +33,7 @@ let count_query =
 let list_filtered_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* person_row_type)
     (select_with_tags
-    ^ " WHERE p.name LIKE ? ORDER BY p.name DESC LIMIT ? OFFSET ?")
+   ^ " WHERE p.name LIKE ? ORDER BY p.name DESC LIMIT ? OFFSET ?")
 
 let count_filtered_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
@@ -118,14 +118,15 @@ let metadata_by_person_ids_query ids =
 
 let tuple_to_metadata (id, person_id, field_type_id, value) =
   Option.map
-    (fun field_type -> { Model.Person_metadata.id; person_id; field_type; value })
+    (fun field_type ->
+      Model.Person_metadata.create ~id ~person_id ~field_type ~value)
     (Model.Metadata_field_type.of_id field_type_id)
 
 let group_metadata_by_person metadata =
   let tbl = Hashtbl.create 16 in
   List.iter
     (fun m ->
-      let pid = m.Model.Person_metadata.person_id in
+      let pid = Model.Person_metadata.person_id m in
       let existing = Option.value ~default:[] (Hashtbl.find_opt tbl pid) in
       Hashtbl.replace tbl pid (m :: existing))
     metadata;
@@ -133,29 +134,20 @@ let group_metadata_by_person metadata =
   tbl
 
 let tuple_to_person (id, name, tags_json) =
-  { Model.Person.id; name; tags = Tag_json.parse tags_json; metadata = [] }
+  Model.Person.create ~id ~name ~tags:(Tag_json.parse tags_json) ~metadata:[]
 
-let tuple_to_person_with_counts (id, name, tags_json, feed_count, article_count) =
-  {
-    Model.Person.id;
-    name;
-    tags = Tag_json.parse tags_json;
-    feed_count;
-    article_count;
-    metadata = [];
-  }
+let tuple_to_person_with_counts (id, name, tags_json, feed_count, article_count)
+    =
+  Model.Person.create_with_counts ~id ~name ~tags:(Tag_json.parse tags_json)
+    ~feed_count ~article_count ~metadata:[]
 
-let attach_metadata metadata_tbl (person : Model.Person.t) =
+let attach_metadata_with_counts metadata_tbl
+    (person : Model.Person.t_with_counts) =
   let metadata =
-    Option.value ~default:[] (Hashtbl.find_opt metadata_tbl person.id)
+    Option.value ~default:[]
+      (Hashtbl.find_opt metadata_tbl (Model.Person.id_with_counts person))
   in
-  { person with metadata }
-
-let attach_metadata_with_counts metadata_tbl (person : Model.Person.t_with_counts) =
-  let metadata =
-    Option.value ~default:[] (Hashtbl.find_opt metadata_tbl person.id)
-  in
-  { person with metadata }
+  Model.Person.with_metadata_counts person metadata
 
 let get ~id =
   let open Result.Syntax in
@@ -172,11 +164,11 @@ let get ~id =
       let+ metadata_rows =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
-            Db.collect_list metadata_by_person_query person.id)
+            Db.collect_list metadata_by_person_query (Model.Person.id person))
           pool
       in
       let metadata = List.filter_map tuple_to_metadata metadata_rows in
-      Some { person with metadata }
+      Some (Model.Person.with_metadata person metadata)
 
 let create ~name =
   let open Result.Syntax in
@@ -289,7 +281,7 @@ let list_with_counts ~page ~per_page ?query () =
           pool
   in
   let persons = List.map tuple_to_person_with_counts rows in
-  let person_ids = List.map (fun (p : Model.Person.t_with_counts) -> p.id) persons in
+  let person_ids = List.map Model.Person.id_with_counts persons in
   let+ metadata_tbl =
     if List.length person_ids = 0 then Ok (Hashtbl.create 0)
     else
@@ -298,7 +290,7 @@ let list_with_counts ~page ~per_page ?query () =
         (fun (module Db : Caqti_eio.CONNECTION) -> Db.collect_list query ())
         pool
       |> Result.map (fun rows ->
-             group_metadata_by_person (List.filter_map tuple_to_metadata rows))
+          group_metadata_by_person (List.filter_map tuple_to_metadata rows))
   in
   let data = List.map (attach_metadata_with_counts metadata_tbl) persons in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total

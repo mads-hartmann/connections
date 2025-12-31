@@ -81,7 +81,7 @@ let extract_u_property ~base_url cls node =
                 let text = Soup.trimmed_texts el |> String.concat "" in
                 if String.length text > 0 then Some text else None)
       in
-      Option.map (Util.resolve_url ~base_url) url)
+      Option.map (Html_helpers.resolve_url ~base_url) url)
 
 (* Extract dt-* property (datetime) *)
 let extract_dt_property cls node =
@@ -135,7 +135,9 @@ let extract_rel_me ~base_url soup =
   Soup.select "a[rel~=me]" soup
   |> Soup.to_list
   |> List.filter_map (fun node ->
-      Option.map (Util.resolve_url ~base_url) (Soup.attribute "href" node))
+      Option.map
+        (Html_helpers.resolve_url ~base_url)
+        (Soup.attribute "href" node))
 
 (* Known social platform domains for fallback detection *)
 let social_domains =
@@ -191,27 +193,31 @@ let is_social_profile_url url =
       in
       (* For YouTube, profile is /@username or /c/channel or /channel/id *)
       let is_youtube_profile =
-        (String.equal h "youtube.com" || String.ends_with ~suffix:".youtube.com" h)
-        && (match segments with
-            | [ username ] when String.starts_with ~prefix:"@" username -> true
-            | [ "c"; _ ] -> true
-            | [ "channel"; _ ] -> true
-            | [ "user"; _ ] -> true
-            | _ -> false)
+        (String.equal h "youtube.com"
+        || String.ends_with ~suffix:".youtube.com" h)
+        &&
+        match segments with
+        | [ username ] when String.starts_with ~prefix:"@" username -> true
+        | [ "c"; _ ] -> true
+        | [ "channel"; _ ] -> true
+        | [ "user"; _ ] -> true
+        | _ -> false
       in
-      let is_youtube = String.equal h "youtube.com" || String.ends_with ~suffix:".youtube.com" h in
+      let is_youtube =
+        String.equal h "youtube.com"
+        || String.ends_with ~suffix:".youtube.com" h
+      in
       (not is_status_url)
-      && not is_github_non_profile
-      && (not is_youtube || is_youtube_profile)
+      && (not is_github_non_profile)
+      && ((not is_youtube) || is_youtube_profile)
 
 (* Extract social links by URL pattern as fallback when rel="me" is missing *)
 let extract_social_links_by_pattern ~base_url soup =
   let seen = Hashtbl.create 16 in
-  Soup.select "a[href]" soup
-  |> Soup.to_list
+  Soup.select "a[href]" soup |> Soup.to_list
   |> List.filter_map (fun node ->
       Option.bind (Soup.attribute "href" node) (fun href ->
-          let url = Util.resolve_url ~base_url href in
+          let url = Html_helpers.resolve_url ~base_url href in
           if is_social_profile_url url && not (Hashtbl.mem seen url) then begin
             Hashtbl.add seen url ();
             Some url
@@ -245,3 +251,43 @@ let extract ~base_url soup : t =
     | _ -> rel_me
   in
   { cards; entries; rel_me = social_links }
+
+let pp_h_card fmt (c : h_card) =
+  Format.fprintf fmt "{ name = %a; url = %a }"
+    (Format.pp_print_option Format.pp_print_string)
+    c.name
+    (Format.pp_print_option Format.pp_print_string)
+    c.url
+
+let equal_h_card (a : h_card) (b : h_card) =
+  Option.equal String.equal a.name b.name
+  && Option.equal String.equal a.url b.url
+  && Option.equal String.equal a.photo b.photo
+  && Option.equal String.equal a.email b.email
+  && Option.equal String.equal a.note b.note
+  && Option.equal String.equal a.locality b.locality
+  && Option.equal String.equal a.country b.country
+
+let pp_h_entry fmt e =
+  Format.fprintf fmt "{ name = %a; summary = %a }"
+    (Format.pp_print_option Format.pp_print_string)
+    e.name
+    (Format.pp_print_option Format.pp_print_string)
+    e.summary
+
+let equal_h_entry a b =
+  Option.equal String.equal a.name b.name
+  && Option.equal String.equal a.summary b.summary
+  && Option.equal String.equal a.published b.published
+  && Option.equal String.equal a.updated b.updated
+  && Option.equal equal_h_card a.author b.author
+  && List.equal String.equal a.categories b.categories
+
+let pp fmt t =
+  Format.fprintf fmt "{ cards = [%d]; entries = [%d]; rel_me = [%d] }"
+    (List.length t.cards) (List.length t.entries) (List.length t.rel_me)
+
+let equal a b =
+  List.equal equal_h_card a.cards b.cards
+  && List.equal equal_h_entry a.entries b.entries
+  && List.equal String.equal a.rel_me b.rel_me

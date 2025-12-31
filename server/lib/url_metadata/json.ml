@@ -42,7 +42,8 @@ module Author = struct
         ("bio", string_opt_to_json t.bio);
         ("location", string_opt_to_json t.location);
         ("social_profiles", string_list_to_json t.social_profiles);
-        ("classified_profiles", Classified_profile.list_to_json t.classified_profiles);
+        ( "classified_profiles",
+          Classified_profile.list_to_json t.classified_profiles );
       ]
 
   let opt_to_json = function Some a -> to_json a | None -> `Null

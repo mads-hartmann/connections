@@ -245,7 +245,9 @@ let associate_tags_with_article ~article_id ~tag_names : unit =
           Log.err (fun m ->
               m "Failed to get/create tag '%s': %a" tag_name Caqti_error.pp err)
       | Ok tag -> (
-          match Db.Tag.add_to_article ~article_id ~tag_id:tag.id with
+          match
+            Db.Tag.add_to_article ~article_id ~tag_id:(Model.Tag.id tag)
+          with
           | Error err ->
               Log.err (fun m ->
                   m "Failed to associate tag '%s' with article %d: %a" tag_name
@@ -257,26 +259,28 @@ let associate_tags_with_article ~article_id ~tag_names : unit =
 let get_feed_tag_ids ~feed_id : int list =
   match Db.Tag.get_by_feed ~feed_id with
   | Error _ -> []
-  | Ok tags -> List.map (fun (t : Model.Tag.t) -> t.id) tags
+  | Ok tags -> List.map Model.Tag.id tags
 
 (* Process a single feed: fetch, parse, store articles with tags *)
 let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
-  Log.info (fun m -> m "Fetching feed %d: %s" feed.id feed.url);
-  let fetch_result = fetch_url ~sw ~env feed.url in
+  let feed_id = Model.Rss_feed.id feed in
+  let feed_url = Model.Rss_feed.url feed in
+  Log.info (fun m -> m "Fetching feed %d: %s" feed_id feed_url);
+  let fetch_result = fetch_url ~sw ~env feed_url in
   match fetch_result with
   | Error msg ->
       Log.err (fun m ->
-          m "Failed to fetch feed %d (%s): %s" feed.id feed.url msg)
+          m "Failed to fetch feed %d (%s): %s" feed_id feed_url msg)
   | Ok content -> (
       match parse_feed content with
       | Error msg ->
           Log.err (fun m ->
-              m "Failed to parse feed %d (%s): %s" feed.id feed.url msg)
+              m "Failed to parse feed %d (%s): %s" feed_id feed_url msg)
       | Ok parsed_feed ->
           let articles_with_tags =
-            extract_articles_with_tags ~feed_id:feed.id parsed_feed
+            extract_articles_with_tags ~feed_id parsed_feed
           in
-          let feed_tag_ids = get_feed_tag_ids ~feed_id:feed.id in
+          let feed_tag_ids = get_feed_tag_ids ~feed_id in
           let count = ref 0 in
           List.iter
             (fun { article; tags } ->
@@ -285,13 +289,15 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
               | Error err ->
                   Log.err (fun m ->
                       m "Failed to upsert article '%s': %a"
-                        (Option.value ~default:article.url article.title)
+                        (Option.value ~default:article.Db.Article.url
+                           article.Db.Article.title)
                         Caqti_error.pp err)
               | Ok () -> (
                   incr count;
                   (* Get the article ID by looking it up *)
                   match
-                    Db.Article.get_by_feed_url ~feed_id:feed.id ~url:article.url
+                    Db.Article.get_by_feed_url ~feed_id
+                      ~url:article.Db.Article.url
                   with
                   | Error err ->
                       Log.err (fun m ->
@@ -299,25 +305,26 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
                             Caqti_error.pp err)
                   | Ok None ->
                       Log.err (fun m ->
-                          m "Article not found after upsert: %s" article.url)
+                          m "Article not found after upsert: %s"
+                            article.Db.Article.url)
                   | Ok (Some stored_article) ->
+                      let stored_id = Model.Article.id stored_article in
                       (* Associate article-level tags *)
-                      associate_tags_with_article ~article_id:stored_article.id
+                      associate_tags_with_article ~article_id:stored_id
                         ~tag_names:tags;
                       (* Inherit feed tags *)
                       List.iter
                         (fun tag_id ->
                           let _ =
-                            Db.Tag.add_to_article ~article_id:stored_article.id
-                              ~tag_id
+                            Db.Tag.add_to_article ~article_id:stored_id ~tag_id
                           in
                           ())
                         feed_tag_ids))
             articles_with_tags;
           Log.info (fun m ->
-              m "Processed %d articles for feed %d" !count feed.id);
+              m "Processed %d articles for feed %d" !count feed_id);
           (* Update last_fetched_at on the feed *)
-          let _ = Db.Rss_feed.update_last_fetched ~id:feed.id in
+          let _ = Db.Rss_feed.update_last_fetched ~id:feed_id in
           ())
 
 (* Fetch all feeds - called by scheduler *)

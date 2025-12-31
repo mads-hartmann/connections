@@ -37,10 +37,10 @@ let is_redirect status =
 let get_redirect_location ~base_uri response =
   Piaf.Headers.get response.Piaf.Response.headers "location"
   |> Option.map (fun loc ->
-         let loc_uri = Uri.of_string loc in
-         match Uri.host loc_uri with
-         | None | Some "" -> Uri.resolve "" base_uri loc_uri
-         | Some _ -> loc_uri)
+      let loc_uri = Uri.of_string loc in
+      match Uri.host loc_uri with
+      | None | Some "" -> Uri.resolve "" base_uri loc_uri
+      | Some _ -> loc_uri)
 
 (* Fetch URL content using Piaf with redirect following *)
 let fetch_html ~sw ~env (url : string) : (string, string) result =
