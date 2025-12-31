@@ -108,7 +108,8 @@ let or_tag_error result =
 let or_person_metadata_error result =
   Result.map_error
     (function
-      | Service.Person_metadata.Error.Not_found -> not_found "Metadata not found"
+      | Service.Person_metadata.Error.Not_found ->
+          not_found "Metadata not found"
       | Service.Person_metadata.Error.Person_not_found ->
           not_found "Person not found"
       | Service.Person_metadata.Error.Invalid_field_type ->

@@ -18,10 +18,10 @@ let is_redirect status =
 let get_redirect_location ~base_uri response =
   Piaf.Headers.get response.Piaf.Response.headers "location"
   |> Option.map (fun loc ->
-         let loc_uri = Uri.of_string loc in
-         match Uri.host loc_uri with
-         | None | Some "" -> Uri.resolve "" base_uri loc_uri
-         | Some _ -> loc_uri)
+      let loc_uri = Uri.of_string loc in
+      match Uri.host loc_uri with
+      | None | Some "" -> Uri.resolve "" base_uri loc_uri
+      | Some _ -> loc_uri)
 
 (* Fetch URL content using Piaf with redirect following *)
 let fetch_html ~sw ~env (url : string) : (string, string) result =
@@ -71,7 +71,8 @@ let fetch_for_article ~sw ~env (article : Model.Article.t) :
     (Model.Article.t option, Caqti_error.t) result =
   let article_id = Model.Article.id article in
   let article_url = Model.Article.url article in
-  Log.info (fun m -> m "Fetching OG metadata for article %d: %s" article_id article_url);
+  Log.info (fun m ->
+      m "Fetching OG metadata for article %d: %s" article_id article_url);
   let og_input =
     match fetch_html ~sw ~env article_url with
     | Ok html -> extract_og_metadata html
@@ -106,8 +107,7 @@ let process_batch ~sw ~env () : int =
           | Error err ->
               Log.err (fun m ->
                   m "Failed to update OG metadata for article %d: %a"
-                    (Model.Article.id article)
-                    Caqti_error.pp err))
+                    (Model.Article.id article) Caqti_error.pp err))
         articles;
       count
 

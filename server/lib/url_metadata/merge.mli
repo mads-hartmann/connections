@@ -17,6 +17,4 @@ val merge_content :
   Types.Content.t
 
 val merge_site :
-  opengraph:Extract_opengraph.t ->
-  html_meta:Extract_html_meta.t ->
-  Types.Site.t
+  opengraph:Extract_opengraph.t -> html_meta:Extract_html_meta.t -> Types.Site.t

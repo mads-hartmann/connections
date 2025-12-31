@@ -14,18 +14,22 @@ let test_db_rss_feed_create () =
   | Ok person -> (
       let person_id = Model.Person.id person in
       let result =
-        Db.Rss_feed.create ~person_id
-          ~url:"https://example.com/feed.xml" ~title:(Some "Test Feed")
+        Db.Rss_feed.create ~person_id ~url:"https://example.com/feed.xml"
+          ~title:(Some "Test Feed")
       in
       match result with
       | Error err -> Alcotest.fail ("create feed failed: " ^ caqti_err err)
       | Ok None -> Alcotest.fail "create feed returned None"
       | Ok (Some feed) ->
           Alcotest.(check string)
-            "url matches" "https://example.com/feed.xml" (Model.Rss_feed.url feed);
+            "url matches" "https://example.com/feed.xml"
+            (Model.Rss_feed.url feed);
           Alcotest.(check (option string))
-            "title matches" (Some "Test Feed") (Model.Rss_feed.title feed);
-          Alcotest.(check int) "person_id matches" person_id (Model.Rss_feed.person_id feed))
+            "title matches" (Some "Test Feed")
+            (Model.Rss_feed.title feed);
+          Alcotest.(check int)
+            "person_id matches" person_id
+            (Model.Rss_feed.person_id feed))
 
 let test_db_rss_feed_get () =
   with_eio @@ fun ~sw ~env ->
@@ -39,7 +43,8 @@ let test_db_rss_feed_get () =
   | Ok None -> Alcotest.fail "feed not found"
   | Ok (Some found) ->
       Alcotest.(check int) "id matches" feed_id (Model.Rss_feed.id found);
-      Alcotest.(check string) "url matches" (Model.Rss_feed.url feed) (Model.Rss_feed.url found)
+      Alcotest.(check string)
+        "url matches" (Model.Rss_feed.url feed) (Model.Rss_feed.url found)
 
 let test_db_rss_feed_list_by_person () =
   with_eio @@ fun ~sw ~env ->
@@ -57,9 +62,7 @@ let test_db_rss_feed_list_by_person () =
         Db.Rss_feed.create ~person_id ~url:"https://feed2.com/rss"
           ~title:(Some "Feed 2")
       in
-      let result =
-        Db.Rss_feed.list_by_person ~person_id ~page:1 ~per_page:10
-      in
+      let result = Db.Rss_feed.list_by_person ~person_id ~page:1 ~per_page:10 in
       match result with
       | Error err -> Alcotest.fail ("list failed: " ^ caqti_err err)
       | Ok paginated ->

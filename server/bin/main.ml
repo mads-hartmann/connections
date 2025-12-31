@@ -1,5 +1,4 @@
 open Connections_server
-
 module Log = (val Logs.src_log (Logs.Src.create "main") : Logs.LOG)
 
 let setup_logging log_file =
@@ -57,7 +56,8 @@ open Cmdliner
 let db_path =
   let doc = "Path to the SQLite database file." in
   let env = Cmd.Env.info "DB_PATH" in
-  Arg.(value & opt string "connections.db" & info [ "db" ] ~env ~docv:"PATH" ~doc)
+  Arg.(
+    value & opt string "connections.db" & info [ "db" ] ~env ~docv:"PATH" ~doc)
 
 let port =
   let doc = "Port to listen on." in

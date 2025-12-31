@@ -18,12 +18,15 @@ let () =
       E2e_helpers.stop_server proc)
     (fun () ->
       Printf.printf "Server started, updating snapshots...\n%!";
-      List.iter (fun endpoint ->
-        let status, body = E2e_helpers.http_get ~env ~sw ~port:server_port endpoint in
-        if status = 200 then begin
-          E2e_helpers.write_snapshot endpoint body;
-          Printf.printf "  ✓ %s\n%!" endpoint
-        end else
-          Printf.printf "  ✗ %s (status %d)\n%!" endpoint status
-      ) E2e_helpers.endpoints;
+      List.iter
+        (fun endpoint ->
+          let status, body =
+            E2e_helpers.http_get ~env ~sw ~port:server_port endpoint
+          in
+          if status = 200 then begin
+            E2e_helpers.write_snapshot endpoint body;
+            Printf.printf "  ✓ %s\n%!" endpoint
+          end
+          else Printf.printf "  ✗ %s (status %d)\n%!" endpoint status)
+        E2e_helpers.endpoints;
       Printf.printf "Done!\n%!")

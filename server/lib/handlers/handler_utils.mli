@@ -1,6 +1,4 @@
-val json_response :
-  ?status:Piaf.Status.t -> Yojson.Safe.t -> Tapak.Response.t
-
+val json_response : ?status:Piaf.Status.t -> Yojson.Safe.t -> Tapak.Response.t
 val error_response : Piaf.Status.t -> string -> Tapak.Response.t
 val bad_request : string -> Tapak.Response.t
 val not_found : string -> Tapak.Response.t
@@ -14,7 +12,10 @@ val parse_json_body :
   (Yojson.Safe.t -> 'a) -> Tapak.Request.t -> ('a, string) result
 
 module Syntax : sig
-  val ( let* ) : ('a, Tapak.Response.t) result -> ('a -> Tapak.Response.t) -> Tapak.Response.t
+  val ( let* ) :
+    ('a, Tapak.Response.t) result ->
+    ('a -> Tapak.Response.t) ->
+    Tapak.Response.t
 end
 
 val or_bad_request : ('a, string) result -> ('a, Tapak.Response.t) result

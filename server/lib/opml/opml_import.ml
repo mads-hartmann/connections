@@ -3,11 +3,7 @@ open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 (* Shared types for preview and confirm *)
 type feed_info = { url : string; title : string option } [@@deriving yojson]
 
-type person_info = {
-  name : string;
-  feeds : feed_info list;
-  tags : string list;
-}
+type person_info = { name : string; feeds : feed_info list; tags : string list }
 [@@deriving yojson]
 
 type import_error = { url : string; error : string } [@@deriving yojson]

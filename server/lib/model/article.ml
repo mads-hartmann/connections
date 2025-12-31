@@ -68,10 +68,10 @@ let paginated_to_json response = Shared.Paginated.to_json yojson_of_t response
 let error_to_json = Shared.error_to_json
 
 let pp fmt t =
-  Format.fprintf fmt "{ id = %d; feed_id = %d; title = %a; url = %S }"
-    t.id t.feed_id
-    (Format.pp_print_option Format.pp_print_string) t.title
-    t.url
+  Format.fprintf fmt "{ id = %d; feed_id = %d; title = %a; url = %S }" t.id
+    t.feed_id
+    (Format.pp_print_option Format.pp_print_string)
+    t.title t.url
 
 let equal a b =
   Int.equal a.id b.id

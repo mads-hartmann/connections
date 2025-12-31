@@ -1,10 +1,17 @@
-type t = { id : int; person_id : int; field_type : Metadata_field_type.t; value : string }
+type t = {
+  id : int;
+  person_id : int;
+  field_type : Metadata_field_type.t;
+  value : string;
+}
 
 let id t = t.id
 let person_id t = t.person_id
 let field_type t = t.field_type
 let value t = t.value
-let create ~id ~person_id ~field_type ~value = { id; person_id; field_type; value }
+
+let create ~id ~person_id ~field_type ~value =
+  { id; person_id; field_type; value }
 
 let to_json t =
   `Assoc

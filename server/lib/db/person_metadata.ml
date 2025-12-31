@@ -43,10 +43,7 @@ let tuple_to_metadata (id, person_id, field_type_id, value) =
       Some (Model.Person_metadata.create ~id ~person_id ~field_type ~value)
   | None -> None
 
-type create_error =
-  [ `Invalid_field_type
-  | `Caqti of Caqti_error.t
-  ]
+type create_error = [ `Invalid_field_type | `Caqti of Caqti_error.t ]
 
 let create ~person_id ~field_type_id ~value =
   let pool = Pool.get () in

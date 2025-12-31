@@ -44,7 +44,9 @@ let extract ~base_url soup : t =
   let description = extract_meta_content "description" soup in
   let author = extract_meta_content "author" soup in
   let canonical =
-    Option.map (Html_helpers.resolve_url ~base_url) (extract_link_href "canonical" soup)
+    Option.map
+      (Html_helpers.resolve_url ~base_url)
+      (extract_link_href "canonical" soup)
   in
   let favicon = extract_favicon ~base_url soup in
   let webmention =

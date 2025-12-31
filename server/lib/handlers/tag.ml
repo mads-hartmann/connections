@@ -109,8 +109,7 @@ let routes () =
     post (s "feeds" / int / s "tags" / int) |> request |> into add_to_feed;
     delete (s "feeds" / int / s "tags" / int)
     |> request |> into remove_from_feed;
-    post (s "articles" / int / s "tags" / int)
-    |> request |> into add_to_article;
+    post (s "articles" / int / s "tags" / int) |> request |> into add_to_article;
     delete (s "articles" / int / s "tags" / int)
     |> request |> into remove_from_article;
   ]

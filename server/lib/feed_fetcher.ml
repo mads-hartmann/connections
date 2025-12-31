@@ -245,7 +245,9 @@ let associate_tags_with_article ~article_id ~tag_names : unit =
           Log.err (fun m ->
               m "Failed to get/create tag '%s': %a" tag_name Caqti_error.pp err)
       | Ok tag -> (
-          match Db.Tag.add_to_article ~article_id ~tag_id:(Model.Tag.id tag) with
+          match
+            Db.Tag.add_to_article ~article_id ~tag_id:(Model.Tag.id tag)
+          with
           | Error err ->
               Log.err (fun m ->
                   m "Failed to associate tag '%s' with article %d: %a" tag_name
@@ -294,7 +296,8 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
                   incr count;
                   (* Get the article ID by looking it up *)
                   match
-                    Db.Article.get_by_feed_url ~feed_id ~url:article.Db.Article.url
+                    Db.Article.get_by_feed_url ~feed_id
+                      ~url:article.Db.Article.url
                   with
                   | Error err ->
                       Log.err (fun m ->

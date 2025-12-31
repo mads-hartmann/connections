@@ -8,16 +8,16 @@ open Test_helpers
    ============================================ *)
 
 let test_person_to_json () =
-  let person =
-    Model.Person.create ~id:1 ~name:"Alice" ~tags:[] ~metadata:[]
-  in
+  let person = Model.Person.create ~id:1 ~name:"Alice" ~tags:[] ~metadata:[] in
   let json = Model.Person.to_json person in
   match json with
   | `Assoc fields ->
       Alcotest.(check bool) "has id field" true (List.mem_assoc "id" fields);
       Alcotest.(check bool) "has name field" true (List.mem_assoc "name" fields);
       Alcotest.(check bool) "has tags field" true (List.mem_assoc "tags" fields);
-      Alcotest.(check bool) "has metadata field" true (List.mem_assoc "metadata" fields)
+      Alcotest.(check bool)
+        "has metadata field" true
+        (List.mem_assoc "metadata" fields)
   | _ -> Alcotest.fail "expected JSON object"
 
 let test_person_to_json_with_metadata () =
@@ -27,9 +27,7 @@ let test_person_to_json_with_metadata () =
         ~field_type:Model.Metadata_field_type.Email ~value:"alice@example.com";
     ]
   in
-  let person =
-    Model.Person.create ~id:1 ~name:"Alice" ~tags:[] ~metadata
-  in
+  let person = Model.Person.create ~id:1 ~name:"Alice" ~tags:[] ~metadata in
   let json = Model.Person.to_json person in
   match json with
   | `Assoc fields -> (
@@ -77,7 +75,8 @@ let test_db_person_create () =
   match result with
   | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok person ->
-      Alcotest.(check string) "name matches" "Test Person" (Model.Person.name person);
+      Alcotest.(check string)
+        "name matches" "Test Person" (Model.Person.name person);
       Alcotest.(check bool) "id is positive" true (Model.Person.id person > 0)
 
 let test_db_person_get () =
@@ -92,8 +91,10 @@ let test_db_person_get () =
       | Error err -> Alcotest.fail ("get failed: " ^ caqti_err err)
       | Ok None -> Alcotest.fail "person not found"
       | Ok (Some person) ->
-          Alcotest.(check int) "id matches" (Model.Person.id created) (Model.Person.id person);
-          Alcotest.(check string) "name matches" "Get Test" (Model.Person.name person))
+          Alcotest.(check int)
+            "id matches" (Model.Person.id created) (Model.Person.id person);
+          Alcotest.(check string)
+            "name matches" "Get Test" (Model.Person.name person))
 
 let test_db_person_list () =
   with_eio @@ fun ~sw ~env ->
@@ -122,7 +123,9 @@ let test_db_person_update () =
       | Error err -> Alcotest.fail ("update failed: " ^ caqti_err err)
       | Ok None -> Alcotest.fail "person not found for update"
       | Ok (Some updated) ->
-          Alcotest.(check string) "name updated" "Updated Name" (Model.Person.name updated))
+          Alcotest.(check string)
+            "name updated" "Updated Name"
+            (Model.Person.name updated))
 
 let test_db_person_delete () =
   with_eio @@ fun ~sw ~env ->

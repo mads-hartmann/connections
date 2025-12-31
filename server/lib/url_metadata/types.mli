@@ -1,6 +1,5 @@
 module Feed : sig
   type format = Rss | Atom | Json_feed
-
   type t = { url : string; title : string option; format : format }
 
   val pp_format : Format.formatter -> format -> unit

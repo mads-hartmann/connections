@@ -26,10 +26,7 @@ module Feed = struct
 end
 
 module Classified_profile = struct
-  type t = {
-    url : string;
-    field_type : Model.Metadata_field_type.t;
-  }
+  type t = { url : string; field_type : Model.Metadata_field_type.t }
 
   let pp fmt t =
     Format.fprintf fmt "{ url = %S; field_type = %s }" t.url
@@ -83,7 +80,9 @@ module Author = struct
       social_profiles =
         (match a.social_profiles with [] -> b.social_profiles | l -> l);
       classified_profiles =
-        (match a.classified_profiles with [] -> b.classified_profiles | l -> l);
+        (match a.classified_profiles with
+        | [] -> b.classified_profiles
+        | l -> l);
     }
 
   let pp fmt t =

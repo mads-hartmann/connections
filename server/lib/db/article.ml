@@ -61,8 +61,8 @@ let get_by_feed_url_query =
 let list_by_feed_query =
   Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* article_row_type)
     (select_with_tags
-    ^ " WHERE a.feed_id = ? ORDER BY a.published_at DESC, a.created_at DESC \
-       LIMIT ? OFFSET ?")
+   ^ " WHERE a.feed_id = ? ORDER BY a.published_at DESC, a.created_at DESC \
+      LIMIT ? OFFSET ?")
 
 let count_by_feed_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
@@ -71,7 +71,7 @@ let count_by_feed_query =
 let list_all_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->* article_row_type)
     (select_with_tags
-    ^ " ORDER BY a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?")
+   ^ " ORDER BY a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?")
 
 let count_all_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
@@ -80,8 +80,8 @@ let count_all_query =
 let list_all_filtered_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
     (select_with_tags
-    ^ " WHERE a.title LIKE ? ORDER BY a.published_at DESC, a.created_at DESC \
-       LIMIT ? OFFSET ?")
+   ^ " WHERE a.title LIKE ? ORDER BY a.published_at DESC, a.created_at DESC \
+      LIMIT ? OFFSET ?")
 
 let count_all_filtered_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
@@ -90,8 +90,8 @@ let count_all_filtered_query =
 let list_unread_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->* article_row_type)
     (select_with_tags
-    ^ " WHERE a.read_at IS NULL ORDER BY a.published_at DESC, a.created_at \
-       DESC LIMIT ? OFFSET ?")
+   ^ " WHERE a.read_at IS NULL ORDER BY a.published_at DESC, a.created_at DESC \
+      LIMIT ? OFFSET ?")
 
 let count_unread_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
@@ -100,8 +100,8 @@ let count_unread_query =
 let list_unread_filtered_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
     (select_with_tags
-    ^ " WHERE a.read_at IS NULL AND a.title LIKE ? ORDER BY a.published_at \
-       DESC, a.created_at DESC LIMIT ? OFFSET ?")
+   ^ " WHERE a.read_at IS NULL AND a.title LIKE ? ORDER BY a.published_at \
+      DESC, a.created_at DESC LIMIT ? OFFSET ?")
 
 let count_unread_filtered_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
@@ -110,8 +110,8 @@ let count_unread_filtered_query =
 let list_by_tag_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
     (select_with_tags_filtered_by_tag
-    ^ " WHERE t_filter.name = ? GROUP BY a.id ORDER BY a.published_at DESC, \
-       a.created_at DESC LIMIT ? OFFSET ?")
+   ^ " WHERE t_filter.name = ? GROUP BY a.id ORDER BY a.published_at DESC, \
+      a.created_at DESC LIMIT ? OFFSET ?")
 
 let count_by_tag_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
@@ -126,8 +126,8 @@ let count_by_tag_query =
 let list_by_tag_unread_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
     (select_with_tags_filtered_by_tag
-    ^ " WHERE t_filter.name = ? AND a.read_at IS NULL GROUP BY a.id ORDER BY \
-       a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?")
+   ^ " WHERE t_filter.name = ? AND a.read_at IS NULL GROUP BY a.id ORDER BY \
+      a.published_at DESC, a.created_at DESC LIMIT ? OFFSET ?")
 
 let count_by_tag_unread_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
@@ -143,11 +143,12 @@ let count_by_tag_unread_query =
 let list_needing_og_fetch_query =
   Caqti_request.Infix.(Caqti_type.int ->* article_row_type)
     (select_with_tags
-    ^ {| WHERE a.og_fetched_at IS NULL
+   ^ {| WHERE a.og_fetched_at IS NULL
          OR (a.og_fetch_error IS NOT NULL
              AND a.og_fetched_at < datetime('now', '-1 day'))
        ORDER BY a.created_at DESC
-       LIMIT ?|})
+       LIMIT ?|}
+    )
 
 (* Update OG metadata for an article *)
 let update_og_metadata_query =
@@ -183,8 +184,12 @@ let exists_query =
 let tuple_to_article
     ( (id, feed_id, title, url, published_at),
       ( (content, author, image_url, created_at, read_at, tags_json),
-        (og_title, og_description, og_image, og_site_name, og_fetched_at,
-         og_fetch_error) ) ) =
+        ( og_title,
+          og_description,
+          og_image,
+          og_site_name,
+          og_fetched_at,
+          og_fetch_error ) ) ) =
   Model.Article.create ~id ~feed_id ~title ~url ~published_at ~content ~author
     ~image_url ~created_at ~read_at ~tags:(Tag_json.parse tags_json) ~og_title
     ~og_description ~og_image ~og_site_name ~og_fetched_at ~og_fetch_error
@@ -288,7 +293,7 @@ let list_all ~page ~per_page ~unread_only ?query () =
   let* total =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
-        match unread_only, pattern with
+        match (unread_only, pattern) with
         | true, Some p -> Db.find count_unread_filtered_query p
         | true, None -> Db.find count_unread_query ()
         | false, Some p -> Db.find count_all_filtered_query p
@@ -298,7 +303,7 @@ let list_all ~page ~per_page ~unread_only ?query () =
   let+ rows =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
-        match unread_only, pattern with
+        match (unread_only, pattern) with
         | true, Some p ->
             Db.collect_list list_unread_filtered_query (p, per_page, offset)
         | true, None -> Db.collect_list list_unread_query (per_page, offset)

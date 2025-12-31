@@ -1,4 +1,9 @@
-type t = { id : int; name : string; tags : Tag.t list; metadata : Person_metadata.t list }
+type t = {
+  id : int;
+  name : string;
+  tags : Tag.t list;
+  metadata : Person_metadata.t list;
+}
 
 type t_with_counts = {
   id : int;
@@ -16,8 +21,10 @@ let tags_with_counts (t : t_with_counts) = t.tags
 let feed_count (t : t_with_counts) = t.feed_count
 let article_count (t : t_with_counts) = t.article_count
 let metadata_with_counts (t : t_with_counts) = t.metadata
+
 let create_with_counts ~id ~name ~tags ~feed_count ~article_count ~metadata =
   { id; name; tags; feed_count; article_count; metadata }
+
 let with_metadata_counts (t : t_with_counts) metadata = { t with metadata }
 
 (* t accessors - defined last so they match the .mli signature *)
@@ -58,12 +65,13 @@ let error_to_json = Shared.error_to_json
 (* t_with_counts pp/equal - defined first *)
 let pp_with_counts fmt (t : t_with_counts) =
   Format.fprintf fmt
-    "{ id = %d; name = %S; tags = [%d items]; feed_count = %d; article_count = %d; metadata = [%d items] }"
-    t.id t.name (List.length t.tags) t.feed_count t.article_count (List.length t.metadata)
+    "{ id = %d; name = %S; tags = [%d items]; feed_count = %d; article_count = \
+     %d; metadata = [%d items] }"
+    t.id t.name (List.length t.tags) t.feed_count t.article_count
+    (List.length t.metadata)
 
 let equal_with_counts (a : t_with_counts) (b : t_with_counts) =
-  Int.equal a.id b.id
-  && String.equal a.name b.name
+  Int.equal a.id b.id && String.equal a.name b.name
   && List.equal Tag.equal a.tags b.tags
   && Int.equal a.feed_count b.feed_count
   && Int.equal a.article_count b.article_count
@@ -71,11 +79,11 @@ let equal_with_counts (a : t_with_counts) (b : t_with_counts) =
 
 (* t pp/equal - defined last to match .mli *)
 let pp fmt (t : t) =
-  Format.fprintf fmt "{ id = %d; name = %S; tags = [%d items]; metadata = [%d items] }"
-    t.id t.name (List.length t.tags) (List.length t.metadata)
+  Format.fprintf fmt
+    "{ id = %d; name = %S; tags = [%d items]; metadata = [%d items] }" t.id
+    t.name (List.length t.tags) (List.length t.metadata)
 
 let equal (a : t) (b : t) =
-  Int.equal a.id b.id
-  && String.equal a.name b.name
+  Int.equal a.id b.id && String.equal a.name b.name
   && List.equal Tag.equal a.tags b.tags
   && List.equal Person_metadata.equal a.metadata b.metadata

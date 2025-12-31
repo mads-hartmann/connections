@@ -9,16 +9,21 @@ let test_endpoint endpoint () =
   Fun.protect
     ~finally:(fun () -> E2e_helpers.stop_server proc)
     (fun () ->
-      let status, body = E2e_helpers.http_get ~env ~sw ~port:server_port endpoint in
+      let status, body =
+        E2e_helpers.http_get ~env ~sw ~port:server_port endpoint
+      in
       Alcotest.(check int) "status is 200" 200 status;
       match E2e_helpers.read_snapshot endpoint with
       | None ->
           Alcotest.fail
-            (Printf.sprintf "Snapshot not found for %s. Run update_snapshots to create it." endpoint)
+            (Printf.sprintf
+               "Snapshot not found for %s. Run update_snapshots to create it."
+               endpoint)
       | Some expected ->
           let actual_normalized = E2e_helpers.normalize_json body in
           let expected_normalized = E2e_helpers.normalize_json expected in
-          Alcotest.(check string) "response matches snapshot" expected_normalized actual_normalized)
+          Alcotest.(check string)
+            "response matches snapshot" expected_normalized actual_normalized)
 
 let suite =
   List.map

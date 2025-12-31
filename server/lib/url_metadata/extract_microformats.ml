@@ -135,7 +135,9 @@ let extract_rel_me ~base_url soup =
   Soup.select "a[rel~=me]" soup
   |> Soup.to_list
   |> List.filter_map (fun node ->
-      Option.map (Html_helpers.resolve_url ~base_url) (Soup.attribute "href" node))
+      Option.map
+        (Html_helpers.resolve_url ~base_url)
+        (Soup.attribute "href" node))
 
 (* Known social platform domains for fallback detection *)
 let social_domains =
@@ -191,24 +193,28 @@ let is_social_profile_url url =
       in
       (* For YouTube, profile is /@username or /c/channel or /channel/id *)
       let is_youtube_profile =
-        (String.equal h "youtube.com" || String.ends_with ~suffix:".youtube.com" h)
-        && (match segments with
-            | [ username ] when String.starts_with ~prefix:"@" username -> true
-            | [ "c"; _ ] -> true
-            | [ "channel"; _ ] -> true
-            | [ "user"; _ ] -> true
-            | _ -> false)
+        (String.equal h "youtube.com"
+        || String.ends_with ~suffix:".youtube.com" h)
+        &&
+        match segments with
+        | [ username ] when String.starts_with ~prefix:"@" username -> true
+        | [ "c"; _ ] -> true
+        | [ "channel"; _ ] -> true
+        | [ "user"; _ ] -> true
+        | _ -> false
       in
-      let is_youtube = String.equal h "youtube.com" || String.ends_with ~suffix:".youtube.com" h in
+      let is_youtube =
+        String.equal h "youtube.com"
+        || String.ends_with ~suffix:".youtube.com" h
+      in
       (not is_status_url)
-      && not is_github_non_profile
-      && (not is_youtube || is_youtube_profile)
+      && (not is_github_non_profile)
+      && ((not is_youtube) || is_youtube_profile)
 
 (* Extract social links by URL pattern as fallback when rel="me" is missing *)
 let extract_social_links_by_pattern ~base_url soup =
   let seen = Hashtbl.create 16 in
-  Soup.select "a[href]" soup
-  |> Soup.to_list
+  Soup.select "a[href]" soup |> Soup.to_list
   |> List.filter_map (fun node ->
       Option.bind (Soup.attribute "href" node) (fun href ->
           let url = Html_helpers.resolve_url ~base_url href in

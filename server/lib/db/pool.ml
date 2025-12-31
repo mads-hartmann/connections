@@ -57,5 +57,4 @@ let exec_sql sql =
   apply statements
 
 (* Apply database schema embedded at build time from schema.sql *)
-let apply_schema () =
-  exec_sql Schema_sql.content
+let apply_schema () = exec_sql Schema_sql.content
