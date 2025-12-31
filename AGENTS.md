@@ -93,31 +93,12 @@ raise (type_error ~expected:"string" ~actual:"int")
 
 ### 5. Module Structure
 
-Use abstract type `t` pattern with accessors:
-
-```ocaml
-module User : sig
-  type t
-
-  val create : name:string -> email:string -> t
-  val name : t -> string
-  val email : t -> string
-  val pp : Format.formatter -> t -> unit
-  val equal : t -> t -> bool
-end = struct
-  type t = { name : string; email : string }
-
-  let create ~name ~email = { name; email }
-  let name t = t.name
-  let email t = t.email
-  let pp fmt t = Format.fprintf fmt "%s <%s>" t.name t.email
-  let equal a b = String.equal a.name b.name && String.equal a.email b.email
-end
-```
-
-Avoid generic module names: `Util`, `Utils`, `Helpers`, `Common`, `Misc`
-
-Use specific names: `String_ext`, `File_io`, `Json_codec`
+1. **Use `.mli` interface files** to define the public API and enforce abstraction
+2. **Define an abstract type `t`** as the module's primary type
+3. **Provide accessor functions** instead of exposing record fields directly
+4. **Include `pp` and `equal` functions** for debugging and testing
+5. Avoid generic module names: `Util`, `Utils`, `Helpers`, `Common`, `Misc`
+6. Use specific names: `String_ext`, `File_io`, `Json_codec`
 
 ### 6. Labeled Arguments
 
