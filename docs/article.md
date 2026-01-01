@@ -57,6 +57,25 @@ curl http://localhost:8080/feeds/1/articles
 curl "http://localhost:8080/feeds/1/articles?page=1&per_page=20"
 ```
 
+### List articles for a person
+
+```
+GET /persons/:person_id/articles
+```
+
+Returns all articles from all feeds belonging to this person.
+
+Query parameters:
+- `page` (int, default: 1) - Page number
+- `per_page` (int, default: 20) - Items per page
+- `unread` (bool, optional) - Filter to unread articles only
+
+```bash
+curl http://localhost:8080/persons/1/articles
+curl "http://localhost:8080/persons/1/articles?unread=true"
+curl "http://localhost:8080/persons/1/articles?page=1&per_page=10"
+```
+
 ### Get an article
 
 ```

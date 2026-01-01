@@ -24,6 +24,16 @@ let list_by_feed (pagination : Pagination.Pagination.t) feed_id =
   in
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)
 
+let list_by_person request (pagination : Pagination.Pagination.t) person_id =
+  let* _ = Service.Person.get ~id:person_id |> Handler_utils.or_person_error in
+  let unread_only = Handler_utils.query "unread" request = Some "true" in
+  let* paginated =
+    Service.Article.list_by_person ~person_id ~page:pagination.page
+      ~per_page:pagination.per_page ~unread_only
+    |> Handler_utils.or_article_error
+  in
+  Handler_utils.json_response (Model.Article.paginated_to_json paginated)
+
 let list_all request (pagination : Pagination.Pagination.t) =
   let unread_only = Handler_utils.query "unread" request = Some "true" in
   let tag = Handler_utils.query "tag" request in
@@ -87,6 +97,9 @@ let routes () =
     |> into list_by_feed;
     post (s "feeds" / int / s "articles" / s "mark-all-read")
     |> request |> into mark_all_read;
+    get (s "persons" / int / s "articles")
+    |> extract Pagination.Pagination.pagination_extractor
+    |> request |> into list_by_person;
     get (s "articles")
     |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_all;

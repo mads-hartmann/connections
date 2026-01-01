@@ -17,7 +17,7 @@ interface PersonDetailMetadataProps {
 }
 
 export function PersonDetailMetadata({ person }: PersonDetailMetadataProps) {
-  const tags = person.tags
+  const tags = person.tags;
   return (
     <List.Item.Detail
       metadata={

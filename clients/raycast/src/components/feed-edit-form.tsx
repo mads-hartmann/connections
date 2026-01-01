@@ -16,12 +16,13 @@ export function FeedEditForm({ feed, revalidate }: EditFeedFormProps) {
 
   const { isLoading: isLoadingAllTags, data: allTags } = usePromise(Tag.listAll);
 
-  const { isLoading: isLoadingFeedTags, data: feedTags, revalidate: revalidateFeedTags } = useFetch<Tag.Tag[]>(
-    Tag.listByFeedUrl(feed.id),
-    {
-      onData: (tags) => setSelectedTagIds(tags.map((t) => String(t.id))),
-    },
-  );
+  const {
+    isLoading: isLoadingFeedTags,
+    data: feedTags,
+    revalidate: revalidateFeedTags,
+  } = useFetch<Tag.Tag[]>(Tag.listByFeedUrl(feed.id), {
+    onData: (tags) => setSelectedTagIds(tags.map((t) => String(t.id))),
+  });
 
   const isLoading = isLoadingAllTags || isLoadingFeedTags || isSubmitting;
 

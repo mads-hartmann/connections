@@ -1,6 +1,7 @@
 import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import * as Person from "../api/person";
 import { AddMetadataForm } from "./add-metadata-form";
+import { ArticleList } from "./article-list";
 import { PersonCreateForm } from "./person-create-form";
 import { FeedList } from "./feed-list";
 import { ImportOpml } from "./import-opml";
@@ -20,17 +21,28 @@ export function PersonListItem({ person, revalidate, showDetail, onToggleDetail 
     revalidate();
   };
 
+  const accessories: List.Item.Accessory[] = [];
+  if (person.unread_article_count > 0) {
+    accessories.push({ text: `${person.unread_article_count} unread` });
+  }
+
   return (
     <List.Item
       key={String(person.id)}
       title={person.name}
-      accessories={[{ text: `${person.feed_count} feeds` }, { text: `${person.article_count} articles` }]}
+      accessories={accessories}
       detail={<PersonDetailMetadata person={person} />}
       actions={
         <ActionPanel>
           <Action.Push
+            title="View Articles"
+            icon={Icon.Document}
+            target={<ArticleList personId={person.id} personName={person.name} />}
+          />
+          <Action.Push
             title="View Feeds"
             icon={Icon.List}
+            shortcut={{ modifiers: ["cmd"], key: "f" }}
             target={<FeedList personId={person.id} personName={person.name} />}
           />
           <Action.Push

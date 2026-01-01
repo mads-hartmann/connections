@@ -4,16 +4,11 @@ import * as Article from "./api/article";
 import { markAllArticlesRead } from "./actions/article-actions";
 
 export default function Command() {
-  const {
-    isLoading,
-    data,
-    error,
-    revalidate,
-  } = useFetch<Article.ArticlesResponse>(
+  const { isLoading, data, error, revalidate } = useFetch<Article.ArticlesResponse>(
     Article.listAllUrl({ page: 1, unread: true }),
     {
       keepPreviousData: true,
-    }
+    },
   );
 
   const unreadCount = data?.total ?? 0;
@@ -23,7 +18,7 @@ export default function Command() {
     try {
       await Article.markArticleRead(article.id, true);
       revalidate();
-    } catch (e) {
+    } catch {
       await showToast({ style: Toast.Style.Failure, title: "Failed to mark as read" });
     }
     await open(article.url);
@@ -32,16 +27,9 @@ export default function Command() {
   const title = error || unreadCount === 0 ? undefined : String(unreadCount);
 
   return (
-    <MenuBarExtra
-      icon={Icon.Person}
-      title={title}
-      isLoading={isLoading}
-    >
+    <MenuBarExtra icon={Icon.Person} title={title} isLoading={isLoading}>
       {error ? (
-        <MenuBarExtra.Item
-          title={`Error: ${error.message}`}
-          onAction={() => revalidate()}
-        />
+        <MenuBarExtra.Item title={`Error: ${error.message}`} onAction={() => revalidate()} />
       ) : (
         <>
           <MenuBarExtra.Section title="Recent Unread">
@@ -72,9 +60,7 @@ export default function Command() {
               title="Open Connections"
               icon={Icon.AppWindow}
               shortcut={{ modifiers: ["cmd"], key: "o" }}
-              onAction={() =>
-                launchCommand({ name: "connections", type: LaunchType.UserInitiated })
-              }
+              onAction={() => launchCommand({ name: "connections", type: LaunchType.UserInitiated })}
             />
             <MenuBarExtra.Item
               title="Refresh"

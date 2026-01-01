@@ -26,6 +26,7 @@ val name_with_counts : t_with_counts -> string
 val tags_with_counts : t_with_counts -> Tag.t list
 val feed_count : t_with_counts -> int
 val article_count : t_with_counts -> int
+val unread_article_count : t_with_counts -> int
 val metadata_with_counts : t_with_counts -> Person_metadata.t list
 
 val create_with_counts :
@@ -34,6 +35,7 @@ val create_with_counts :
   tags:Tag.t list ->
   feed_count:int ->
   article_count:int ->
+  unread_article_count:int ->
   metadata:Person_metadata.t list ->
   t_with_counts
 

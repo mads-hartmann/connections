@@ -30,6 +30,10 @@ let list_by_feed ~feed_id ~page ~per_page =
   Db.Article.list_by_feed ~feed_id ~page ~per_page
   |> Result.map_error (fun err -> Error.Database err)
 
+let list_by_person ~person_id ~page ~per_page ~unread_only =
+  Db.Article.list_by_person ~person_id ~page ~per_page ~unread_only
+  |> Result.map_error (fun err -> Error.Database err)
+
 let mark_read ~id ~read =
   match Db.Article.mark_read ~id ~read with
   | Error err -> Error (Error.Database err)
