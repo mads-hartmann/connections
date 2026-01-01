@@ -42,7 +42,7 @@ export default function Command() {
     }
   };
 
-  const title = error ? undefined : String(unreadCount);
+  const title = error || unreadCount === 0 ? undefined : String(unreadCount);
 
   return (
     <MenuBarExtra
@@ -77,7 +77,7 @@ export default function Command() {
               <MenuBarExtra.Item
                 title="Mark All as Read"
                 icon={Icon.CheckCircle}
-                shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
                 onAction={handleMarkAllRead}
               />
             )}
