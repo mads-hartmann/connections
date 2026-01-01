@@ -1,6 +1,7 @@
 import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
+import { markAllArticlesRead } from "./actions/article-actions";
 import { PersonCreateForm } from "./components/person-create-form";
 import { FeedListItem } from "./components/feed-list-item";
 import { ImportOpml } from "./components/import-opml";
@@ -158,6 +159,7 @@ export default function Command() {
             revalidate={revalidateArticles}
             showDetail={showArticlesDetail}
             onToggleDetail={() => setShowArticlesDetail(!showArticlesDetail)}
+            onMarkAllRead={() => markAllArticlesRead(revalidateArticles)}
           />
         ))}
 

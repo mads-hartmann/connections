@@ -29,6 +29,13 @@
       "title": "Connections",
       "description": "",
       "mode": "view"
+    },
+    {
+      "name": "unread-count",
+      "title": "Unread Articles",
+      "description": "Shows unread article count in menu bar",
+      "mode": "menu-bar",
+      "interval": "5m"
     }
   ],
   "dependencies": {
