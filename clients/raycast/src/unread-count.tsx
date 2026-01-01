@@ -1,6 +1,7 @@
 import { Icon, MenuBarExtra, open, launchCommand, LaunchType, showToast, Toast } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import * as Article from "./api/article";
+import { markAllArticlesRead } from "./actions/article-actions";
 
 export default function Command() {
   const {
@@ -21,25 +22,11 @@ export default function Command() {
   const handleArticleClick = async (article: Article.Article) => {
     try {
       await Article.markArticleRead(article.id, true);
-      await open(article.url);
       revalidate();
     } catch (e) {
       await showToast({ style: Toast.Style.Failure, title: "Failed to mark as read" });
-      await open(article.url);
     }
-  };
-
-  const handleMarkAllRead = async () => {
-    try {
-      const result = await Article.markAllArticlesReadGlobal();
-      await showToast({
-        style: Toast.Style.Success,
-        title: `Marked ${result.marked_read} articles as read`,
-      });
-      revalidate();
-    } catch (e) {
-      await showToast({ style: Toast.Style.Failure, title: "Failed to mark all as read" });
-    }
+    await open(article.url);
   };
 
   const title = error || unreadCount === 0 ? undefined : String(unreadCount);
@@ -78,7 +65,7 @@ export default function Command() {
                 title="Mark All as Read"
                 icon={Icon.CheckCircle}
                 shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
-                onAction={handleMarkAllRead}
+                onAction={() => markAllArticlesRead(revalidate)}
               />
             )}
             <MenuBarExtra.Item
