@@ -8,55 +8,33 @@ interface CreatePersonFormProps {
 }
 
 export function PersonCreateForm({ revalidate }: CreatePersonFormProps) {
-  const { pop, push } = useNavigation();
+  const { push } = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
 
-  async function handleSubmit(values: { name: string; url: string }) {
-    const hasName = values.name.trim() !== "";
-    const hasUrl = values.url.trim() !== "";
-
-    // If URL provided, fetch metadata and show preview
-    if (hasUrl) {
-      setIsLoading(true);
-      try {
-        const metadata = await Metadata.fetchMetadata(values.url.trim());
-        push(<PersonPreviewForm metadata={metadata} initialName={values.name.trim()} revalidate={revalidate} />);
-      } catch (error) {
-        showToast({
-          style: Toast.Style.Failure,
-          title: "Failed to fetch URL",
-          message: error instanceof Error ? error.message : "Unknown error",
-        });
-      } finally {
-        setIsLoading(false);
-      }
+  async function handleSubmit(values: { url: string }) {
+    const url = values.url.trim();
+    if (!url) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Missing URL",
+        message: "Please paste a URL",
+      });
       return;
     }
 
-    // If only name provided, create directly
-    if (hasName) {
-      setIsLoading(true);
-      try {
-        await createPerson(values.name.trim());
-        revalidate();
-        pop();
-      } catch (error) {
-        showToast({
-          style: Toast.Style.Failure,
-          title: "Failed to create person",
-          message: error instanceof Error ? error.message : "Unknown error",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-      return;
+    setIsLoading(true);
+    try {
+      const metadata = await Metadata.fetchMetadata(url);
+      push(<PersonPreviewForm metadata={metadata} revalidate={revalidate} />);
+    } catch (error) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to fetch URL",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    showToast({
-      style: Toast.Style.Failure,
-      title: "Missing input",
-      message: "Please enter a name or URL",
-    });
   }
 
   return (
@@ -64,14 +42,12 @@ export function PersonCreateForm({ revalidate }: CreatePersonFormProps) {
       isLoading={isLoading}
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Create Person" onSubmit={handleSubmit} />
+          <Action.SubmitForm title="Fetch URL" onSubmit={handleSubmit} />
         </ActionPanel>
       }
     >
-      <Form.TextField id="name" title="Name" placeholder="Enter person's name" />
-      <Form.Separator />
-      <Form.TextField id="url" title="URL" placeholder="https://example.com (optional)" />
-      <Form.Description text="Enter a URL to automatically extract the person's name and discover their RSS feeds." />
+      <Form.TextField id="url" title="URL" placeholder="https://example.com" autoFocus />
+      <Form.Description text="Paste a URL to automatically extract the person's name and discover their RSS feeds." />
     </Form>
   );
 }
@@ -79,7 +55,7 @@ export function PersonCreateForm({ revalidate }: CreatePersonFormProps) {
 async function createPerson(
   name: string,
   feeds?: Array<{ url: string; title: string | null }>,
-  profiles?: Array<Metadata.ClassifiedProfile>
+  profiles?: Array<Metadata.ClassifiedProfile>,
 ) {
   const response = await fetch(`${getServerUrl()}/persons`, {
     method: "POST",
@@ -126,17 +102,15 @@ async function createPerson(
 
 interface PersonPreviewFormProps {
   metadata: Metadata.MetadataResponse;
-  initialName: string;
   revalidate: () => void;
 }
 
-function PersonPreviewForm({ metadata, initialName, revalidate }: PersonPreviewFormProps) {
+function PersonPreviewForm({ metadata, revalidate }: PersonPreviewFormProps) {
   const { pop } = useNavigation();
   const [isCreating, setIsCreating] = useState(false);
 
   // Determine the best name to use
   const suggestedName =
-    initialName ||
     metadata.merged.author?.name ||
     metadata.merged.content.author?.name ||
     metadata.merged.site.name ||

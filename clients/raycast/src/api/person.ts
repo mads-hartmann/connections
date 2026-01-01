@@ -18,6 +18,7 @@ export interface Person {
   name: string;
   feed_count: number;
   article_count: number;
+  unread_article_count: number;
   metadata: PersonMetadata[];
   tags: Tag[];
 }

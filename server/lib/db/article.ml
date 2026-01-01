@@ -139,6 +139,46 @@ let count_by_tag_unread_query =
       WHERE t.name = ? AND a.read_at IS NULL
     |}
 
+(* Base SELECT for person-filtered queries (needs JOIN through feeds) *)
+let select_with_tags_filtered_by_person =
+  Printf.sprintf
+    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+       COALESCE(%s, '[]') as tags,
+       a.og_title, a.og_description, a.og_image, a.og_site_name, a.og_fetched_at, a.og_fetch_error
+FROM articles a
+INNER JOIN rss_feeds f ON a.feed_id = f.id|}
+    tags_subquery
+
+let list_by_person_query =
+  Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* article_row_type)
+    (select_with_tags_filtered_by_person
+   ^ " WHERE f.person_id = ? ORDER BY a.published_at DESC, a.created_at DESC \
+      LIMIT ? OFFSET ?")
+
+let count_by_person_query =
+  Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
+    {|
+      SELECT COUNT(*)
+      FROM articles a
+      INNER JOIN rss_feeds f ON a.feed_id = f.id
+      WHERE f.person_id = ?
+    |}
+
+let list_by_person_unread_query =
+  Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* article_row_type)
+    (select_with_tags_filtered_by_person
+   ^ " WHERE f.person_id = ? AND a.read_at IS NULL ORDER BY a.published_at \
+      DESC, a.created_at DESC LIMIT ? OFFSET ?")
+
+let count_by_person_unread_query =
+  Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
+    {|
+      SELECT COUNT(*)
+      FROM articles a
+      INNER JOIN rss_feeds f ON a.feed_id = f.id
+      WHERE f.person_id = ? AND a.read_at IS NULL
+    |}
+
 (* List articles needing OG fetch: never fetched OR failed > 24h ago *)
 let list_needing_og_fetch_query =
   Caqti_request.Infix.(Caqti_type.int ->* article_row_type)
@@ -338,6 +378,29 @@ let list_by_tag ~tag ~page ~per_page ~unread_only =
         if unread_only then
           Db.collect_list list_by_tag_unread_query (tag, per_page, offset)
         else Db.collect_list list_by_tag_query (tag, per_page, offset))
+      pool
+  in
+  let data = List.map tuple_to_article rows in
+  Model.Shared.Paginated.make ~data ~page ~per_page ~total
+
+(* LIST BY PERSON with pagination and optional unread filter *)
+let list_by_person ~person_id ~page ~per_page ~unread_only =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let offset = (page - 1) * per_page in
+  let* total =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        if unread_only then Db.find count_by_person_unread_query person_id
+        else Db.find count_by_person_query person_id)
+      pool
+  in
+  let+ rows =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        if unread_only then
+          Db.collect_list list_by_person_unread_query (person_id, per_page, offset)
+        else Db.collect_list list_by_person_query (person_id, per_page, offset))
       pool
   in
   let data = List.map tuple_to_article rows in

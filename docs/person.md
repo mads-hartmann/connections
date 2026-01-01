@@ -17,6 +17,7 @@ When listing persons, additional computed fields are included:
 |-------|------|-------------|
 | `feed_count` | int | Number of RSS feeds |
 | `article_count` | int | Total articles across all feeds |
+| `unread_article_count` | int | Unread articles across all feeds |
 
 ### Metadata Item
 
@@ -109,6 +110,27 @@ DELETE /persons/:id
 
 ```bash
 curl -X DELETE http://localhost:8080/persons/1
+```
+
+## Articles
+
+### List articles for a person
+
+```
+GET /persons/:id/articles
+```
+
+Returns all articles from all feeds belonging to this person.
+
+Query parameters:
+- `page` (int, default: 1) - Page number
+- `per_page` (int, default: 20) - Items per page
+- `unread` (bool, optional) - Filter to unread articles only
+
+```bash
+curl http://localhost:8080/persons/1/articles
+curl "http://localhost:8080/persons/1/articles?unread=true"
+curl "http://localhost:8080/persons/1/articles?page=1&per_page=10"
 ```
 
 ## Tags

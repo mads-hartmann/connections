@@ -54,6 +54,14 @@ export function listByTagUrl({ tag, page }: { tag: string; page: number }) {
   return `${getServerUrl()}/articles?${params.toString()}`;
 }
 
+export function listByPersonUrl({ personId, page, unread }: { personId: number; page: number; unread?: boolean }) {
+  const params = new URLSearchParams({ page: String(page), per_page: "20" });
+  if (unread) {
+    params.set("unread", "true");
+  }
+  return `${getServerUrl()}/persons/${personId}/articles?${params.toString()}`;
+}
+
 export async function markArticleRead(id: number, read: boolean): Promise<Article> {
   const response = await fetch(`${getServerUrl()}/articles/${id}/read`, {
     method: "POST",

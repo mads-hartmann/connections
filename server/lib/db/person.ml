@@ -1,6 +1,6 @@
 (* Row type definitions - 3 fields with tags JSON *)
 let person_row_type = Caqti_type.(t3 int string string)
-let person_with_counts_row_type = Caqti_type.(t5 int string string int int)
+let person_with_counts_row_type = Caqti_type.(t6 int string string int int int)
 let metadata_row_type = Caqti_type.(t4 int int int string)
 
 let insert_query =
@@ -50,7 +50,8 @@ let list_with_counts_query =
                   JOIN tags t ON pt.tag_id = t.id
                   WHERE pt.person_id = p.id), '[]') as tags,
         COUNT(DISTINCT f.id) as feed_count,
-        COUNT(a.id) as article_count
+        COUNT(a.id) as article_count,
+        COUNT(CASE WHEN a.read_at IS NULL THEN 1 END) as unread_article_count
       FROM persons p
       LEFT JOIN rss_feeds f ON f.person_id = p.id
       LEFT JOIN articles a ON a.feed_id = f.id
@@ -71,7 +72,8 @@ let list_with_counts_filtered_query =
                   JOIN tags t ON pt.tag_id = t.id
                   WHERE pt.person_id = p.id), '[]') as tags,
         COUNT(DISTINCT f.id) as feed_count,
-        COUNT(a.id) as article_count
+        COUNT(a.id) as article_count,
+        COUNT(CASE WHEN a.read_at IS NULL THEN 1 END) as unread_article_count
       FROM persons p
       LEFT JOIN rss_feeds f ON f.person_id = p.id
       LEFT JOIN articles a ON a.feed_id = f.id
@@ -136,10 +138,10 @@ let group_metadata_by_person metadata =
 let tuple_to_person (id, name, tags_json) =
   Model.Person.create ~id ~name ~tags:(Tag_json.parse tags_json) ~metadata:[]
 
-let tuple_to_person_with_counts (id, name, tags_json, feed_count, article_count)
-    =
+let tuple_to_person_with_counts
+    (id, name, tags_json, feed_count, article_count, unread_article_count) =
   Model.Person.create_with_counts ~id ~name ~tags:(Tag_json.parse tags_json)
-    ~feed_count ~article_count ~metadata:[]
+    ~feed_count ~article_count ~unread_article_count ~metadata:[]
 
 let attach_metadata_with_counts metadata_tbl
     (person : Model.Person.t_with_counts) =

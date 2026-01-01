@@ -11,6 +11,7 @@ type t_with_counts = {
   tags : Tag.t list;
   feed_count : int;
   article_count : int;
+  unread_article_count : int;
   metadata : Person_metadata.t list;
 }
 
@@ -20,10 +21,12 @@ let name_with_counts (t : t_with_counts) = t.name
 let tags_with_counts (t : t_with_counts) = t.tags
 let feed_count (t : t_with_counts) = t.feed_count
 let article_count (t : t_with_counts) = t.article_count
+let unread_article_count (t : t_with_counts) = t.unread_article_count
 let metadata_with_counts (t : t_with_counts) = t.metadata
 
-let create_with_counts ~id ~name ~tags ~feed_count ~article_count ~metadata =
-  { id; name; tags; feed_count; article_count; metadata }
+let create_with_counts ~id ~name ~tags ~feed_count ~article_count
+    ~unread_article_count ~metadata =
+  { id; name; tags; feed_count; article_count; unread_article_count; metadata }
 
 let with_metadata_counts (t : t_with_counts) metadata = { t with metadata }
 
@@ -52,6 +55,7 @@ let to_json_with_counts (t : t_with_counts) =
       ("tags", `List (List.map Tag.yojson_of_t t.tags));
       ("feed_count", `Int t.feed_count);
       ("article_count", `Int t.article_count);
+      ("unread_article_count", `Int t.unread_article_count);
       ("metadata", `List (List.map Person_metadata.to_json t.metadata));
     ]
 
@@ -66,15 +70,16 @@ let error_to_json = Shared.error_to_json
 let pp_with_counts fmt (t : t_with_counts) =
   Format.fprintf fmt
     "{ id = %d; name = %S; tags = [%d items]; feed_count = %d; article_count = \
-     %d; metadata = [%d items] }"
+     %d; unread_article_count = %d; metadata = [%d items] }"
     t.id t.name (List.length t.tags) t.feed_count t.article_count
-    (List.length t.metadata)
+    t.unread_article_count (List.length t.metadata)
 
 let equal_with_counts (a : t_with_counts) (b : t_with_counts) =
   Int.equal a.id b.id && String.equal a.name b.name
   && List.equal Tag.equal a.tags b.tags
   && Int.equal a.feed_count b.feed_count
   && Int.equal a.article_count b.article_count
+  && Int.equal a.unread_article_count b.unread_article_count
   && List.equal Person_metadata.equal a.metadata b.metadata
 
 (* t pp/equal - defined last to match .mli *)

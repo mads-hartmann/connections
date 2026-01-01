@@ -6,8 +6,9 @@ import * as Tag from "../api/tag";
 import { ArticleListItem } from "./article-list-item";
 
 type ArticleListProps =
-  | { feedId: number; feedTitle: string; tag?: never }
-  | { tag: Tag.Tag; feedId?: never; feedTitle?: never };
+  | { feedId: number; feedTitle: string; tag?: never; personId?: never; personName?: never }
+  | { tag: Tag.Tag; feedId?: never; feedTitle?: never; personId?: never; personName?: never }
+  | { personId: number; personName: string; feedId?: never; feedTitle?: never; tag?: never };
 
 async function confirmMarkAllRead(feedTitle: string): Promise<boolean> {
   return await confirmAlert({
@@ -25,13 +26,25 @@ export function ArticleList(props: ArticleListProps) {
   const [showDetail, setShowDetail] = useState(true);
 
   const isTagView = "tag" in props && props.tag !== undefined;
-  const navigationTitle = isTagView ? `Tag: ${props.tag.name}` : `${props.feedTitle} - Articles`;
+  const isPersonView = "personId" in props && props.personId !== undefined;
+  const isFeedView = "feedId" in props && props.feedId !== undefined;
+
+  const navigationTitle = isTagView
+    ? `Tag: ${props.tag.name}`
+    : isPersonView
+      ? `${props.personName} - Articles`
+      : `${props.feedTitle} - Articles`;
 
   const { isLoading, data, pagination, revalidate } = useFetch(
-    (options) =>
-      isTagView
-        ? ArticleApi.listByTagUrl({ tag: props.tag.name, page: options.page + 1 })
-        : ArticleApi.listUrl({ feedId: props.feedId, page: options.page + 1 }),
+    (options) => {
+      if (isTagView) {
+        return ArticleApi.listByTagUrl({ tag: props.tag.name, page: options.page + 1 });
+      } else if (isPersonView) {
+        return ArticleApi.listByPersonUrl({ personId: props.personId, page: options.page + 1 });
+      } else {
+        return ArticleApi.listUrl({ feedId: props.feedId, page: options.page + 1 });
+      }
+    },
     {
       mapResult(result: ArticleApi.ArticlesResponse) {
         return {
@@ -46,7 +59,7 @@ export function ArticleList(props: ArticleListProps) {
   const filteredData = showUnreadOnly ? data?.filter((article) => article.read_at === null) : data;
 
   const markAllRead = async () => {
-    if (isTagView) return;
+    if (isTagView || isPersonView) return;
 
     const confirmed = await confirmMarkAllRead(props.feedTitle);
     if (!confirmed) return;
@@ -94,7 +107,7 @@ export function ArticleList(props: ArticleListProps) {
           revalidate={revalidate}
           showDetail={showDetail}
           onToggleDetail={() => setShowDetail(!showDetail)}
-          onMarkAllRead={isTagView ? undefined : markAllRead}
+          onMarkAllRead={isFeedView ? markAllRead : undefined}
         />
       ))}
     </List>

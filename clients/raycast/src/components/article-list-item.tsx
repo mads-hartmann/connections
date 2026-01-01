@@ -19,7 +19,13 @@ interface ArticleListItemProps {
   onMarkAllRead?: () => void;
 }
 
-export function ArticleListItem({ article, revalidate, showDetail, onToggleDetail, onMarkAllRead }: ArticleListItemProps) {
+export function ArticleListItem({
+  article,
+  revalidate,
+  showDetail,
+  onToggleDetail,
+  onMarkAllRead,
+}: ArticleListItemProps) {
   const isRead = article.read_at !== null;
 
   const toggleRead = async () => {

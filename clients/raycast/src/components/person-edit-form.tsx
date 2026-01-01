@@ -16,12 +16,13 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
 
   const { isLoading: isLoadingAllTags, data: allTags } = usePromise(Tag.listAll);
 
-  const { isLoading: isLoadingPersonTags, data: personTags, revalidate: revalidatePersonTags } = useFetch<Tag.Tag[]>(
-    Tag.listByPersonUrl(person.id),
-    {
-      onData: (tags) => setSelectedTagIds(tags.map((t) => String(t.id))),
-    },
-  );
+  const {
+    isLoading: isLoadingPersonTags,
+    data: personTags,
+    revalidate: revalidatePersonTags,
+  } = useFetch<Tag.Tag[]>(Tag.listByPersonUrl(person.id), {
+    onData: (tags) => setSelectedTagIds(tags.map((t) => String(t.id))),
+  });
 
   const isLoading = isLoadingAllTags || isLoadingPersonTags || isSubmitting;
 
@@ -78,11 +79,11 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
     >
       <Form.TextField id="name" title="Name" defaultValue={person.name} placeholder="Person name" />
       {!isLoadingAllTags && !isLoadingPersonTags && (
-      <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
-        {allTags?.map((tag) => (
-          <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
-        ))}
-      </Form.TagPicker>
+        <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
+          {allTags?.map((tag) => (
+            <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
+          ))}
+        </Form.TagPicker>
       )}
     </Form>
   );
