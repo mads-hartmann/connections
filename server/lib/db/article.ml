@@ -171,6 +171,11 @@ let mark_all_read_query =
     "UPDATE articles SET read_at = datetime('now') WHERE feed_id = ? AND \
      read_at IS NULL RETURNING id"
 
+let mark_all_read_global_query =
+  Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
+    "UPDATE articles SET read_at = datetime('now') WHERE read_at IS NULL \
+     RETURNING id"
+
 let delete_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
     "DELETE FROM articles WHERE id = ?"
@@ -426,6 +431,15 @@ let mark_all_read ~feed_id =
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
       Db.collect_list mark_all_read_query feed_id)
+    pool
+  |> Result.map List.length
+
+(* MARK ALL READ globally *)
+let mark_all_read_global () =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.collect_list mark_all_read_global_query ())
     pool
   |> Result.map List.length
 

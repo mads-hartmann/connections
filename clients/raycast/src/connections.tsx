@@ -1,6 +1,6 @@
-import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
+import { Action, ActionPanel, Icon, Keyboard, List, showToast, Toast } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { PersonCreateForm } from "./components/person-create-form";
 import { FeedListItem } from "./components/feed-list-item";
 import { ImportOpml } from "./components/import-opml";
@@ -158,6 +158,22 @@ export default function Command() {
             revalidate={revalidateArticles}
             showDetail={showArticlesDetail}
             onToggleDetail={() => setShowArticlesDetail(!showArticlesDetail)}
+            onMarkAllRead={async () => {
+              try {
+                const result = await Article.markAllArticlesReadGlobal();
+                await showToast({
+                  style: Toast.Style.Success,
+                  title: `Marked ${result.marked_read} articles as read`,
+                });
+                revalidateArticles();
+              } catch (error) {
+                await showToast({
+                  style: Toast.Style.Failure,
+                  title: "Failed to mark all as read",
+                  message: error instanceof Error ? error.message : "Unknown error",
+                });
+              }
+            }}
           />
         ))}
 

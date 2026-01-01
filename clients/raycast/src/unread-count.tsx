@@ -1,8 +1,6 @@
-import { MenuBarExtra, open, launchCommand, LaunchType } from "@raycast/api";
+import { Icon, MenuBarExtra, open, launchCommand, LaunchType, showToast, Toast } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import * as Article from "./api/article";
-
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 export default function Command() {
   const {
@@ -20,22 +18,35 @@ export default function Command() {
   const unreadCount = data?.total ?? 0;
   const recentArticles = data?.data.slice(0, 5) ?? [];
 
-  // Set up periodic refresh
-  useFetch(Article.listAllUrl({ page: 1, unread: true }), {
-    execute: false,
-    onData: () => revalidate(),
-  });
+  const handleArticleClick = async (article: Article.Article) => {
+    try {
+      await Article.markArticleRead(article.id, true);
+      await open(article.url);
+      revalidate();
+    } catch (e) {
+      await showToast({ style: Toast.Style.Failure, title: "Failed to mark as read" });
+      await open(article.url);
+    }
+  };
 
-  // Manual interval for background refresh
-  if (typeof window !== "undefined") {
-    setInterval(() => revalidate(), REFRESH_INTERVAL_MS);
-  }
+  const handleMarkAllRead = async () => {
+    try {
+      const result = await Article.markAllArticlesReadGlobal();
+      await showToast({
+        style: Toast.Style.Success,
+        title: `Marked ${result.marked_read} articles as read`,
+      });
+      revalidate();
+    } catch (e) {
+      await showToast({ style: Toast.Style.Failure, title: "Failed to mark all as read" });
+    }
+  };
 
   const title = error ? undefined : String(unreadCount);
 
   return (
     <MenuBarExtra
-      icon="extension-icon.png"
+      icon={Icon.Person}
       title={title}
       isLoading={isLoading}
     >
@@ -55,15 +66,24 @@ export default function Command() {
                   key={article.id}
                   title={article.title ?? article.url}
                   subtitle={article.author ?? undefined}
-                  onAction={() => open(article.url)}
+                  onAction={() => handleArticleClick(article)}
                 />
               ))
             )}
           </MenuBarExtra.Section>
 
           <MenuBarExtra.Section>
+            {unreadCount > 0 && (
+              <MenuBarExtra.Item
+                title="Mark All as Read"
+                icon={Icon.CheckCircle}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
+                onAction={handleMarkAllRead}
+              />
+            )}
             <MenuBarExtra.Item
               title="Open Connections"
+              icon={Icon.AppWindow}
               shortcut={{ modifiers: ["cmd"], key: "o" }}
               onAction={() =>
                 launchCommand({ name: "connections", type: LaunchType.UserInitiated })
@@ -71,6 +91,7 @@ export default function Command() {
             />
             <MenuBarExtra.Item
               title="Refresh"
+              icon={Icon.ArrowClockwise}
               shortcut={{ modifiers: ["cmd"], key: "r" }}
               onAction={() => revalidate()}
             />

@@ -58,6 +58,12 @@ let mark_all_read _request feed_id =
   in
   Handler_utils.json_response (`Assoc [ ("marked_read", `Int count) ])
 
+let mark_all_read_global _request =
+  let* count =
+    Service.Article.mark_all_read_global () |> Handler_utils.or_article_error
+  in
+  Handler_utils.json_response (`Assoc [ ("marked_read", `Int count) ])
+
 let delete_article _request id =
   let* () = Service.Article.delete ~id |> Handler_utils.or_article_error in
   Response.of_string ~body:"" `No_content
@@ -85,6 +91,7 @@ let routes () =
     get (s "articles")
     |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_all;
+    post (s "articles" / s "mark-all-read") |> request |> into mark_all_read_global;
     get (s "articles" / int) |> request |> into get_article;
     post (s "articles" / int / s "read") |> request |> into mark_read;
     post (s "articles" / int / s "refresh-metadata")
