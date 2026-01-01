@@ -102,6 +102,18 @@ Returns the count of articles marked as read.
 curl -X POST http://localhost:8080/feeds/1/articles/mark-all-read
 ```
 
+### Mark all articles as read
+
+```
+POST /articles/mark-all-read
+```
+
+Marks all unread articles as read across all feeds. Returns the count of articles marked as read.
+
+```bash
+curl -X POST http://localhost:8080/articles/mark-all-read
+```
+
 ### Refresh article metadata
 
 ```
