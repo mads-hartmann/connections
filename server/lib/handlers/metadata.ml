@@ -13,7 +13,8 @@ let get_context () =
   | Some sw, Some env -> (sw, env)
   | _ -> failwith "Handler context not initialized"
 
-let handler request =
+(* Full metadata extraction - for debugging/development *)
+let full_handler request =
   let* url =
     Handler_utils.query "url" request
     |> Handler_utils.or_not_found "Missing 'url' query parameter"
@@ -27,6 +28,42 @@ let handler request =
   in
   Handler_utils.json_response (Url_metadata.full_response_to_json result)
 
+(* Contact metadata - person/site information *)
+let contact_handler request =
+  let* url =
+    Handler_utils.query "url" request
+    |> Handler_utils.or_not_found "Missing 'url' query parameter"
+  in
+  let* valid_url =
+    Handler_utils.validate_url url |> Handler_utils.or_bad_request
+  in
+  let sw, env = get_context () in
+  let* result =
+    Url_metadata.Contact_metadata.fetch ~sw ~env valid_url
+    |> Handler_utils.or_bad_request
+  in
+  Handler_utils.json_response (Url_metadata.Contact_metadata.to_json result)
+
+(* Article metadata - content information *)
+let article_handler request =
+  let* url =
+    Handler_utils.query "url" request
+    |> Handler_utils.or_not_found "Missing 'url' query parameter"
+  in
+  let* valid_url =
+    Handler_utils.validate_url url |> Handler_utils.or_bad_request
+  in
+  let sw, env = get_context () in
+  let* result =
+    Url_metadata.Article_metadata.fetch ~sw ~env valid_url
+    |> Handler_utils.or_bad_request
+  in
+  Handler_utils.json_response (Url_metadata.Article_metadata.to_json result)
+
 let routes () =
   let open Tapak.Router in
-  [ get (s "url-metadata") |> request |> into handler ]
+  [
+    get (s "url-metadata") |> request |> into full_handler;
+    get (s "contact-metadata") |> request |> into contact_handler;
+    get (s "article-metadata") |> request |> into article_handler;
+  ]
