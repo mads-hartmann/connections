@@ -1,4 +1,4 @@
-(* Open Graph metadata fetcher for articles *)
+(* Article metadata fetcher *)
 
 module Log = (val Logs.src_log (Logs.Src.create "og_fetcher") : Logs.LOG)
 
@@ -6,31 +6,26 @@ module Log = (val Logs.src_log (Logs.Src.create "og_fetcher") : Logs.LOG)
 let batch_size = 50
 let fetch_interval_seconds = 300.0 (* 5 minutes *)
 
-(* Extract OG metadata from HTML *)
-let extract_og_metadata html : Db.Article.og_metadata_input =
-  let soup = Soup.parse html in
-  let og = Url_metadata.Extract_opengraph.extract soup in
-  {
-    Db.Article.og_title = og.title;
-    og_description = og.description;
-    og_image = og.image;
-    og_site_name = og.site_name;
-    og_fetch_error = None;
-  }
-
-(* Fetch OG metadata for a single article *)
+(* Fetch metadata for a single article *)
 let fetch_for_article ~sw ~env (article : Model.Article.t) :
     (Model.Article.t option, Caqti_error.t) result =
   let article_id = Model.Article.id article in
   let article_url = Model.Article.url article in
   Log.info (fun m ->
-      m "Fetching OG metadata for article %d: %s" article_id article_url);
+      m "Fetching metadata for article %d: %s" article_id article_url);
   let og_input =
-    match Url_metadata.Fetch.fetch_html ~sw ~env article_url with
-    | Ok html -> extract_og_metadata html
+    match Url_metadata.Article_metadata.fetch ~sw ~env article_url with
+    | Ok meta ->
+        {
+          Db.Article.og_title = meta.title;
+          og_description = meta.description;
+          og_image = meta.image;
+          og_site_name = meta.site_name;
+          og_fetch_error = None;
+        }
     | Error err ->
         Log.warn (fun m ->
-            m "Failed to fetch OG for article %d: %s" article_id err);
+            m "Failed to fetch metadata for article %d: %s" article_id err);
         {
           Db.Article.og_title = None;
           og_description = None;
@@ -74,7 +69,7 @@ let rec run_loop ~sw ~env ~clock () =
     (try
        let processed = process_batch ~sw ~env () in
        if processed > 0 then
-         Log.info (fun m -> m "OG fetch batch complete: %d articles" processed)
+         Log.info (fun m -> m "Article metadata fetch complete: %d articles" processed)
      with exn ->
        Log.err (fun m -> m "OG fetcher error: %s" (Printexc.to_string exn)));
     (* Sleep, checking running flag periodically for faster shutdown *)
@@ -92,7 +87,7 @@ let rec run_loop ~sw ~env ~clock () =
 let start ~sw ~env =
   let clock = Eio.Stdenv.clock env in
   Log.info (fun m ->
-      m "Starting OG metadata fetcher (interval: %g seconds, batch: %d)"
+      m "Starting article metadata fetcher (interval: %g seconds, batch: %d)"
         fetch_interval_seconds batch_size);
   running := true;
   Eio.Fiber.fork_daemon ~sw (fun () ->
