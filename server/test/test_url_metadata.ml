@@ -118,39 +118,12 @@ let html_with_html_meta =
 <body></body>
 </html>|}
 
-let html_combined =
-  {|<!DOCTYPE html>
-<html>
-<head>
-  <title>Combined Page</title>
-  <meta name="description" content="HTML description">
-  <meta property="og:title" content="OG Title">
-  <meta property="og:description" content="OG description">
-  <meta name="twitter:title" content="Twitter Title">
-  <link rel="alternate" type="application/rss+xml" href="/feed.xml">
-  <script type="application/ld+json">
-  {
-    "@type": "Article",
-    "headline": "JSON-LD Title",
-    "author": {"@type": "Person", "name": "JSON-LD Author"}
-  }
-  </script>
-</head>
-<body>
-  <article class="h-entry">
-    <h1 class="p-name">Microformat Title</h1>
-    <div class="p-author h-card">
-      <span class="p-name">Microformat Author</span>
-    </div>
-  </article>
-</body>
-</html>|}
+(* Contact metadata tests *)
 
-(* Test cases *)
-
-let test_extract_feeds () =
+let test_contact_extract_feeds () =
   let result =
-    Url_metadata.extract ~url:"https://example.com" ~html:html_with_feeds
+    Url_metadata.Contact_metadata.extract ~url:"https://example.com"
+      ~html:html_with_feeds
   in
   Alcotest.(check int) "found 3 feeds" 3 (List.length result.feeds);
   let rss_feed = List.nth result.feeds 0 in
@@ -159,153 +132,176 @@ let test_extract_feeds () =
   Alcotest.(check (option string))
     "RSS feed title" (Some "RSS Feed") rss_feed.title
 
-let test_extract_opengraph () =
+let test_contact_extract_microformats () =
   let result =
-    Url_metadata.extract ~url:"https://example.com" ~html:html_with_opengraph
+    Url_metadata.Contact_metadata.extract ~url:"https://example.com"
+      ~html:html_with_microformats
   in
   Alcotest.(check (option string))
-    "OG title" (Some "OG Title") result.content.title;
+    "author name" (Some "Author Name") result.name;
   Alcotest.(check (option string))
-    "OG description" (Some "OG Description") result.content.description;
+    "author url" (Some "https://example.com/author") result.url;
   Alcotest.(check (option string))
-    "OG image" (Some "https://example.com/image.jpg") result.content.image;
+    "author photo" (Some "https://example.com/avatar.jpg") result.photo;
   Alcotest.(check (option string))
-    "OG type" (Some "article") result.content.content_type;
+    "author bio" (Some "Author bio here") result.bio;
   Alcotest.(check (option string))
-    "published time" (Some "2024-01-15T10:00:00Z") result.content.published_at;
-  Alcotest.(check int) "2 tags" 2 (List.length result.content.tags);
-  Alcotest.(check (option string))
-    "site name" (Some "Example Site") result.site.name;
-  Alcotest.(check (option string)) "locale" (Some "en_US") result.site.locale
+    "author location" (Some "San Francisco, USA") result.location;
+  Alcotest.(check int)
+    "social profiles (email + 2 rel-me)" 3
+    (List.length result.social_profiles)
 
-let test_extract_twitter () =
+let test_contact_extract_json_ld_person () =
   let result =
-    Url_metadata.extract ~url:"https://example.com" ~html:html_with_twitter
+    Url_metadata.Contact_metadata.extract ~url:"https://example.com"
+      ~html:html_with_json_ld
+  in
+  (* JSON-LD article author should be extracted *)
+  Alcotest.(check (option string)) "author name" (Some "Jane Smith") result.name;
+  Alcotest.(check (option string))
+    "author url" (Some "https://example.com/jane") result.url;
+  Alcotest.(check int)
+    "2 social profiles from sameAs" 2
+    (List.length result.social_profiles)
+
+(* Article metadata tests *)
+
+let test_article_extract_opengraph () =
+  let result =
+    Url_metadata.Article_metadata.extract ~url:"https://example.com"
+      ~html:html_with_opengraph
+  in
+  Alcotest.(check (option string)) "OG title" (Some "OG Title") result.title;
+  Alcotest.(check (option string))
+    "OG description" (Some "OG Description") result.description;
+  Alcotest.(check (option string))
+    "OG image" (Some "https://example.com/image.jpg") result.image;
+  Alcotest.(check (option string))
+    "OG type" (Some "article") result.content_type;
+  Alcotest.(check (option string))
+    "published time" (Some "2024-01-15T10:00:00Z") result.published_at;
+  Alcotest.(check int) "2 tags" 2 (List.length result.tags);
+  Alcotest.(check (option string))
+    "site name" (Some "Example Site") result.site_name;
+  Alcotest.(check (option string))
+    "canonical url" (Some "https://example.com/article") result.canonical_url
+
+let test_article_extract_twitter () =
+  let result =
+    Url_metadata.Article_metadata.extract ~url:"https://example.com"
+      ~html:html_with_twitter
   in
   Alcotest.(check (option string))
-    "Twitter title" (Some "Twitter Title") result.content.title;
+    "Twitter title" (Some "Twitter Title") result.title;
   Alcotest.(check (option string))
-    "Twitter description" (Some "Twitter Description")
-    result.content.description;
+    "Twitter description" (Some "Twitter Description") result.description;
   Alcotest.(check (option string))
-    "Twitter image" (Some "https://example.com/twitter-image.jpg")
-    result.content.image
+    "Twitter image" (Some "https://example.com/twitter-image.jpg") result.image;
+  Alcotest.(check (option string))
+    "Twitter creator as author" (Some "@johndoe") result.author_name
 
-let test_extract_json_ld () =
+let test_article_extract_json_ld () =
   let result =
-    Url_metadata.extract ~url:"https://example.com" ~html:html_with_json_ld
+    Url_metadata.Article_metadata.extract ~url:"https://example.com"
+      ~html:html_with_json_ld
   in
   Alcotest.(check (option string))
-    "JSON-LD headline" (Some "JSON-LD Headline") result.content.title;
+    "JSON-LD headline" (Some "JSON-LD Headline") result.title;
   Alcotest.(check (option string))
-    "JSON-LD description" (Some "JSON-LD description")
-    result.content.description;
+    "JSON-LD description" (Some "JSON-LD description") result.description;
   Alcotest.(check (option string))
-    "JSON-LD published" (Some "2024-01-20T09:00:00Z")
-    result.content.published_at;
+    "JSON-LD published" (Some "2024-01-20T09:00:00Z") result.published_at;
   Alcotest.(check (option string))
-    "JSON-LD modified" (Some "2024-01-21T14:30:00Z") result.content.modified_at;
-  Alcotest.(check int) "1 raw JSON-LD block" 1 (List.length result.raw_json_ld);
-  (* Check author *)
-  match result.author with
-  | None -> Alcotest.fail "expected author"
-  | Some author ->
-      Alcotest.(check (option string))
-        "author name" (Some "Jane Smith") author.name;
-      Alcotest.(check (option string))
-        "author url" (Some "https://example.com/jane") author.url;
-      Alcotest.(check int)
-        "2 social profiles" 2
-        (List.length author.social_profiles)
+    "JSON-LD modified" (Some "2024-01-21T14:30:00Z") result.modified_at;
+  Alcotest.(check (option string))
+    "JSON-LD author name" (Some "Jane Smith") result.author_name;
+  Alcotest.(check (option string))
+    "JSON-LD image" (Some "https://example.com/article-image.jpg") result.image
 
-let test_extract_microformats () =
+let test_article_extract_html_meta () =
   let result =
-    Url_metadata.extract ~url:"https://example.com" ~html:html_with_microformats
+    Url_metadata.Article_metadata.extract ~url:"https://example.com"
+      ~html:html_with_html_meta
   in
   Alcotest.(check (option string))
-    "h-entry name" (Some "Microformat Entry Title") result.content.title;
+    "HTML title" (Some "HTML Meta Page") result.title;
   Alcotest.(check (option string))
-    "h-entry summary" (Some "Entry summary text") result.content.description;
+    "HTML description" (Some "Meta description") result.description;
   Alcotest.(check (option string))
-    "h-entry published" (Some "2024-02-01T08:00:00Z")
-    result.content.published_at;
-  Alcotest.(check int) "2 tags" 2 (List.length result.content.tags);
-  (* Check author from h-card *)
-  match result.author with
-  | None -> Alcotest.fail "expected author"
-  | Some author ->
-      Alcotest.(check (option string))
-        "author name" (Some "Author Name") author.name;
-      Alcotest.(check (option string))
-        "author url" (Some "https://example.com/author") author.url;
-      Alcotest.(check (option string))
-        "author photo" (Some "https://example.com/avatar.jpg") author.photo;
-      Alcotest.(check (option string))
-        "author bio" (Some "Author bio here") author.bio;
-      Alcotest.(check (option string))
-        "author location" (Some "San Francisco, USA") author.location;
-      Alcotest.(check int)
-        "2 rel-me links" 2
-        (List.length author.social_profiles)
+    "HTML author" (Some "Meta Author") result.author_name;
+  Alcotest.(check (option string))
+    "canonical URL" (Some "https://example.com/canonical") result.canonical_url
 
-let test_extract_html_meta () =
+let test_article_priority () =
+  (* JSON-LD should take priority over OG over Twitter over HTML *)
+  let html =
+    {|<!DOCTYPE html>
+<html>
+<head>
+  <title>HTML Title</title>
+  <meta name="description" content="HTML description">
+  <meta property="og:title" content="OG Title">
+  <meta property="og:description" content="OG description">
+  <meta name="twitter:title" content="Twitter Title">
+  <script type="application/ld+json">
+  {
+    "@type": "Article",
+    "headline": "JSON-LD Title",
+    "description": "JSON-LD description"
+  }
+  </script>
+</head>
+<body></body>
+</html>|}
+  in
   let result =
-    Url_metadata.extract ~url:"https://example.com" ~html:html_with_html_meta
+    Url_metadata.Article_metadata.extract ~url:"https://example.com" ~html
   in
   Alcotest.(check (option string))
-    "HTML title" (Some "HTML Meta Page") result.content.title;
+    "title from JSON-LD" (Some "JSON-LD Title") result.title;
   Alcotest.(check (option string))
-    "HTML description" (Some "Meta description") result.content.description;
-  Alcotest.(check (option string))
-    "canonical URL" (Some "https://example.com/canonical")
-    result.site.canonical_url;
-  Alcotest.(check (option string))
-    "favicon" (Some "https://example.com/favicon.ico") result.site.favicon;
-  Alcotest.(check (option string))
-    "webmention" (Some "https://example.com/webmention")
-    result.site.webmention_endpoint
+    "description from JSON-LD" (Some "JSON-LD description") result.description
 
-let test_merge_priority () =
-  (* Microformats should take priority over JSON-LD over OG over Twitter over HTML *)
-  let result =
-    Url_metadata.extract ~url:"https://example.com" ~html:html_combined
-  in
-  Alcotest.(check (option string))
-    "title from microformats" (Some "Microformat Title") result.content.title;
-  match result.author with
-  | None -> Alcotest.fail "expected author"
-  | Some author ->
-      Alcotest.(check (option string))
-        "author from microformats" (Some "Microformat Author") author.name
-
-let test_relative_url_resolution () =
+let test_contact_relative_url_resolution () =
   let html =
     {|<!DOCTYPE html>
 <html>
 <head>
   <link rel="alternate" type="application/rss+xml" href="/feed.xml">
-  <link rel="icon" href="favicon.ico">
 </head>
-<body></body>
+<body>
+  <div class="h-card">
+    <img class="u-photo" src="avatar.jpg">
+  </div>
+</body>
 </html>|}
   in
-  let result = Url_metadata.extract ~url:"https://example.com/blog/" ~html in
+  let result =
+    Url_metadata.Contact_metadata.extract ~url:"https://example.com/blog/" ~html
+  in
   let feed = List.nth result.feeds 0 in
   Alcotest.(check string)
     "feed URL resolved" "https://example.com/feed.xml" feed.url;
   Alcotest.(check (option string))
-    "favicon resolved" (Some "https://example.com/blog/favicon.ico")
-    result.site.favicon
+    "photo resolved" (Some "https://example.com/blog/avatar.jpg") result.photo
 
 let suite =
   [
-    Alcotest.test_case "extract feeds" `Quick test_extract_feeds;
-    Alcotest.test_case "extract OpenGraph" `Quick test_extract_opengraph;
-    Alcotest.test_case "extract Twitter Cards" `Quick test_extract_twitter;
-    Alcotest.test_case "extract JSON-LD" `Quick test_extract_json_ld;
-    Alcotest.test_case "extract Microformats" `Quick test_extract_microformats;
-    Alcotest.test_case "extract HTML meta" `Quick test_extract_html_meta;
-    Alcotest.test_case "merge priority" `Quick test_merge_priority;
-    Alcotest.test_case "relative URL resolution" `Quick
-      test_relative_url_resolution;
+    Alcotest.test_case "contact: extract feeds" `Quick
+      test_contact_extract_feeds;
+    Alcotest.test_case "contact: extract microformats" `Quick
+      test_contact_extract_microformats;
+    Alcotest.test_case "contact: extract JSON-LD person" `Quick
+      test_contact_extract_json_ld_person;
+    Alcotest.test_case "article: extract OpenGraph" `Quick
+      test_article_extract_opengraph;
+    Alcotest.test_case "article: extract Twitter Cards" `Quick
+      test_article_extract_twitter;
+    Alcotest.test_case "article: extract JSON-LD" `Quick
+      test_article_extract_json_ld;
+    Alcotest.test_case "article: extract HTML meta" `Quick
+      test_article_extract_html_meta;
+    Alcotest.test_case "article: priority ordering" `Quick test_article_priority;
+    Alcotest.test_case "contact: relative URL resolution" `Quick
+      test_contact_relative_url_resolution;
   ]
