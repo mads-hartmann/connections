@@ -1,7 +1,7 @@
 (** Article metadata extraction from web pages.
 
-    Extracts information about articles/content using OpenGraph,
-    Twitter Cards, JSON-LD Article, and HTML meta tags. *)
+    Extracts information about articles/content using OpenGraph, Twitter Cards,
+    JSON-LD Article, and HTML meta tags. *)
 
 type t = {
   title : string option;

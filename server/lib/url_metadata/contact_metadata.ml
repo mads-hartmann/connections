@@ -66,15 +66,13 @@ let to_json t =
       ]
   in
   `Assoc
-    (opt_field "name" t.name
-    @ opt_field "url" t.url
-    @ opt_field "email" t.email
-    @ opt_field "photo" t.photo
-    @ opt_field "bio" t.bio
+    (opt_field "name" t.name @ opt_field "url" t.url @ opt_field "email" t.email
+   @ opt_field "photo" t.photo @ opt_field "bio" t.bio
     @ opt_field "location" t.location
     @ [ ("feeds", `List (List.map feed_to_json t.feeds)) ]
-    @ [ ("social_profiles", `List (List.map profile_to_json t.social_profiles)) ]
-    )
+    @ [
+        ("social_profiles", `List (List.map profile_to_json t.social_profiles));
+      ])
 
 (* Merge contact info from multiple sources with priority ordering.
    Priority: Microformats > JSON-LD > rel-me links *)
@@ -101,11 +99,7 @@ let merge_contact ~(microformats : Extract_microformats.h_card option)
     | Some mf when Option.is_some mf.photo -> mf.photo
     | _ -> Option.bind json_ld (fun jl -> jl.image)
   in
-  let bio =
-    match microformats with
-    | Some mf -> mf.note
-    | None -> None
-  in
+  let bio = match microformats with Some mf -> mf.note | None -> None in
   let location =
     match microformats with
     | Some mf -> (
@@ -125,7 +119,9 @@ let merge_contact ~(microformats : Extract_microformats.h_card option)
     rel_me @ from_json_ld
   in
   (* Classify and deduplicate profiles *)
-  let social_profiles = Merge.classify_profiles ~email ~social_profiles:raw_profiles in
+  let social_profiles =
+    Merge.classify_profiles ~email ~social_profiles:raw_profiles
+  in
   { name; url; email; photo; bio; location; feeds; social_profiles }
 
 let extract ~url ~html =

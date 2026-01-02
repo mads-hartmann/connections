@@ -1,4 +1,5 @@
-module Log = (val Logs.src_log (Logs.Src.create "url_metadata.fetch") : Logs.LOG)
+module Log =
+  (val Logs.src_log (Logs.Src.create "url_metadata.fetch") : Logs.LOG)
 
 let max_redirects = 10
 

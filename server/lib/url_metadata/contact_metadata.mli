@@ -1,7 +1,7 @@
 (** Contact metadata extraction from personal/site homepages.
 
-    Extracts information about a person from their homepage using
-    Microformats h-card, JSON-LD Person, rel-me links, and RSS/Atom feeds. *)
+    Extracts information about a person from their homepage using Microformats
+    h-card, JSON-LD Person, rel-me links, and RSS/Atom feeds. *)
 
 type t = {
   name : string option;

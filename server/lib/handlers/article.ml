@@ -103,7 +103,8 @@ let routes () =
     get (s "articles")
     |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_all;
-    post (s "articles" / s "mark-all-read") |> request |> into mark_all_read_global;
+    post (s "articles" / s "mark-all-read")
+    |> request |> into mark_all_read_global;
     get (s "articles" / int) |> request |> into get_article;
     post (s "articles" / int / s "read") |> request |> into mark_read;
     post (s "articles" / int / s "refresh-metadata")

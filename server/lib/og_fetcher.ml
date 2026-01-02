@@ -69,7 +69,8 @@ let rec run_loop ~sw ~env ~clock () =
     (try
        let processed = process_batch ~sw ~env () in
        if processed > 0 then
-         Log.info (fun m -> m "Article metadata fetch complete: %d articles" processed)
+         Log.info (fun m ->
+             m "Article metadata fetch complete: %d articles" processed)
      with exn ->
        Log.err (fun m -> m "OG fetcher error: %s" (Printexc.to_string exn)));
     (* Sleep, checking running flag periodically for faster shutdown *)

@@ -104,13 +104,14 @@ let merge_article ~(json_ld : Extract_json_ld.article option)
   in
   let modified_at =
     first_some
-      [ Option.bind json_ld (fun a -> a.date_modified); opengraph.modified_time ]
+      [
+        Option.bind json_ld (fun a -> a.date_modified); opengraph.modified_time;
+      ]
   in
   let author_name =
     first_some
       [
-        Option.bind json_ld (fun a ->
-            Option.bind a.author (fun p -> p.name));
+        Option.bind json_ld (fun a -> Option.bind a.author (fun p -> p.name));
         opengraph.author;
         twitter.creator;
         html_meta.author;
@@ -139,7 +140,9 @@ let extract ~url ~html =
   let json_ld = Extract_json_ld.extract soup in
   let opengraph = Extract_opengraph.extract soup in
   let twitter = Extract_twitter.extract soup in
-  let html_meta = Extract_html_meta.extract ~base_url:(Uri.of_string url) soup in
+  let html_meta =
+    Extract_html_meta.extract ~base_url:(Uri.of_string url) soup
+  in
   let json_ld_article = List.nth_opt json_ld.articles 0 in
   merge_article ~json_ld:json_ld_article ~opengraph ~twitter ~html_meta
 

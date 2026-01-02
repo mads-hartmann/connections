@@ -1,8 +1,9 @@
 (* URL Metadata Extraction Module
 
-   Fetches a URL and extracts structured metadata from multiple semantic web
-   standards: Microformats2, JSON-LD/Schema.org, Open Graph, Twitter Cards,
-   and standard HTML meta tags. *)
+   This module provides combined metadata extraction for debugging purposes.
+   For production use, prefer the focused modules:
+   - Contact_metadata: Person/site information (name, feeds, social profiles)
+   - Article_metadata: Content information (title, description, image, dates) *)
 
 module Log = (val Logs.src_log (Logs.Src.create "url_metadata") : Logs.LOG)
 
