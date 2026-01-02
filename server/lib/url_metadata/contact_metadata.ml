@@ -1,4 +1,46 @@
+(** Contact metadata extraction from personal/site homepages. *)
+
 module Log = (val Logs.src_log (Logs.Src.create "contact_metadata") : Logs.LOG)
+
+module Feed = struct
+  type format = Rss | Atom | Json_feed
+
+  let pp_format fmt = function
+    | Rss -> Format.fprintf fmt "RSS"
+    | Atom -> Format.fprintf fmt "Atom"
+    | Json_feed -> Format.fprintf fmt "JSON Feed"
+
+  let equal_format a b =
+    match (a, b) with
+    | Rss, Rss | Atom, Atom | Json_feed, Json_feed -> true
+    | _ -> false
+
+  type t = { url : string; title : string option; format : format }
+
+  let pp fmt t =
+    Format.fprintf fmt "@[<hov 2>{ url = %S;@ title = %a;@ format = %a }@]"
+      t.url
+      (Format.pp_print_option Format.pp_print_string)
+      t.title pp_format t.format
+
+  let equal a b =
+    String.equal a.url b.url
+    && Option.equal String.equal a.title b.title
+    && equal_format a.format b.format
+end
+
+module Classified_profile = struct
+  type t = { url : string; field_type : Model.Metadata_field_type.t }
+
+  let pp fmt t =
+    Format.fprintf fmt "{ url = %S; field_type = %s }" t.url
+      (Model.Metadata_field_type.name t.field_type)
+
+  let equal a b =
+    String.equal a.url b.url
+    && Model.Metadata_field_type.id a.field_type
+       = Model.Metadata_field_type.id b.field_type
+end
 
 type t = {
   name : string option;
@@ -7,8 +49,8 @@ type t = {
   photo : string option;
   bio : string option;
   location : string option;
-  feeds : Types.Feed.t list;
-  social_profiles : Types.Classified_profile.t list;
+  feeds : Feed.t list;
+  social_profiles : Classified_profile.t list;
 }
 
 let pp fmt t =
@@ -36,29 +78,28 @@ let equal a b =
   && Option.equal String.equal a.photo b.photo
   && Option.equal String.equal a.bio b.bio
   && Option.equal String.equal a.location b.location
-  && List.equal Types.Feed.equal a.feeds b.feeds
-  && List.equal Types.Classified_profile.equal a.social_profiles
-       b.social_profiles
+  && List.equal Feed.equal a.feeds b.feeds
+  && List.equal Classified_profile.equal a.social_profiles b.social_profiles
 
 let to_json t =
   let opt_field name = function
     | Some v -> [ (name, `String v) ]
     | None -> []
   in
-  let feed_to_json (f : Types.Feed.t) =
+  let feed_to_json (f : Feed.t) =
     `Assoc
       ([
          ("url", `String f.url);
          ( "format",
            `String
              (match f.format with
-             | Types.Feed.Rss -> "rss"
+             | Feed.Rss -> "rss"
              | Atom -> "atom"
              | Json_feed -> "json_feed") );
        ]
       @ opt_field "title" f.title)
   in
-  let profile_to_json (p : Types.Classified_profile.t) =
+  let profile_to_json (p : Classified_profile.t) =
     `Assoc
       [
         ("url", `String p.url);
@@ -74,11 +115,96 @@ let to_json t =
         ("social_profiles", `List (List.map profile_to_json t.social_profiles));
       ])
 
+(* Classify social profile URLs into typed metadata fields *)
+let classify_profiles ~email ~social_profiles : Classified_profile.t list =
+  let seen = Hashtbl.create 16 in
+  let dominated_by_email url =
+    match email with
+    | Some e -> String.equal url e || String.equal url ("mailto:" ^ e)
+    | None -> false
+  in
+  let classify_url url : Model.Metadata_field_type.t =
+    if String.starts_with ~prefix:"mailto:" (String.lowercase_ascii url) then
+      Email
+    else
+      let get_host u =
+        try Option.map String.lowercase_ascii (Uri.host (Uri.of_string u))
+        with _ -> None
+      in
+      let host_matches ~domain host =
+        String.equal host domain || String.ends_with ~suffix:("." ^ domain) host
+      in
+      match get_host url with
+      | None -> Other
+      | Some host ->
+          if
+            host_matches ~domain:"twitter.com" host
+            || host_matches ~domain:"x.com" host
+          then X
+          else if host_matches ~domain:"github.com" host then GitHub
+          else if host_matches ~domain:"linkedin.com" host then LinkedIn
+          else if
+            host_matches ~domain:"bsky.app" host
+            || host_matches ~domain:"bsky.social" host
+          then Bluesky
+          else if host_matches ~domain:"youtube.com" host then YouTube
+          else if
+            host_matches ~domain:"mastodon.social" host
+            || host_matches ~domain:"mastodon.online" host
+            || host_matches ~domain:"fosstodon.org" host
+            || host_matches ~domain:"hachyderm.io" host
+          then Mastodon
+          else Other
+  in
+  let from_email =
+    Option.map
+      (fun e -> Classified_profile.{ url = e; field_type = Email })
+      email
+    |> Option.to_list
+  in
+  let from_profiles =
+    List.filter_map
+      (fun url ->
+        if Hashtbl.mem seen url || dominated_by_email url then None
+        else begin
+          Hashtbl.add seen url ();
+          Some Classified_profile.{ url; field_type = classify_url url }
+        end)
+      social_profiles
+  in
+  from_email @ from_profiles
+
+(* Extract feed links from HTML *)
+let extract_feeds ~base_url soup : Feed.t list =
+  let format_of_mime_type mime =
+    let mime = String.lowercase_ascii mime in
+    if String.equal mime "application/rss+xml" then Some Feed.Rss
+    else if String.equal mime "application/atom+xml" then Some Feed.Atom
+    else if String.equal mime "application/feed+json" then Some Feed.Json_feed
+    else if String.equal mime "application/json" then Some Feed.Json_feed
+    else None
+  in
+  let extract_feed node : Feed.t option =
+    let rel = Soup.attribute "rel" node in
+    let type_attr = Soup.attribute "type" node in
+    let href = Soup.attribute "href" node in
+    match (rel, type_attr, href) with
+    | Some rel, Some mime, Some href when String.equal rel "alternate" ->
+        Option.bind (format_of_mime_type mime) (fun format ->
+            let url = Html_helpers.resolve_url ~base_url href in
+            let title = Soup.attribute "title" node in
+            Some { Feed.url; title; format })
+    | _ -> None
+  in
+  Soup.select "link[rel=alternate]" soup
+  |> Soup.to_list
+  |> List.filter_map extract_feed
+
 (* Merge contact info from multiple sources with priority ordering.
    Priority: Microformats > JSON-LD > rel-me links *)
 let merge_contact ~(microformats : Extract_microformats.h_card option)
     ~(json_ld : Extract_json_ld.person option) ~(rel_me : string list)
-    ~(feeds : Types.Feed.t list) : t =
+    ~(feeds : Feed.t list) : t =
   let name =
     match microformats with
     | Some mf when Option.is_some mf.name -> mf.name
@@ -120,14 +246,14 @@ let merge_contact ~(microformats : Extract_microformats.h_card option)
   in
   (* Classify and deduplicate profiles *)
   let social_profiles =
-    Merge.classify_profiles ~email ~social_profiles:raw_profiles
+    classify_profiles ~email ~social_profiles:raw_profiles
   in
   { name; url; email; photo; bio; location; feeds; social_profiles }
 
 let extract ~url ~html =
   let base_url = Uri.of_string url in
   let soup = Soup.parse html in
-  let feeds = Extract_feeds.extract ~base_url soup in
+  let feeds = extract_feeds ~base_url soup in
   let json_ld = Extract_json_ld.extract soup in
   let microformats = Extract_microformats.extract ~base_url soup in
   let h_card = List.nth_opt microformats.cards 0 in
