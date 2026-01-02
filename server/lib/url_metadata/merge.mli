@@ -1,3 +1,9 @@
+val classify_profiles :
+  email:string option ->
+  social_profiles:string list ->
+  Types.Classified_profile.t list
+(** Classify social profile URLs into typed metadata fields. *)
+
 val merge_author :
   microformats:Extract_microformats.h_card option ->
   json_ld:Extract_json_ld.person option ->
