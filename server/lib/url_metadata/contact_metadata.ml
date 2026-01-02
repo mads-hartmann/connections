@@ -267,7 +267,7 @@ let extract ~url ~html =
 
 let fetch ~sw ~env url =
   Log.info (fun m -> m "Fetching contact metadata for %s" url);
-  match Fetch.fetch_html ~sw ~env url with
+  match Http_client.fetch ~sw ~env url with
   | Error e ->
       Log.err (fun m -> m "Failed to fetch %s: %s" url e);
       Error e

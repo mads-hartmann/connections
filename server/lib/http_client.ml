@@ -1,5 +1,6 @@
-module Log =
-  (val Logs.src_log (Logs.Src.create "url_metadata.fetch") : Logs.LOG)
+(** HTTP client with redirect handling. *)
+
+module Log = (val Logs.src_log (Logs.Src.create "http_client") : Logs.LOG)
 
 let max_redirects = 10
 
@@ -15,7 +16,7 @@ let get_redirect_location ~base_uri response =
       | None | Some "" -> Uri.resolve "" base_uri loc_uri
       | Some _ -> loc_uri)
 
-let fetch_html ~sw ~env (url : string) : (string, string) result =
+let fetch ~sw ~env (url : string) : (string, string) result =
   let rec fetch_with_redirects uri remaining_redirects =
     if remaining_redirects <= 0 then Error "Too many redirects"
     else

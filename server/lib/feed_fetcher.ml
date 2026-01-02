@@ -143,25 +143,6 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
       let tags = atom_entry_categories entry in
       Some { article; tags }
 
-(* Fetch URL content using Piaf *)
-let fetch_url ~sw ~env (url : string) : (string, string) result =
-  try
-    let uri = Uri.of_string url in
-    match Piaf.Client.Oneshot.get ~sw env uri with
-    | Error err ->
-        Error (Format.asprintf "Fetch error: %a" Piaf.Error.pp_hum err)
-    | Ok response ->
-        let status = response.Piaf.Response.status in
-        if Piaf.Status.is_successful status then
-          match Piaf.Body.to_string response.body with
-          | Ok body_str -> Ok body_str
-          | Error err ->
-              Error
-                (Format.asprintf "Body read error: %a" Piaf.Error.pp_hum err)
-        else Error (Printf.sprintf "HTTP %d" (Piaf.Status.to_code status))
-  with exn ->
-    Error (Printf.sprintf "Fetch error: %s" (Printexc.to_string exn))
-
 (* Parse feed content - tries RSS2 first, then Atom *)
 type parsed_feed = Rss2 of Syndic.Rss2.channel | Atom of Syndic.Atom.feed
 
@@ -220,7 +201,7 @@ let extract_metadata (feed : parsed_feed) : feed_metadata =
 (* Fetch feed and extract metadata only - for OPML import *)
 let fetch_feed_metadata ~sw ~env (url : string) : (feed_metadata, string) result
     =
-  let fetch_result = fetch_url ~sw ~env url in
+  let fetch_result = Http_client.fetch ~sw ~env url in
   match fetch_result with
   | Error msg -> Error msg
   | Ok content -> (
@@ -266,7 +247,7 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
   let feed_id = Model.Rss_feed.id feed in
   let feed_url = Model.Rss_feed.url feed in
   Log.info (fun m -> m "Fetching feed %d: %s" feed_id feed_url);
-  let fetch_result = fetch_url ~sw ~env feed_url in
+  let fetch_result = Http_client.fetch ~sw ~env feed_url in
   match fetch_result with
   | Error msg ->
       Log.err (fun m ->
