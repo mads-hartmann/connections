@@ -28,10 +28,11 @@
       "description": "Which view to show by default when opening Connections",
       "type": "dropdown",
       "required": false,
-      "default": "connections",
+      "default": "articles-unread",
       "data": [
         { "title": "Connections", "value": "connections" },
-        { "title": "Articles", "value": "articles" },
+        { "title": "Articles (All)", "value": "articles-all" },
+        { "title": "Articles (Unread)", "value": "articles-unread" },
         { "title": "Tags", "value": "tags" }
       ]
     }
