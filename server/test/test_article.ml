@@ -13,9 +13,9 @@ let test_article_to_json () =
       ~title:(Some "Test Article") ~url:"https://example.com/article"
       ~published_at:(Some "2024-01-01 12:00:00")
       ~content:(Some "Article content") ~author:(Some "John Doe")
-      ~image_url:None ~created_at:"2024-01-01 12:00:00" ~read_at:None ~tags:[]
-      ~og_title:None ~og_description:None ~og_image:None ~og_site_name:None
-      ~og_fetched_at:None ~og_fetch_error:None
+      ~image_url:None ~created_at:"2024-01-01 12:00:00" ~read_at:None
+      ~read_later_at:None ~tags:[] ~og_title:None ~og_description:None
+      ~og_image:None ~og_site_name:None ~og_fetched_at:None ~og_fetch_error:None
   in
   let json = Model.Article.to_json article in
   match json with

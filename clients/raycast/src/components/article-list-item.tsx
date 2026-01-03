@@ -27,11 +27,29 @@ export function ArticleListItem({
   onMarkAllRead,
 }: ArticleListItemProps) {
   const isRead = article.read_at !== null;
+  const isReadLater = article.read_later_at !== null;
 
   const toggleRead = async () => {
     try {
       await Article.markArticleRead(article.id, !isRead);
       revalidate();
+    } catch (error) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to update article",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+
+  const toggleReadLater = async () => {
+    try {
+      await Article.markReadLater(article.id, !isReadLater);
+      revalidate();
+      await showToast({
+        style: Toast.Style.Success,
+        title: isReadLater ? "Removed from Read Later" : "Added to Read Later",
+      });
     } catch (error) {
       showToast({
         style: Toast.Style.Failure,
@@ -87,6 +105,12 @@ export function ArticleListItem({
             icon={isRead ? Icon.Circle : Icon.Checkmark}
             onAction={toggleRead}
             shortcut={{ modifiers: ["cmd"], key: "m" }}
+          />
+          <Action
+            title={isReadLater ? "Remove from Read Later" : "Read Later"}
+            icon={isReadLater ? Icon.XMarkCircle : Icon.Clock}
+            onAction={toggleReadLater}
+            shortcut={{ modifiers: ["cmd"], key: "l" }}
           />
           <Action.Push
             title="Edit Article"

@@ -10,6 +10,7 @@
       "content": "TL;DR Nvidia have ended Linux support for my &#8216;Pascal&#8217; GTX 1050 Ti GPU. I&#8217;ve been able to fit an RTX 5050 card in its place, though the process was problematic due to driver issues. And I&#8217;m still concerned that it can only be limited to 110W when my passive cooling is rated up to 75W. [&#8230;]",
       "created_at": "2025-12-29 14:54:32",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 68, "name": "technology" },
         { "id": 127, "name": "howto" },
@@ -48,6 +49,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-29 05:50:23",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 72, "name": "ai" },
         { "id": 211, "name": "generative-ai" },
@@ -72,6 +74,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-29 00:13:39",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 72, "name": "ai" },
         { "id": 211, "name": "generative-ai" },
@@ -98,6 +101,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-28 05:19:09",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 13, "name": "security" },
         { "id": 639, "name": "sql-injection" },
@@ -121,6 +125,7 @@
       "author": "Gregor Hohpe",
       "created_at": "2025-12-29 14:54:33",
       "read_at": null,
+      "read_later_at": null,
       "tags": [ { "id": 182, "name": "Strategy" } ],
       "og_title": "The economics of technical speaking",
       "og_description": "What are 45 minutes of your time worth?",
@@ -139,6 +144,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-27 15:51:31",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 72, "name": "ai" },
         { "id": 211, "name": "generative-ai" },
@@ -163,6 +169,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-27 14:51:06",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 72, "name": "ai" },
         { "id": 211, "name": "generative-ai" },
@@ -189,6 +196,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-27 03:43:06",
       "read_at": null,
+      "read_later_at": null,
       "tags": [ { "id": 37, "name": "javascript" } ],
       "og_title": "textarea.my on GitHub",
       "og_description": "Anton Medvedev built textarea.my, which he describes as: A minimalist text editor that lives entirely in your browser and stores everything in the URL hash. It's ~160 lines of HTML, …",
@@ -205,6 +213,7 @@
       "content": "Why does a password manager need a syntax highlighter?",
       "created_at": "2025-12-27 04:43:24",
       "read_at": null,
+      "read_later_at": null,
       "tags": [],
       "og_title": "1Password Dependency Breaks Syntax Highlighting",
       "og_description": "Why does a password manager need a syntax highlighter?",
@@ -221,6 +230,7 @@
       "content": "I suffer so you don't have to.",
       "created_at": "2025-12-27 00:41:51",
       "read_at": null,
+      "read_later_at": null,
       "tags": [],
       "og_title": "Using the Brother DS-640 Scanner on NixOS",
       "og_description": "I suffer so you don't have to.",
@@ -238,6 +248,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-27 00:41:57",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 4, "name": "rust" },
         { "id": 222, "name": "python" },
@@ -260,6 +271,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-26 18:24:05",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 72, "name": "ai" },
         { "id": 209, "name": "rob-pike" },
@@ -287,6 +299,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-26 00:43:09",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 72, "name": "ai" },
         { "id": 211, "name": "generative-ai" },
@@ -315,6 +328,7 @@
       "author": "Anil Madhavapeddy",
       "created_at": "2025-12-25 13:11:41",
       "read_at": "2025-12-27 18:13:38",
+      "read_later_at": null,
       "tags": [
         { "id": 2, "name": "OCaml" },
         { "id": 31, "name": "llm" },
@@ -341,6 +355,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-24 22:43:47",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 216, "name": "projects" },
         { "id": 222, "name": "python" },
@@ -364,6 +379,7 @@
       "author": "Anil Madhavapeddy",
       "created_at": "2025-12-25 13:11:41",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 2, "name": "OCaml" },
         { "id": 72, "name": "ai" },
@@ -390,6 +406,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-23 23:50:05",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 37, "name": "javascript" },
         { "id": 226, "name": "salvatore-sanfilippo" },
@@ -412,6 +429,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-23 21:13:46",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 37, "name": "javascript" },
         { "id": 72, "name": "ai" },
@@ -443,6 +461,7 @@
       "author": "Simon Willison",
       "created_at": "2025-12-23 05:36:54",
       "read_at": "2025-12-23 18:03:00",
+      "read_later_at": null,
       "tags": [
         { "id": 72, "name": "ai" },
         { "id": 211, "name": "generative-ai" },
@@ -472,6 +491,7 @@
       "author": "Anil Madhavapeddy",
       "created_at": "2025-12-24 21:43:33",
       "read_at": null,
+      "read_later_at": null,
       "tags": [
         { "id": 2, "name": "OCaml" },
         { "id": 72, "name": "ai" },
