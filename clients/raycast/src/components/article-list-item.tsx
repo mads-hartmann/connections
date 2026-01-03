@@ -58,11 +58,13 @@ export function ArticleListItem({
     }
   };
 
+  const subtitle = showDetail ? undefined : article.person_name || article.author || undefined;
+
   return (
     <List.Item
       key={String(article.id)}
       title={article.title || "Untitled"}
-      subtitle={showDetail ? undefined : article.author || undefined}
+      subtitle={subtitle}
       accessories={
         showDetail
           ? undefined
