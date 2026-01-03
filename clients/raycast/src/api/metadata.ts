@@ -13,131 +13,45 @@ export interface MetadataFieldType {
 
 export interface ClassifiedProfile {
   url: string;
+  type: string;
+}
+
+export interface ContactMetadataResponse {
+  name?: string;
+  url?: string;
+  email?: string;
+  photo?: string;
+  bio?: string;
+  location?: string;
+  feeds: Feed[];
+  social_profiles: ClassifiedProfile[];
+}
+
+// Map profile type names to field type IDs (matching server enum)
+const FIELD_TYPE_MAP: Record<string, MetadataFieldType> = {
+  Bluesky: { id: 1, name: "Bluesky" },
+  Email: { id: 2, name: "Email" },
+  GitHub: { id: 3, name: "GitHub" },
+  LinkedIn: { id: 4, name: "LinkedIn" },
+  Mastodon: { id: 5, name: "Mastodon" },
+  Website: { id: 6, name: "Website" },
+  X: { id: 7, name: "X" },
+  Other: { id: 8, name: "Other" },
+};
+
+export interface ClassifiedProfileWithFieldType {
+  url: string;
   field_type: MetadataFieldType;
 }
 
-export interface Author {
-  name: string | null;
-  url: string | null;
-  email: string | null;
-  photo: string | null;
-  bio: string | null;
-  location: string | null;
-  social_profiles: string[];
-  classified_profiles: ClassifiedProfile[];
+export function classifyProfile(profile: ClassifiedProfile): ClassifiedProfileWithFieldType {
+  const fieldType = FIELD_TYPE_MAP[profile.type] || FIELD_TYPE_MAP["Other"];
+  return { url: profile.url, field_type: fieldType };
 }
 
-export interface Content {
-  title: string | null;
-  description: string | null;
-  published_at: string | null;
-  modified_at: string | null;
-  author: Author | null;
-  image: string | null;
-  tags: string[];
-  content_type: string | null;
-}
-
-export interface Site {
-  name: string | null;
-  canonical_url: string | null;
-  favicon: string | null;
-  locale: string | null;
-  webmention_endpoint: string | null;
-}
-
-export interface MergedMetadata {
-  url: string;
-  feeds: Feed[];
-  author: Author | null;
-  content: Content;
-  site: Site;
-  raw_json_ld: unknown[];
-}
-
-export interface MetadataResponse {
-  merged: MergedMetadata;
-  sources: {
-    html_meta: {
-      title: string | null;
-      description: string | null;
-      author: string | null;
-      canonical: string | null;
-      favicon: string | null;
-      webmention: string | null;
-    };
-    opengraph: {
-      title: string | null;
-      og_type: string | null;
-      url: string | null;
-      image: string | null;
-      description: string | null;
-      site_name: string | null;
-      locale: string | null;
-      author: string | null;
-      published_time: string | null;
-      modified_time: string | null;
-      tags: string[];
-    };
-    twitter: {
-      card_type: string | null;
-      site: string | null;
-      creator: string | null;
-      title: string | null;
-      description: string | null;
-      image: string | null;
-    };
-    json_ld: {
-      persons: Array<{
-        name: string | null;
-        url: string | null;
-        image: string | null;
-        email: string | null;
-        job_title: string | null;
-        same_as: string[];
-      }>;
-      articles: Array<{
-        headline: string | null;
-        author: {
-          name: string | null;
-          url: string | null;
-        } | null;
-        date_published: string | null;
-        date_modified: string | null;
-        description: string | null;
-        image: string | null;
-      }>;
-      raw: unknown[];
-    };
-    microformats: {
-      cards: Array<{
-        name: string | null;
-        url: string | null;
-        photo: string | null;
-        email: string | null;
-        note: string | null;
-        locality: string | null;
-        country: string | null;
-      }>;
-      entries: Array<{
-        name: string | null;
-        summary: string | null;
-        published: string | null;
-        updated: string | null;
-        author: {
-          name: string | null;
-          url: string | null;
-        } | null;
-        categories: string[];
-      }>;
-      rel_me: string[];
-    };
-  };
-}
-
-export async function fetchMetadata(url: string): Promise<MetadataResponse> {
+export async function fetchContactMetadata(url: string): Promise<ContactMetadataResponse> {
   const params = new URLSearchParams({ url });
-  const response = await fetch(`${getServerUrl()}/url-metadata?${params.toString()}`);
+  const response = await fetch(`${getServerUrl()}/contact-metadata?${params.toString()}`);
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to fetch metadata");
