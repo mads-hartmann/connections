@@ -1,3 +1,4 @@
+import { Alert, confirmAlert } from "@raycast/api";
 import { getServerUrl } from "./config";
 
 export interface Tag {
@@ -115,4 +116,26 @@ export async function refreshArticleMetadata(id: number): Promise<Article> {
     throw new Error(error.error || "Failed to refresh article metadata");
   }
   return response.json();
+}
+
+export async function deleteArticle(article: Article): Promise<boolean> {
+  const confirmed = await confirmAlert({
+    title: "Delete Article",
+    message: `Are you sure you want to delete "${article.title || "Untitled"}"?`,
+    primaryAction: {
+      title: "Delete",
+      style: Alert.ActionStyle.Destructive,
+    },
+  });
+
+  if (confirmed) {
+    const response = await fetch(`${getServerUrl()}/articles/${article.id}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to delete article");
+    }
+    return true;
+  }
+  return false;
 }
