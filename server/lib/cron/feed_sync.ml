@@ -1,4 +1,8 @@
-module Log = (val Logs.src_log (Logs.Src.create "feed_fetcher") : Logs.LOG)
+(** Scheduled RSS/Atom feed synchronization. *)
+
+module Log = (val Logs.src_log (Logs.Src.create "cron.feed_sync") : Logs.LOG)
+
+let fetch_interval_seconds = 3600.0 (* 1 hour *)
 
 (* Format a Ptime to SQLite datetime string *)
 let ptime_to_string (ptime : Ptime.t) : string =
@@ -35,13 +39,12 @@ let atom_entry_categories (entry : Syndic.Atom.entry) : string list =
       match cat.label with Some label -> Some label | None -> Some cat.term)
     entry.categories
 
-(* Article with extracted tags *)
 type article_with_tags = {
   article : Db.Article.create_input;
   tags : string list;
 }
 
-(* Convert RSS2 item to our article format with tags *)
+(* Convert RSS2 item to article format with tags *)
 let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
     article_with_tags option =
   let title, content = rss2_story_to_title_and_content item.story in
@@ -54,7 +57,7 @@ let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
         | None -> None)
   in
   match url with
-  | None -> None (* Skip items without URL *)
+  | None -> None
   | Some url ->
       let article =
         {
@@ -70,10 +73,9 @@ let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
       let tags = rss2_item_categories item in
       Some { article; tags }
 
-(* Convert Atom entry to our article format with tags *)
+(* Convert Atom entry to article format with tags *)
 let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
     article_with_tags option =
-  (* Get URL from links - prefer alternate, fallback to first link *)
   let url =
     let links = entry.links in
     let alternate =
@@ -115,7 +117,6 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
         let first_author, _ = entry.authors in
         Some first_author.name
       in
-      (* Look for image in links with image mime type *)
       let image_url =
         List.find_map
           (fun (link : Syndic.Atom.link) ->
@@ -143,81 +144,13 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
       let tags = atom_entry_categories entry in
       Some { article; tags }
 
-(* Parse feed content - tries RSS2 first, then Atom *)
-type parsed_feed = Rss2 of Syndic.Rss2.channel | Atom of Syndic.Atom.feed
-
-let parse_feed (content : string) : (parsed_feed, string) result =
-  let input = Xmlm.make_input (`String (0, content)) in
-  try Ok (Rss2 (Syndic.Rss2.parse input))
-  with _ -> (
-    (* Reset input and try Atom *)
-    let input = Xmlm.make_input (`String (0, content)) in
-    try Ok (Atom (Syndic.Atom.parse input))
-    with exn ->
-      Error (Printf.sprintf "Parse error: %s" (Printexc.to_string exn)))
-
-(* Feed metadata for import - author and title extraction *)
-type feed_metadata = { author : string option; title : string option }
-
-(* Extract author from RSS2 channel *)
-let extract_rss2_author (channel : Syndic.Rss2.channel) : string option =
-  (* Try managingEditor first, then look at first item's author *)
-  match channel.managingEditor with
-  | Some editor -> Some editor
-  | None -> ( match channel.items with item :: _ -> item.author | [] -> None)
-
-(* Extract author from Atom feed *)
-let extract_atom_author (feed : Syndic.Atom.feed) : string option =
-  match feed.authors with
-  | author :: _ -> Some author.name
-  | [] -> (
-      (* Try first entry's author *)
-      match feed.entries with
-      | entry :: _ ->
-          let first_author, _ = entry.authors in
-          Some first_author.name
-      | [] -> None)
-
-(* Extract feed title *)
-let extract_feed_title (feed : parsed_feed) : string option =
-  match feed with
-  | Rss2 channel -> Some channel.title
-  | Atom feed -> (
-      match feed.title with
-      | Syndic.Atom.Text t -> Some t
-      | Syndic.Atom.Html (_, t) -> Some t
-      | Syndic.Atom.Xhtml _ -> None)
-
-(* Extract metadata from parsed feed *)
-let extract_metadata (feed : parsed_feed) : feed_metadata =
-  let author =
-    match feed with
-    | Rss2 channel -> extract_rss2_author channel
-    | Atom feed -> extract_atom_author feed
-  in
-  let title = extract_feed_title feed in
-  { author; title }
-
-(* Fetch feed and extract metadata only - for OPML import *)
-let fetch_feed_metadata ~sw ~env (url : string) : (feed_metadata, string) result
-    =
-  let fetch_result = Http_client.fetch ~sw ~env url in
-  match fetch_result with
-  | Error msg -> Error msg
-  | Ok content -> (
-      match parse_feed content with
-      | Error msg -> Error msg
-      | Ok parsed_feed -> Ok (extract_metadata parsed_feed))
-
-(* Extract articles with tags from parsed feed *)
-let extract_articles_with_tags ~feed_id (feed : parsed_feed) :
+let extract_articles_with_tags ~feed_id (feed : Feed_parser.parsed_feed) :
     article_with_tags list =
   match feed with
   | Rss2 channel ->
       List.filter_map (rss2_item_to_article ~feed_id) channel.items
   | Atom feed -> List.filter_map (atom_entry_to_article ~feed_id) feed.entries
 
-(* Associate tags with an article, creating tags if needed *)
 let associate_tags_with_article ~article_id ~tag_names : unit =
   List.iter
     (fun tag_name ->
@@ -236,24 +169,21 @@ let associate_tags_with_article ~article_id ~tag_names : unit =
           | Ok () -> ()))
     tag_names
 
-(* Get feed tags to inherit *)
 let get_feed_tag_ids ~feed_id : int list =
   match Db.Tag.get_by_feed ~feed_id with
   | Error _ -> []
   | Ok tags -> List.map Model.Tag.id tags
 
-(* Process a single feed: fetch, parse, store articles with tags *)
 let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
   let feed_id = Model.Rss_feed.id feed in
   let feed_url = Model.Rss_feed.url feed in
   Log.info (fun m -> m "Fetching feed %d: %s" feed_id feed_url);
-  let fetch_result = Http_client.fetch ~sw ~env feed_url in
-  match fetch_result with
+  match Http_client.fetch ~sw ~env feed_url with
   | Error msg ->
       Log.err (fun m ->
           m "Failed to fetch feed %d (%s): %s" feed_id feed_url msg)
   | Ok content -> (
-      match parse_feed content with
+      match Feed_parser.parse content with
       | Error msg ->
           Log.err (fun m ->
               m "Failed to parse feed %d (%s): %s" feed_id feed_url msg)
@@ -265,7 +195,6 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
           let count = ref 0 in
           List.iter
             (fun { article; tags } ->
-              (* Upsert the article *)
               match Db.Article.upsert article with
               | Error err ->
                   Log.err (fun m ->
@@ -275,7 +204,6 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
                         Caqti_error.pp err)
               | Ok () -> (
                   incr count;
-                  (* Get the article ID by looking it up *)
                   match
                     Db.Article.get_by_feed_url ~feed_id
                       ~url:article.Db.Article.url
@@ -290,10 +218,8 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
                             article.Db.Article.url)
                   | Ok (Some stored_article) ->
                       let stored_id = Model.Article.id stored_article in
-                      (* Associate article-level tags *)
                       associate_tags_with_article ~article_id:stored_id
                         ~tag_names:tags;
-                      (* Inherit feed tags *)
                       List.iter
                         (fun tag_id ->
                           let _ =
@@ -304,19 +230,44 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
             articles_with_tags;
           Log.info (fun m ->
               m "Processed %d articles for feed %d" !count feed_id);
-          (* Update last_fetched_at on the feed *)
           let _ = Db.Rss_feed.update_last_fetched ~id:feed_id in
           ())
 
-(* Fetch all feeds - called by scheduler *)
 let fetch_all_feeds ~sw ~env () : unit =
-  Log.info (fun m -> m "Starting scheduled feed fetch");
-  let result = Db.Rss_feed.list_all () in
-  match result with
+  Log.info (fun m -> m "Starting scheduled feed sync");
+  match Db.Rss_feed.list_all () with
   | Error err ->
       Log.err (fun m -> m "Failed to list feeds: %a" Caqti_error.pp err)
   | Ok feeds ->
-      (* Process feeds sequentially to avoid overwhelming the system *)
       List.iter (process_feed ~sw ~env) feeds;
       Log.info (fun m ->
-          m "Completed scheduled feed fetch (%d feeds)" (List.length feeds))
+          m "Completed scheduled feed sync (%d feeds)" (List.length feeds))
+
+let running = ref true
+let stop () = running := false
+
+let rec run_loop ~sw ~env ~clock () =
+  if not !running then ()
+  else (
+    (try fetch_all_feeds ~sw ~env ()
+     with exn ->
+       Log.err (fun m -> m "Feed sync error: %s" (Printexc.to_string exn)));
+    let rec interruptible_sleep remaining =
+      if (not !running) || remaining <= 0.0 then ()
+      else
+        let sleep_time = min 1.0 remaining in
+        Eio.Time.sleep clock sleep_time;
+        interruptible_sleep (remaining -. sleep_time)
+    in
+    interruptible_sleep fetch_interval_seconds;
+    run_loop ~sw ~env ~clock ())
+
+let start ~sw ~env =
+  let clock = Eio.Stdenv.clock env in
+  Log.info (fun m ->
+      m "Starting feed sync (interval: %g seconds)" fetch_interval_seconds);
+  running := true;
+  Eio.Fiber.fork_daemon ~sw (fun () ->
+      Eio.Time.sleep clock 5.0;
+      run_loop ~sw ~env ~clock ();
+      `Stop_daemon)

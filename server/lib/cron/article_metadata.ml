@@ -1,12 +1,11 @@
-(* Article metadata fetcher *)
+(** Scheduled article metadata fetching. *)
 
-module Log = (val Logs.src_log (Logs.Src.create "og_fetcher") : Logs.LOG)
+module Log =
+  (val Logs.src_log (Logs.Src.create "cron.article_metadata") : Logs.LOG)
 
-(* Configuration *)
 let batch_size = 50
 let fetch_interval_seconds = 300.0 (* 5 minutes *)
 
-(* Fetch metadata for a single article *)
 let fetch_for_article ~sw ~env (article : Model.Article.t) :
     (Model.Article.t option, Caqti_error.t) result =
   let article_id = Model.Article.id article in
@@ -36,33 +35,30 @@ let fetch_for_article ~sw ~env (article : Model.Article.t) :
   in
   Db.Article.update_og_metadata ~id:article_id og_input
 
-(* Process a batch of articles needing OG fetch *)
 let process_batch ~sw ~env () : int =
   match Db.Article.list_needing_og_fetch ~limit:batch_size with
   | Error err ->
       Log.err (fun m ->
-          m "Failed to list articles needing OG fetch: %a" Caqti_error.pp err);
+          m "Failed to list articles needing metadata: %a" Caqti_error.pp err);
       0
   | Ok articles ->
       let count = List.length articles in
       if count > 0 then
-        Log.info (fun m -> m "Processing %d articles for OG metadata" count);
+        Log.info (fun m -> m "Processing %d articles for metadata" count);
       List.iter
         (fun article ->
           match fetch_for_article ~sw ~env article with
           | Ok _ -> ()
           | Error err ->
               Log.err (fun m ->
-                  m "Failed to update OG metadata for article %d: %a"
+                  m "Failed to update metadata for article %d: %a"
                     (Model.Article.id article) Caqti_error.pp err))
         articles;
       count
 
-(* State for graceful shutdown *)
 let running = ref true
 let stop () = running := false
 
-(* Main scheduler loop for OG fetching *)
 let rec run_loop ~sw ~env ~clock () =
   if not !running then ()
   else (
@@ -72,8 +68,8 @@ let rec run_loop ~sw ~env ~clock () =
          Log.info (fun m ->
              m "Article metadata fetch complete: %d articles" processed)
      with exn ->
-       Log.err (fun m -> m "OG fetcher error: %s" (Printexc.to_string exn)));
-    (* Sleep, checking running flag periodically for faster shutdown *)
+       Log.err (fun m ->
+           m "Article metadata error: %s" (Printexc.to_string exn)));
     let rec interruptible_sleep remaining =
       if (not !running) || remaining <= 0.0 then ()
       else
@@ -84,7 +80,6 @@ let rec run_loop ~sw ~env ~clock () =
     interruptible_sleep fetch_interval_seconds;
     run_loop ~sw ~env ~clock ())
 
-(* Start the OG fetcher as a daemon fiber *)
 let start ~sw ~env =
   let clock = Eio.Stdenv.clock env in
   Log.info (fun m ->
@@ -92,7 +87,6 @@ let start ~sw ~env =
         fetch_interval_seconds batch_size);
   running := true;
   Eio.Fiber.fork_daemon ~sw (fun () ->
-      (* Brief delay for server startup *)
       Eio.Time.sleep clock 10.0;
       run_loop ~sw ~env ~clock ();
       `Stop_daemon)

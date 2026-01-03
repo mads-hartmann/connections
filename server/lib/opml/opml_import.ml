@@ -40,7 +40,7 @@ let fetch_with_timeout ~sw ~env ~clock url =
   Eio.Fiber.both
     (fun () ->
       if not !done_flag then
-        let r = Feed_fetcher.fetch_feed_metadata ~sw ~env url in
+        let r = Feed_parser.fetch_metadata ~sw ~env url in
         if not !done_flag then (
           result := r;
           done_flag := true))
@@ -80,7 +80,7 @@ let process_entries ~sw ~env (entries : Opml_parser.feed_entry list) :
   List.iter
     (fun (entry, metadata) ->
       let author_name =
-        match metadata.Feed_fetcher.author with
+        match metadata.Feed_parser.author with
         | Some name -> name
         | None -> (
             match metadata.title with

@@ -83,7 +83,7 @@ let delete_feed _request id =
 let refresh _request id =
   let* feed = Service.Rss_feed.get ~id |> Handler_utils.or_feed_error in
   let sw, env = get_context () in
-  Feed_fetcher.process_feed ~sw ~env feed;
+  Cron.Feed_sync.process_feed ~sw ~env feed;
   Handler_utils.json_response (`Assoc [ ("message", `String "Feed refreshed") ])
 
 let list_all request (pagination : Pagination.Pagination.t) =
