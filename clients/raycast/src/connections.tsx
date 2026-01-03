@@ -11,16 +11,29 @@ import * as Person from "./api/person";
 import * as Article from "./api/article";
 import * as Tag from "./api/tag";
 
-type ViewType = "connections" | "articles" | "tags";
+type ViewType = "connections" | "articles-all" | "articles-unread" | "tags";
 
 interface Preferences {
   serverUrl: string;
-  defaultView: ViewType;
+  defaultView: "connections" | "articles" | "tags";
+}
+
+function defaultViewToViewType(defaultView: Preferences["defaultView"]): ViewType {
+  switch (defaultView) {
+    case "articles":
+      return "articles-unread";
+    case "connections":
+      return "connections";
+    case "tags":
+      return "tags";
+    default:
+      return "connections";
+  }
 }
 
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
-  const [selectedView, setSelectedView] = useState<ViewType>(preferences.defaultView || "connections");
+  const [selectedView, setSelectedView] = useState<ViewType>(defaultViewToViewType(preferences.defaultView));
   const [searchText, setSearchText] = useState("");
   const [showConnectionsDetail, setShowConnectionsDetail] = useState(true);
   const [showArticlesDetail, setShowArticlesDetail] = useState(true);
@@ -41,21 +54,31 @@ export default function Command() {
     execute: selectedView === "connections",
   });
 
+  const isArticlesView = selectedView === "articles-all" || selectedView === "articles-unread";
+
   const {
     isLoading: isLoadingArticles,
     data: articlesData,
     pagination: articlesPagination,
     revalidate: revalidateArticles,
-  } = useFetch((options) => Article.listAllUrl({ page: options.page + 1, query: searchText || undefined }), {
-    mapResult(result: Article.ArticlesResponse) {
-      return {
-        data: result.data,
-        hasMore: result.page < result.total_pages,
-      };
+  } = useFetch(
+    (options) =>
+      Article.listAllUrl({
+        page: options.page + 1,
+        query: searchText || undefined,
+        unread: selectedView === "articles-unread",
+      }),
+    {
+      mapResult(result: Article.ArticlesResponse) {
+        return {
+          data: result.data,
+          hasMore: result.page < result.total_pages,
+        };
+      },
+      keepPreviousData: true,
+      execute: isArticlesView,
     },
-    keepPreviousData: true,
-    execute: selectedView === "articles",
-  });
+  );
 
   const {
     isLoading: isLoadingTags,
@@ -75,7 +98,8 @@ export default function Command() {
 
   const { isLoading, pagination, searchBarPlaceholder } = (() => {
     switch (selectedView) {
-      case "articles":
+      case "articles-all":
+      case "articles-unread":
         return {
           isLoading: isLoadingArticles,
           pagination: articlesPagination,
@@ -100,7 +124,7 @@ export default function Command() {
       onSearchTextChange={setSearchText}
       searchBarPlaceholder={searchBarPlaceholder}
       isShowingDetail={
-        (selectedView === "connections" && showConnectionsDetail) || (selectedView === "articles" && showArticlesDetail)
+        (selectedView === "connections" && showConnectionsDetail) || (isArticlesView && showArticlesDetail)
       }
       searchBarAccessory={
         <List.Dropdown
@@ -108,9 +132,12 @@ export default function Command() {
           value={selectedView}
           onChange={(value) => setSelectedView(value as ViewType)}
         >
-          <List.Dropdown.Item title="Connections" value="connections" />
-          <List.Dropdown.Item title="Articles" value="articles" />
-          <List.Dropdown.Item title="Tags" value="tags" />
+          <List.Dropdown.Item title="Connections" value="connections" icon={Icon.TwoPeople} />
+          <List.Dropdown.Item title="Tags" value="tags" icon={Icon.Tag} />
+          <List.Dropdown.Section title="Articles">
+            <List.Dropdown.Item title="All" value="articles-all" icon={Icon.Document} />
+            <List.Dropdown.Item title="Unread" value="articles-unread" icon={Icon.Circle} />
+          </List.Dropdown.Section>
         </List.Dropdown>
       }
       actions={
@@ -143,7 +170,7 @@ export default function Command() {
           />
         ))}
 
-      {selectedView === "articles" &&
+      {isArticlesView &&
         articlesData?.map((article) => (
           <ArticleListItem
             key={String(article.id)}
