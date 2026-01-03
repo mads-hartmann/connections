@@ -19,6 +19,7 @@ export interface Article {
   image_url: string | null;
   created_at: string;
   read_at: string | null;
+  read_later_at: string | null;
   tags: Tag[];
   og_title: string | null;
   og_description: string | null;
@@ -41,10 +42,23 @@ export function listUrl({ feedId, page }: { feedId: number; page: number }) {
   return `${getServerUrl()}/feeds/${feedId}/articles?${params.toString()}`;
 }
 
-export function listAllUrl({ page, unread, query }: { page: number; unread?: boolean; query?: string }) {
+export function listAllUrl({
+  page,
+  unread,
+  readLater,
+  query,
+}: {
+  page: number;
+  unread?: boolean;
+  readLater?: boolean;
+  query?: string;
+}) {
   const params = new URLSearchParams({ page: String(page), per_page: "20" });
   if (unread) {
     params.set("unread", "true");
+  }
+  if (readLater) {
+    params.set("read_later", "true");
   }
   if (query) {
     params.set("query", query);
@@ -118,6 +132,19 @@ export async function refreshArticleMetadata(id: number): Promise<Article> {
   return response.json();
 }
 
+export async function markReadLater(id: number, readLater: boolean): Promise<Article> {
+  const response = await fetch(`${getServerUrl()}/articles/${id}/read-later`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ read_later: readLater }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update read later status");
+  }
+  return response.json();
+}
+  
 export async function deleteArticle(article: Article): Promise<boolean> {
   const confirmed = await confirmAlert({
     title: "Delete Article",

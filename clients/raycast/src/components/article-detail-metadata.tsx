@@ -22,6 +22,7 @@ function formatDate(dateStr: string | null): string {
 
 export function ArticleDetailMetadata({ article }: { article: Article }) {
   const isRead = article.read_at !== null;
+  const isReadLater = article.read_later_at !== null;
   return (
     <List.Item.Detail
       markdown={buildMarkdown(article)}
@@ -33,7 +34,13 @@ export function ArticleDetailMetadata({ article }: { article: Article }) {
           <List.Item.Detail.Metadata.Label title="Published" text={formatDate(article.published_at)} />
           <List.Item.Detail.Metadata.Label
             title="Read"
-            text={isRead ? `Read on ${formatDate(article.read_at)}` : "Unread"}
+            text={isRead ? formatDate(article.read_at) : "No"}
+            icon={isRead ? Icon.Checkmark : Icon.Circle}
+          />
+          <List.Item.Detail.Metadata.Label
+            title="Read Later"
+            text={isReadLater ? formatDate(article.read_later_at) : "No"}
+            icon={isReadLater ? Icon.Clock : Icon.Circle}
           />
           {article.tags.length > 0 && (
             <>

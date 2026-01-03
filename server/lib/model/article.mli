@@ -12,6 +12,7 @@ val author : t -> string option
 val image_url : t -> string option
 val created_at : t -> string
 val read_at : t -> string option
+val read_later_at : t -> string option
 val tags : t -> Tag.t list
 val og_title : t -> string option
 val og_description : t -> string option
@@ -33,6 +34,7 @@ val create :
   image_url:string option ->
   created_at:string ->
   read_at:string option ->
+  read_later_at:string option ->
   tags:Tag.t list ->
   og_title:string option ->
   og_description:string option ->

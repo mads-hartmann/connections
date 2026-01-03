@@ -36,11 +36,12 @@ let list_by_person request (pagination : Pagination.Pagination.t) person_id =
 
 let list_all request (pagination : Pagination.Pagination.t) =
   let unread_only = Handler_utils.query "unread" request = Some "true" in
+  let read_later_only = Handler_utils.query "read_later" request = Some "true" in
   let tag = Handler_utils.query "tag" request in
   let query = Handler_utils.query "query" request in
   let* paginated =
     Service.Article.list_all ~page:pagination.page ~per_page:pagination.per_page
-      ~unread_only ~tag ?query ()
+      ~unread_only ~read_later_only ~tag ?query ()
     |> Handler_utils.or_article_error
   in
   Handler_utils.json_response (Model.Article.paginated_to_json paginated)
@@ -58,6 +59,19 @@ let mark_read request id =
   in
   let* article =
     Service.Article.mark_read ~id ~read |> Handler_utils.or_article_error
+  in
+  Handler_utils.json_response (Model.Article.to_json article)
+
+type mark_read_later_request = { read_later : bool } [@@deriving yojson]
+
+let mark_read_later request id =
+  let* { read_later } =
+    Handler_utils.parse_json_body mark_read_later_request_of_yojson request
+    |> Handler_utils.or_bad_request
+  in
+  let* article =
+    Service.Article.mark_read_later ~id ~read_later
+    |> Handler_utils.or_article_error
   in
   Handler_utils.json_response (Model.Article.to_json article)
 
@@ -108,6 +122,7 @@ let routes () =
     |> request |> into mark_all_read_global;
     get (s "articles" / int) |> request |> into get_article;
     post (s "articles" / int / s "read") |> request |> into mark_read;
+    post (s "articles" / int / s "read-later") |> request |> into mark_read_later;
     post (s "articles" / int / s "refresh-metadata")
     |> request |> into refresh_metadata;
     delete (s "articles" / int) |> request |> into delete_article;

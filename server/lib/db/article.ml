@@ -1,5 +1,5 @@
-(* Article row type with person, tags JSON and OG fields: 19 fields *)
-(* Split as t2 of (t2 of (t5, t2), t2 of (t6, t6)) *)
+(* Article row type with person, tags JSON and OG fields: 20 fields *)
+(* Split as t2 of (t2 of (t5, t2), t2 of (t7, t6)) *)
 let article_row_type =
   Caqti_type.(
     t2
@@ -7,8 +7,8 @@ let article_row_type =
          (t5 int int (option int) (option string) (option string))
          (t2 string (option string)))
       (t2
-         (t6 (option string) (option string) (option string) string
-            (option string) string)
+         (t7 (option string) (option string) (option string) string
+            (option string) (option string) string)
          (t6 (option string) (option string) (option string) (option string)
             (option string) (option string))))
 
@@ -36,7 +36,7 @@ let tags_subquery =
 (* Base SELECT with person, tags JSON aggregation and OG fields *)
 let select_with_tags =
   Printf.sprintf
-    {|SELECT a.id, a.feed_id, a.person_id, p.name as person_name, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+    {|SELECT a.id, a.feed_id, a.person_id, p.name as person_name, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at, a.read_later_at,
        COALESCE(%s, '[]') as tags,
        a.og_title, a.og_description, a.og_image, a.og_site_name, a.og_fetched_at, a.og_fetch_error
 FROM articles a
@@ -46,7 +46,7 @@ LEFT JOIN persons p ON a.person_id = p.id|}
 (* Base SELECT for tag-filtered queries (needs JOIN for filtering) *)
 let select_with_tags_filtered_by_tag =
   Printf.sprintf
-    {|SELECT a.id, a.feed_id, a.person_id, p.name as person_name, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+    {|SELECT a.id, a.feed_id, a.person_id, p.name as person_name, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at, a.read_later_at,
        COALESCE(%s, '[]') as tags,
        a.og_title, a.og_description, a.og_image, a.og_site_name, a.og_fetched_at, a.og_fetch_error
 FROM articles a
@@ -112,6 +112,16 @@ let count_unread_filtered_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
     "SELECT COUNT(*) FROM articles WHERE read_at IS NULL AND title LIKE ?"
 
+let list_read_later_query =
+  Caqti_request.Infix.(Caqti_type.(t2 int int) ->* article_row_type)
+    (select_with_tags
+   ^ " WHERE a.read_later_at IS NOT NULL ORDER BY a.read_later_at DESC LIMIT \
+      ? OFFSET ?")
+
+let count_read_later_query =
+  Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
+    "SELECT COUNT(*) FROM articles WHERE read_later_at IS NOT NULL"
+
 let list_by_tag_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* article_row_type)
     (select_with_tags_filtered_by_tag
@@ -147,7 +157,7 @@ let count_by_tag_unread_query =
 (* Base SELECT for person-filtered queries (needs JOIN through feeds) *)
 let select_with_tags_filtered_by_person =
   Printf.sprintf
-    {|SELECT a.id, a.feed_id, a.person_id, p.name as person_name, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+    {|SELECT a.id, a.feed_id, a.person_id, p.name as person_name, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at, a.read_later_at,
        COALESCE(%s, '[]') as tags,
        a.og_title, a.og_description, a.og_image, a.og_site_name, a.og_fetched_at, a.og_fetch_error
 FROM articles a
@@ -211,7 +221,11 @@ let update_og_metadata_query =
 
 let mark_read_query =
   Caqti_request.Infix.(Caqti_type.(t2 (option string) int) ->. Caqti_type.unit)
-    "UPDATE articles SET read_at = ? WHERE id = ?"
+    "UPDATE articles SET read_at = ?, read_later_at = NULL WHERE id = ?"
+
+let mark_read_later_query =
+  Caqti_request.Infix.(Caqti_type.(t2 (option string) int) ->. Caqti_type.unit)
+    "UPDATE articles SET read_later_at = ? WHERE id = ?"
 
 let mark_all_read_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
@@ -239,7 +253,7 @@ let exists_query =
 (* Helper to convert DB tuple to Model.Article.t *)
 let tuple_to_article
     ( ((id, feed_id, person_id, person_name, title), (url, published_at)),
-      ( (content, author, image_url, created_at, read_at, tags_json),
+      ( (content, author, image_url, created_at, read_at, read_later_at, tags_json),
         ( og_title,
           og_description,
           og_image,
@@ -247,7 +261,7 @@ let tuple_to_article
           og_fetched_at,
           og_fetch_error ) ) ) =
   Model.Article.create ~id ~feed_id ~person_id ~person_name ~title ~url
-    ~published_at ~content ~author ~image_url ~created_at ~read_at
+    ~published_at ~content ~author ~image_url ~created_at ~read_at ~read_later_at
     ~tags:(Tag_json.parse tags_json) ~og_title ~og_description ~og_image
     ~og_site_name ~og_fetched_at ~og_fetch_error
 
@@ -354,8 +368,8 @@ let list_by_feed ~feed_id ~page ~per_page =
   let data = List.map tuple_to_article rows in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
-(* LIST ALL with pagination and optional unread filter *)
-let list_all ~page ~per_page ~unread_only ?query () =
+(* LIST ALL with pagination and optional filters *)
+let list_all ~page ~per_page ~unread_only ~read_later_only ?query () =
   let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
@@ -363,23 +377,28 @@ let list_all ~page ~per_page ~unread_only ?query () =
   let* total =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
-        match (unread_only, pattern) with
-        | true, Some p -> Db.find count_unread_filtered_query p
-        | true, None -> Db.find count_unread_query ()
-        | false, Some p -> Db.find count_all_filtered_query p
-        | false, None -> Db.find count_all_query ())
+        match (unread_only, read_later_only, pattern) with
+        | _, true, _ -> Db.find count_read_later_query ()
+        | true, false, Some p -> Db.find count_unread_filtered_query p
+        | true, false, None -> Db.find count_unread_query ()
+        | false, false, Some p -> Db.find count_all_filtered_query p
+        | false, false, None -> Db.find count_all_query ())
       pool
   in
   let+ rows =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
-        match (unread_only, pattern) with
-        | true, Some p ->
+        match (unread_only, read_later_only, pattern) with
+        | _, true, _ ->
+            Db.collect_list list_read_later_query (per_page, offset)
+        | true, false, Some p ->
             Db.collect_list list_unread_filtered_query (p, per_page, offset)
-        | true, None -> Db.collect_list list_unread_query (per_page, offset)
-        | false, Some p ->
+        | true, false, None ->
+            Db.collect_list list_unread_query (per_page, offset)
+        | false, false, Some p ->
             Db.collect_list list_all_filtered_query (p, per_page, offset)
-        | false, None -> Db.collect_list list_all_query (per_page, offset))
+        | false, false, None ->
+            Db.collect_list list_all_query (per_page, offset))
       pool
   in
   let data = List.map tuple_to_article rows in
@@ -520,6 +539,36 @@ let mark_all_read_global () =
       Db.collect_list mark_all_read_global_query ())
     pool
   |> Result.map List.length
+
+(* MARK READ LATER *)
+let mark_read_later ~id ~read_later =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let* exists =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
+      pool
+  in
+  match exists with
+  | 0 -> Ok None
+  | _ ->
+      let read_later_at =
+        if read_later then
+          let now = Unix.gettimeofday () in
+          let tm = Unix.gmtime now in
+          Some
+            (Printf.sprintf "%04d-%02d-%02d %02d:%02d:%02d"
+               (tm.Unix.tm_year + 1900) (tm.Unix.tm_mon + 1) tm.Unix.tm_mday
+               tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec)
+        else None
+      in
+      let* () =
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.exec mark_read_later_query (read_later_at, id))
+          pool
+      in
+      get ~id
 
 (* DELETE *)
 let delete ~id =

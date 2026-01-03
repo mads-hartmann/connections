@@ -11,7 +11,7 @@ import * as Person from "./api/person";
 import * as Article from "./api/article";
 import * as Tag from "./api/tag";
 
-type ViewType = "connections" | "articles-all" | "articles-unread" | "tags";
+type ViewType = "connections" | "articles-all" | "articles-unread" | "articles-read-later" | "tags";
 
 interface Preferences {
   serverUrl: string;
@@ -41,7 +41,8 @@ export default function Command() {
     execute: selectedView === "connections",
   });
 
-  const isArticlesView = selectedView === "articles-all" || selectedView === "articles-unread";
+  const isArticlesView =
+    selectedView === "articles-all" || selectedView === "articles-unread" || selectedView === "articles-read-later";
 
   const {
     isLoading: isLoadingArticles,
@@ -54,6 +55,7 @@ export default function Command() {
         page: options.page + 1,
         query: searchText || undefined,
         unread: selectedView === "articles-unread",
+        readLater: selectedView === "articles-read-later",
       }),
     {
       mapResult(result: Article.ArticlesResponse) {
@@ -87,6 +89,7 @@ export default function Command() {
     switch (selectedView) {
       case "articles-all":
       case "articles-unread":
+      case "articles-read-later":
         return {
           isLoading: isLoadingArticles,
           pagination: articlesPagination,
@@ -124,6 +127,7 @@ export default function Command() {
           <List.Dropdown.Section title="Articles">
             <List.Dropdown.Item title="All" value="articles-all" icon={Icon.Document} />
             <List.Dropdown.Item title="Unread" value="articles-unread" icon={Icon.Circle} />
+            <List.Dropdown.Item title="Read Later" value="articles-read-later" icon={Icon.Clock} />
           </List.Dropdown.Section>
         </List.Dropdown>
       }
@@ -165,7 +169,9 @@ export default function Command() {
             revalidate={revalidateArticles}
             showDetail={showArticlesDetail}
             onToggleDetail={() => setShowArticlesDetail(!showArticlesDetail)}
-            onMarkAllRead={() => markAllArticlesRead(revalidateArticles)}
+            onMarkAllRead={
+              selectedView !== "articles-read-later" ? () => markAllArticlesRead(revalidateArticles) : undefined
+            }
           />
         ))}
 

@@ -34,6 +34,7 @@ val list_all :
   page:int ->
   per_page:int ->
   unread_only:bool ->
+  read_later_only:bool ->
   ?query:string ->
   unit ->
   (Model.Article.t Model.Shared.Paginated.t, Caqti_error.t) result
@@ -63,5 +64,9 @@ val mark_read :
 
 val mark_all_read : feed_id:int -> (int, Caqti_error.t) result
 val mark_all_read_global : unit -> (int, Caqti_error.t) result
+
+val mark_read_later :
+  id:int -> read_later:bool -> (Model.Article.t option, Caqti_error.t) result
+
 val delete : id:int -> (bool, Caqti_error.t) result
 val delete_by_person_id : person_id:int -> (unit, Caqti_error.t) result

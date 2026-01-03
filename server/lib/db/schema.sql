@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS articles (
   image_url TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   read_at TEXT,
+  read_later_at TEXT,
   og_title TEXT,
   og_description TEXT,
   og_image TEXT,
@@ -81,6 +82,7 @@ CREATE TABLE IF NOT EXISTS article_tags (
 CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id);
 CREATE INDEX IF NOT EXISTS idx_articles_person_id ON articles(person_id);
 CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at);
+CREATE INDEX IF NOT EXISTS idx_articles_read_later_at ON articles(read_later_at);
 CREATE INDEX IF NOT EXISTS idx_articles_og_fetched_at ON articles(og_fetched_at);
 
 -- Indexes for tag lookups
