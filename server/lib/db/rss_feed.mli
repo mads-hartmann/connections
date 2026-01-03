@@ -19,6 +19,7 @@ val update :
   (Model.Rss_feed.t option, Caqti_error.t) result
 
 val delete : id:int -> (bool, Caqti_error.t) result
+val delete_by_person_id : person_id:int -> (unit, Caqti_error.t) result
 val list_all : unit -> (Model.Rss_feed.t list, Caqti_error.t) result
 
 val list_all_paginated :
