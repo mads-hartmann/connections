@@ -12,17 +12,18 @@ let article_row_type =
          (t6 (option string) (option string) (option string) (option string)
             (option string) (option string))))
 
-(* Upsert input type: 7 fields *)
+(* Upsert input type: 8 fields *)
 let upsert_input_type =
   Caqti_type.(
-    t7 int (option string) string (option string) (option string)
-      (option string) (option string))
+    t2
+      (t4 int (option int) (option string) string)
+      (t4 (option string) (option string) (option string) (option string)))
 
 let upsert_query =
   Caqti_request.Infix.(upsert_input_type ->. Caqti_type.unit)
     {|
-      INSERT OR IGNORE INTO articles (feed_id, title, url, published_at, content, author, image_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT OR IGNORE INTO articles (feed_id, person_id, title, url, published_at, content, author, image_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     |}
 
 (* Tags subquery - reused across all article queries *)
@@ -249,6 +250,7 @@ let tuple_to_article
 
 type create_input = {
   feed_id : int;
+  person_id : int option;
   title : string option;
   url : string;
   published_at : string option;
@@ -259,11 +261,21 @@ type create_input = {
 
 let upsert (input : create_input) =
   let pool = Pool.get () in
-  let { feed_id; title; url; published_at; content; author; image_url } =
+  let {
+    feed_id;
+    person_id;
+    title;
+    url;
+    published_at;
+    content;
+    author;
+    image_url;
+  } =
     input
   in
   let params =
-    (feed_id, title, url, published_at, content, author, image_url)
+    ( (feed_id, person_id, title, url),
+      (published_at, content, author, image_url) )
   in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec upsert_query params)
@@ -279,6 +291,7 @@ let upsert_many inputs =
         | input :: rest -> (
             let {
               feed_id;
+              person_id;
               title;
               url;
               published_at;
@@ -289,7 +302,8 @@ let upsert_many inputs =
               input
             in
             let params =
-              (feed_id, title, url, published_at, content, author, image_url)
+              ( (feed_id, person_id, title, url),
+                (published_at, content, author, image_url) )
             in
             match Db.exec upsert_query params with
             | Error err -> Error err

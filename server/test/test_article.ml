@@ -37,11 +37,13 @@ let json_suite =
 let test_db_article_upsert () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let _, feed = setup_person_and_feed () in
+  let person, feed = setup_person_and_feed () in
   let feed_id = Model.Rss_feed.id feed in
+  let person_id = Some (Model.Person.id person) in
   let input : Db.Article.create_input =
     {
       feed_id;
+      person_id;
       title = Some "Test Article";
       url = "https://example.com/article1";
       published_at = None;
@@ -59,12 +61,14 @@ let test_db_article_upsert () =
 let test_db_article_list_by_feed () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let _, feed = setup_person_and_feed () in
+  let person, feed = setup_person_and_feed () in
   let feed_id = Model.Rss_feed.id feed in
+  let person_id = Some (Model.Person.id person) in
   let _ =
     Db.Article.upsert
       {
         feed_id;
+        person_id;
         title = Some "Article 1";
         url = "https://example.com/a1";
         published_at = None;
@@ -77,6 +81,7 @@ let test_db_article_list_by_feed () =
     Db.Article.upsert
       {
         feed_id;
+        person_id;
         title = Some "Article 2";
         url = "https://example.com/a2";
         published_at = None;
@@ -96,12 +101,14 @@ let test_db_article_list_by_feed () =
 let test_db_article_mark_read () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let _, feed = setup_person_and_feed () in
+  let person, feed = setup_person_and_feed () in
   let feed_id = Model.Rss_feed.id feed in
+  let person_id = Some (Model.Person.id person) in
   let _ =
     Db.Article.upsert
       {
         feed_id;
+        person_id;
         title = Some "To Read";
         url = "https://example.com/read";
         published_at = None;

@@ -1,5 +1,6 @@
 type create_input = {
   feed_id : int;
+  person_id : int option;
   title : string option;
   url : string;
   published_at : string option;
