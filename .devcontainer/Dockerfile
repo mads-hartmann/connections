@@ -6,6 +6,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         build-essential \
         pkg-config \
         libsqlite3-dev \
+        sqlite3 \
         libgmp-dev \
         libev-dev \
         libssl-dev \
