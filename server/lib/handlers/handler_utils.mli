@@ -21,6 +21,7 @@ end
 val or_bad_request : ('a, string) result -> ('a, Tapak.Response.t) result
 val or_internal_error : ('a, string) result -> ('a, Tapak.Response.t) result
 val or_not_found : string -> 'a option -> ('a, Tapak.Response.t) result
+val or_bad_request_opt : string -> 'a option -> ('a, Tapak.Response.t) result
 val or_db_error : ('a, Caqti_error.t) result -> ('a, Tapak.Response.t) result
 
 val or_article_error :

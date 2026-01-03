@@ -1,4 +1,6 @@
-val create : name:string -> (Model.Person.t, Caqti_error.t) result
+val create :
+  name:string -> ?photo:string -> unit -> (Model.Person.t, Caqti_error.t) result
+
 val get : id:int -> (Model.Person.t option, Caqti_error.t) result
 
 val list :
@@ -16,6 +18,9 @@ val list_with_counts :
   (Model.Person.t_with_counts Model.Shared.Paginated.t, Caqti_error.t) result
 
 val update :
-  id:int -> name:string -> (Model.Person.t option, Caqti_error.t) result
+  id:int ->
+  name:string ->
+  photo:string option ->
+  (Model.Person.t option, Caqti_error.t) result
 
 val delete : id:int -> (bool, Caqti_error.t) result

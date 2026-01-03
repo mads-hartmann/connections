@@ -163,7 +163,7 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
     | [] -> Ok ()
     | (person : person_info) :: rest -> (
         (* Create person *)
-        let person_result = Db.Person.create ~name:person.name in
+        let person_result = Db.Person.create ~name:person.name () in
         match person_result with
         | Error err -> Error (caqti_err err)
         | Ok created_person -> (

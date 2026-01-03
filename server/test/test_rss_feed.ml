@@ -8,7 +8,7 @@ let caqti_err err = Format.asprintf "%a" Caqti_error.pp err
 let test_db_rss_feed_create () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let person_result = Db.Person.create ~name:"Feed Owner" in
+  let person_result = Db.Person.create ~name:"Feed Owner" () in
   match person_result with
   | Error err -> Alcotest.fail ("create person failed: " ^ caqti_err err)
   | Ok person -> (
@@ -49,7 +49,7 @@ let test_db_rss_feed_get () =
 let test_db_rss_feed_list_by_person () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let person_result = Db.Person.create ~name:"Feed Owner" in
+  let person_result = Db.Person.create ~name:"Feed Owner" () in
   match person_result with
   | Error err -> Alcotest.fail ("create person failed: " ^ caqti_err err)
   | Ok person -> (

@@ -2,12 +2,14 @@ type t
 
 val id : t -> int
 val name : t -> string
+val photo : t -> string option
 val tags : t -> Tag.t list
 val metadata : t -> Person_metadata.t list
 
 val create :
   id:int ->
   name:string ->
+  photo:string option ->
   tags:Tag.t list ->
   metadata:Person_metadata.t list ->
   t
@@ -23,6 +25,7 @@ type t_with_counts
 
 val id_with_counts : t_with_counts -> int
 val name_with_counts : t_with_counts -> string
+val photo_with_counts : t_with_counts -> string option
 val tags_with_counts : t_with_counts -> Tag.t list
 val feed_count : t_with_counts -> int
 val article_count : t_with_counts -> int
@@ -32,6 +35,7 @@ val metadata_with_counts : t_with_counts -> Person_metadata.t list
 val create_with_counts :
   id:int ->
   name:string ->
+  photo:string option ->
   tags:Tag.t list ->
   feed_count:int ->
   article_count:int ->

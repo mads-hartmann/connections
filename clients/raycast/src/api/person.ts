@@ -16,6 +16,7 @@ export interface PersonMetadata {
 export interface Person {
   id: number;
   name: string;
+  photo?: string;
   feed_count: number;
   article_count: number;
   unread_article_count: number;
@@ -26,6 +27,7 @@ export interface Person {
 export interface PersonDetail {
   id: number;
   name: string;
+  photo?: string;
   metadata: PersonMetadata[];
 }
 
@@ -65,11 +67,15 @@ export async function getPerson(id: number): Promise<PersonDetail> {
   return response.json();
 }
 
-export async function updatePerson(id: number, name: string): Promise<PersonDetail> {
+export async function updatePerson(id: number, name: string, photo?: string | null): Promise<PersonDetail> {
+  const body: { name: string; photo?: string | null } = { name };
+  if (photo !== undefined) {
+    body.photo = photo;
+  }
   const response = await fetch(`${getServerUrl()}/persons/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     const error = await response.json();
@@ -129,4 +135,37 @@ export async function deleteMetadata(personId: number, metadataId: number): Prom
     const error = await response.json();
     throw new Error(error.error || "Failed to delete metadata");
   }
+}
+
+// Refresh metadata types
+export interface RefreshMetadataFeed {
+  url: string;
+  title?: string;
+  format: "rss" | "atom" | "json_feed";
+}
+
+export interface RefreshMetadataProfile {
+  url: string;
+  field_type: MetadataFieldType;
+}
+
+export interface RefreshMetadataPreview {
+  person_id: number;
+  source_url: string;
+  proposed_name?: string;
+  proposed_photo?: string;
+  proposed_feeds: RefreshMetadataFeed[];
+  proposed_profiles: RefreshMetadataProfile[];
+  current_name: string;
+  current_photo?: string;
+  current_metadata: PersonMetadata[];
+}
+
+export async function fetchRefreshMetadataPreview(personId: number): Promise<RefreshMetadataPreview> {
+  const response = await fetch(`${getServerUrl()}/persons/${personId}/refresh-metadata`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch refresh metadata preview");
+  }
+  return response.json();
 }
