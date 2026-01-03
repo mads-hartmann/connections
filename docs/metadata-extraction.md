@@ -12,12 +12,12 @@ Returns extracted metadata from the given URL.
 
 | Source | Data Extracted |
 |--------|----------------|
-| HTML meta | title, description, author, canonical URL, favicon |
-| Open Graph | title, type, image, description, site name, locale, publish/modify dates |
-| Twitter Cards | card type, site, creator, title, description, image |
-| JSON-LD | Person (name, url, image, job title, sameAs), Article (headline, author, dates) |
-| Microformats2 | h-card (author info), h-entry (content), rel-me (identity links) |
-| Feed discovery | RSS, Atom, JSON Feed via `<link rel="alternate">` |
+| [HTML meta](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta) | title, description, author, canonical URL, favicon |
+| [Open Graph](https://ogp.me/) | title, type, image, description, site name, locale, publish/modify dates |
+| [Twitter Cards](https://developer.x.com/en/docs/x-for-websites/cards/overview/abouts-cards) | card type, site, creator, title, description, image |
+| [JSON-LD](https://json-ld.org/) | Person (name, url, image, job title, sameAs), Article (headline, author, dates) |
+| [Microformats2](https://microformats.org/wiki/microformats2) | h-card (author info), h-entry (content), rel-me (identity links) |
+| [Feed discovery](https://www.rssboard.org/rss-autodiscovery) | RSS, Atom, JSON Feed via `<link rel="alternate">` |
 
 ## Merge Priority
 
