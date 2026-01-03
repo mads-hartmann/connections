@@ -76,6 +76,21 @@ export function ArticleListItem({
     }
   };
 
+  const deleteArticle = async () => {
+    try {
+      const deleted = await Article.deleteArticle(article);
+      if (deleted) {
+        revalidate();
+      }
+    } catch (error) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to delete article",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+
   const subtitle = showDetail ? undefined : article.person_name || article.author || undefined;
 
   return (
@@ -117,6 +132,13 @@ export function ArticleListItem({
             icon={Icon.Pencil}
             shortcut={Keyboard.Shortcut.Common.Edit}
             target={<ArticleEditForm article={article} revalidate={revalidate} />}
+          />
+          <Action
+            title="Delete"
+            icon={Icon.Trash}
+            style={Action.Style.Destructive}
+            shortcut={Keyboard.Shortcut.Common.Remove}
+            onAction={deleteArticle}
           />
           <Action
             title={showDetail ? "Hide Details" : "Show Details"}
