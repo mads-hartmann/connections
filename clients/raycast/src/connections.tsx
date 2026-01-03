@@ -15,25 +15,12 @@ type ViewType = "connections" | "articles-all" | "articles-unread" | "tags";
 
 interface Preferences {
   serverUrl: string;
-  defaultView: "connections" | "articles" | "tags";
-}
-
-function defaultViewToViewType(defaultView: Preferences["defaultView"]): ViewType {
-  switch (defaultView) {
-    case "articles":
-      return "articles-unread";
-    case "connections":
-      return "connections";
-    case "tags":
-      return "tags";
-    default:
-      return "connections";
-  }
+  defaultView: ViewType;
 }
 
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
-  const [selectedView, setSelectedView] = useState<ViewType>(defaultViewToViewType(preferences.defaultView));
+  const [selectedView, setSelectedView] = useState<ViewType>(preferences.defaultView || "articles-unread");
   const [searchText, setSearchText] = useState("");
   const [showConnectionsDetail, setShowConnectionsDetail] = useState(true);
   const [showArticlesDetail, setShowArticlesDetail] = useState(true);
