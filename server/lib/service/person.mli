@@ -5,7 +5,7 @@ module Error : sig
   val to_string : t -> string
 end
 
-val create : name:string -> (Model.Person.t, Error.t) result
+val create : name:string -> ?photo:string -> unit -> (Model.Person.t, Error.t) result
 val get : id:int -> (Model.Person.t, Error.t) result
 
 val list :
@@ -22,5 +22,5 @@ val list_with_counts :
   unit ->
   (Model.Person.t_with_counts Model.Shared.Paginated.t, Error.t) result
 
-val update : id:int -> name:string -> (Model.Person.t, Error.t) result
+val update : id:int -> name:string -> photo:string option -> (Model.Person.t, Error.t) result
 val delete : id:int -> (unit, Error.t) result

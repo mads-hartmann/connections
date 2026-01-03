@@ -201,10 +201,10 @@ let extract_feeds ~base_url soup : Feed.t list =
   |> List.filter_map extract_feed
 
 (* Merge contact info from multiple sources with priority ordering.
-   Priority: Microformats > JSON-LD > rel-me links *)
+   Priority: Microformats > JSON-LD > favicon (for photo) *)
 let merge_contact ~(microformats : Extractors.Microformats.h_card option)
     ~(json_ld : Extractors.Json_ld.person option) ~(rel_me : string list)
-    ~(feeds : Feed.t list) : t =
+    ~(feeds : Feed.t list) ~(favicon : string option) : t =
   let name =
     match microformats with
     | Some mf when Option.is_some mf.name -> mf.name
@@ -223,7 +223,10 @@ let merge_contact ~(microformats : Extractors.Microformats.h_card option)
   let photo =
     match microformats with
     | Some mf when Option.is_some mf.photo -> mf.photo
-    | _ -> Option.bind json_ld (fun jl -> jl.image)
+    | _ -> (
+        match Option.bind json_ld (fun jl -> jl.image) with
+        | Some _ as img -> img
+        | None -> favicon)
   in
   let bio = match microformats with Some mf -> mf.note | None -> None in
   let location =
@@ -256,6 +259,7 @@ let extract ~url ~html =
   let feeds = extract_feeds ~base_url soup in
   let json_ld = Extractors.Json_ld.extract soup in
   let microformats = Extractors.Microformats.extract ~base_url soup in
+  let html_meta = Extractors.Html_meta.extract ~base_url soup in
   let h_card = List.nth_opt microformats.cards 0 in
   let json_ld_person =
     match List.nth_opt json_ld.persons 0 with
@@ -263,7 +267,7 @@ let extract ~url ~html =
     | None -> Option.bind (List.nth_opt json_ld.articles 0) (fun a -> a.author)
   in
   merge_contact ~microformats:h_card ~json_ld:json_ld_person
-    ~rel_me:microformats.rel_me ~feeds
+    ~rel_me:microformats.rel_me ~feeds ~favicon:html_meta.favicon
 
 let fetch ~sw ~env url =
   Log.info (fun m -> m "Fetching contact metadata for %s" url);

@@ -1,16 +1,19 @@
-(* Row type definitions - 3 fields with tags JSON *)
-let person_row_type = Caqti_type.(t3 int string string)
-let person_with_counts_row_type = Caqti_type.(t6 int string string int int int)
+(* Row type definitions - 4 fields with tags JSON *)
+let person_row_type = Caqti_type.(t4 int string (option string) string)
+
+let person_with_counts_row_type =
+  Caqti_type.(t7 int string (option string) string int int int)
+
 let metadata_row_type = Caqti_type.(t4 int int int string)
 
 let insert_query =
-  Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
-    "INSERT INTO persons (name) VALUES (?) RETURNING id"
+  Caqti_request.Infix.(Caqti_type.(t2 string (option string)) ->! Caqti_type.int)
+    "INSERT INTO persons (name, photo) VALUES (?, ?) RETURNING id"
 
 (* Base SELECT with tags JSON aggregation *)
 let select_with_tags =
   {|
-    SELECT p.id, p.name,
+    SELECT p.id, p.name, p.photo,
            COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
                      FROM person_tags pt
                      JOIN tags t ON pt.tag_id = t.id
@@ -45,6 +48,7 @@ let list_with_counts_query =
       SELECT
         p.id,
         p.name,
+        p.photo,
         COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
                   FROM person_tags pt
                   JOIN tags t ON pt.tag_id = t.id
@@ -67,6 +71,7 @@ let list_with_counts_filtered_query =
       SELECT
         p.id,
         p.name,
+        p.photo,
         COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
                   FROM person_tags pt
                   JOIN tags t ON pt.tag_id = t.id
@@ -84,8 +89,9 @@ let list_with_counts_filtered_query =
     |}
 
 let update_query =
-  Caqti_request.Infix.(Caqti_type.(t2 string int) ->. Caqti_type.unit)
-    "UPDATE persons SET name = ? WHERE id = ?"
+  Caqti_request.Infix.(
+    Caqti_type.(t3 string (option string) int) ->. Caqti_type.unit)
+    "UPDATE persons SET name = ?, photo = ? WHERE id = ?"
 
 let delete_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
@@ -135,13 +141,16 @@ let group_metadata_by_person metadata =
   Hashtbl.iter (fun k v -> Hashtbl.replace tbl k (List.rev v)) tbl;
   tbl
 
-let tuple_to_person (id, name, tags_json) =
-  Model.Person.create ~id ~name ~tags:(Tag_json.parse tags_json) ~metadata:[]
+let tuple_to_person (id, name, photo, tags_json) =
+  Model.Person.create ~id ~name ~photo ~tags:(Tag_json.parse tags_json)
+    ~metadata:[]
 
 let tuple_to_person_with_counts
-    (id, name, tags_json, feed_count, article_count, unread_article_count) =
-  Model.Person.create_with_counts ~id ~name ~tags:(Tag_json.parse tags_json)
-    ~feed_count ~article_count ~unread_article_count ~metadata:[]
+    (id, name, photo, tags_json, feed_count, article_count, unread_article_count)
+    =
+  Model.Person.create_with_counts ~id ~name ~photo
+    ~tags:(Tag_json.parse tags_json) ~feed_count ~article_count
+    ~unread_article_count ~metadata:[]
 
 let attach_metadata_with_counts metadata_tbl
     (person : Model.Person.t_with_counts) =
@@ -172,12 +181,13 @@ let get ~id =
       let metadata = List.filter_map tuple_to_metadata metadata_rows in
       Some (Model.Person.with_metadata person metadata)
 
-let create ~name =
+let create ~name ?photo () =
   let open Result.Syntax in
   let pool = Pool.get () in
   let* id =
     Caqti_eio.Pool.use
-      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query name)
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        Db.find insert_query (name, photo))
       pool
   in
   get ~id |> Result.map Option.get
@@ -215,7 +225,7 @@ let list ~page ~per_page ?query () =
   let data = List.map tuple_to_person rows in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
-let update ~id ~name =
+let update ~id ~name ~photo =
   let open Result.Syntax in
   let pool = Pool.get () in
   let* exists =
@@ -229,7 +239,7 @@ let update ~id ~name =
       let* () =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
-            Db.exec update_query (name, id))
+            Db.exec update_query (name, photo, id))
           pool
       in
       get ~id

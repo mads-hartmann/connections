@@ -4,7 +4,8 @@ PRAGMA foreign_keys = ON;
 -- Persons table
 CREATE TABLE IF NOT EXISTS persons (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL
+  name TEXT NOT NULL,
+  photo TEXT
 );
 
 -- Tags table

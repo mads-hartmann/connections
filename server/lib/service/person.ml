@@ -8,8 +8,8 @@ module Error = struct
   let to_string err = Format.asprintf "%a" pp err
 end
 
-let create ~name =
-  Db.Person.create ~name |> Result.map_error (fun err -> Error.Database err)
+let create ~name ?photo () =
+  Db.Person.create ~name ?photo () |> Result.map_error (fun err -> Error.Database err)
 
 let get ~id =
   match Db.Person.get ~id with
@@ -25,8 +25,8 @@ let list_with_counts ~page ~per_page ?query () =
   Db.Person.list_with_counts ~page ~per_page ?query ()
   |> Result.map_error (fun err -> Error.Database err)
 
-let update ~id ~name =
-  match Db.Person.update ~id ~name with
+let update ~id ~name ~photo =
+  match Db.Person.update ~id ~name ~photo with
   | Error err -> Error (Error.Database err)
   | Ok None -> Error Error.Not_found
   | Ok (Some person) -> Ok person

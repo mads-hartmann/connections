@@ -13,6 +13,7 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
   const { pop } = useNavigation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [deletedMetadataIds, setDeletedMetadataIds] = useState<Set<number>>(new Set());
 
   const { isLoading: isLoadingAllTags, data: allTags } = usePromise(Tag.listAll);
 
@@ -26,8 +27,11 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
 
   const isLoading = isLoadingAllTags || isLoadingPersonTags || isSubmitting;
 
-  async function handleSubmit(values: { name: string; tags: string[] }) {
-    const name = values.name.trim();
+  // Filter out deleted metadata for display
+  const visibleMetadata = person.metadata.filter((m) => !deletedMetadataIds.has(m.id));
+
+  async function handleSubmit(values: Record<string, unknown>) {
+    const name = (values.name as string).trim();
     if (!name) {
       showToast({
         style: Toast.Style.Failure,
@@ -39,9 +43,12 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
 
     setIsSubmitting(true);
     try {
-      await Person.updatePerson(person.id, name);
+      // Update person name and photo
+      const photo = values.photo as string | undefined;
+      await Person.updatePerson(person.id, name, photo || null);
 
-      const newTagIds = new Set(values.tags.map((id) => parseInt(id, 10)));
+      // Update tags
+      const newTagIds = new Set((values.tags as string[]).map((id) => parseInt(id, 10)));
       const currentTagIds = new Set(personTags?.map((t) => t.id) ?? []);
 
       const tagsToAdd = [...newTagIds].filter((id) => !currentTagIds.has(id));
@@ -51,6 +58,22 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
         ...tagsToAdd.map((tagId) => Tag.addToPerson(person.id, tagId)),
         ...tagsToRemove.map((tagId) => Tag.removeFromPerson(person.id, tagId)),
       ]);
+
+      // Delete marked metadata
+      await Promise.all([...deletedMetadataIds].map((id) => Person.deleteMetadata(person.id, id)));
+
+      // Update metadata values
+      const metadataUpdates = visibleMetadata
+        .map((m) => {
+          const newValue = values[`metadata_${m.id}`] as string;
+          if (newValue && newValue.trim() !== m.value) {
+            return Person.updateMetadata(person.id, m.id, newValue.trim());
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      await Promise.all(metadataUpdates);
 
       showToast({ style: Toast.Style.Success, title: "Person updated" });
       revalidatePersonTags();
@@ -73,17 +96,63 @@ export function PersonEditForm({ person, revalidate }: PersonEditFormProps) {
       navigationTitle={`Edit ${person.name}`}
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Update Person" icon={Icon.Check} onSubmit={handleSubmit} />
+          <Action.SubmitForm title="Save Changes" icon={Icon.Check} onSubmit={handleSubmit} />
         </ActionPanel>
       }
     >
       <Form.TextField id="name" title="Name" defaultValue={person.name} placeholder="Person name" />
+      <Form.TextField
+        id="photo"
+        title="Photo URL"
+        defaultValue={person.photo || ""}
+        placeholder="https://example.com/photo.jpg"
+      />
+
       {!isLoadingAllTags && !isLoadingPersonTags && (
         <Form.TagPicker id="tags" title="Tags" value={selectedTagIds} onChange={setSelectedTagIds}>
           {allTags?.map((tag) => (
             <Form.TagPicker.Item key={tag.id} value={String(tag.id)} title={tag.name} icon={Icon.Tag} />
           ))}
         </Form.TagPicker>
+      )}
+
+      {visibleMetadata.length > 0 && <Form.Separator />}
+
+      {visibleMetadata.map((m) => (
+        <Form.TextField
+          key={m.id}
+          id={`metadata_${m.id}`}
+          title={m.field_type.name}
+          defaultValue={m.value}
+          placeholder={m.value}
+        />
+      ))}
+
+      {visibleMetadata.length > 0 && (
+        <>
+          <Form.Separator />
+          <Form.Description title="Delete Metadata" text="Check the boxes below to mark metadata for deletion." />
+          {visibleMetadata.map((m) => (
+            <Form.Checkbox
+              key={`delete_${m.id}`}
+              id={`delete_${m.id}`}
+              title=""
+              label={`Delete ${m.field_type.name}: ${m.value}`}
+              value={deletedMetadataIds.has(m.id)}
+              onChange={(checked) => {
+                if (checked) {
+                  setDeletedMetadataIds((prev) => new Set([...prev, m.id]));
+                } else {
+                  setDeletedMetadataIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(m.id);
+                    return next;
+                  });
+                }
+              }}
+            />
+          ))}
+        </>
       )}
     </Form>
   );

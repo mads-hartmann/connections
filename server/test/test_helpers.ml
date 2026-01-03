@@ -16,7 +16,7 @@ let with_eio f =
 
 (* Helper to create a person and feed for article tests *)
 let setup_person_and_feed () =
-  let person_result = Db.Person.create ~name:"Article Owner" in
+  let person_result = Db.Person.create ~name:"Article Owner" () in
   match person_result with
   | Error err -> Alcotest.fail ("create person failed: " ^ caqti_err err)
   | Ok person -> (

@@ -62,6 +62,10 @@ let or_bad_request result = Result.map_error bad_request result
 let or_internal_error result = Result.map_error internal_error result
 let or_not_found msg = function Some x -> Ok x | None -> Error (not_found msg)
 
+let or_bad_request_opt msg = function
+  | Some x -> Ok x
+  | None -> Error (bad_request msg)
+
 (* Convert Caqti_error.t to response *)
 let or_db_error result =
   Result.map_error

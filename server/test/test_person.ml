@@ -8,7 +8,9 @@ open Test_helpers
    ============================================ *)
 
 let test_person_to_json () =
-  let person = Model.Person.create ~id:1 ~name:"Alice" ~tags:[] ~metadata:[] in
+  let person =
+    Model.Person.create ~id:1 ~name:"Alice" ~photo:None ~tags:[] ~metadata:[]
+  in
   let json = Model.Person.to_json person in
   match json with
   | `Assoc fields ->
@@ -27,7 +29,9 @@ let test_person_to_json_with_metadata () =
         ~field_type:Model.Metadata_field_type.Email ~value:"alice@example.com";
     ]
   in
-  let person = Model.Person.create ~id:1 ~name:"Alice" ~tags:[] ~metadata in
+  let person =
+    Model.Person.create ~id:1 ~name:"Alice" ~photo:None ~tags:[] ~metadata
+  in
   let json = Model.Person.to_json person in
   match json with
   | `Assoc fields -> (
@@ -37,8 +41,12 @@ let test_person_to_json_with_metadata () =
   | _ -> Alcotest.fail "expected JSON object"
 
 let test_person_paginated_to_json () =
-  let alice = Model.Person.create ~id:1 ~name:"Alice" ~tags:[] ~metadata:[] in
-  let bob = Model.Person.create ~id:2 ~name:"Bob" ~tags:[] ~metadata:[] in
+  let alice =
+    Model.Person.create ~id:1 ~name:"Alice" ~photo:None ~tags:[] ~metadata:[]
+  in
+  let bob =
+    Model.Person.create ~id:2 ~name:"Bob" ~photo:None ~tags:[] ~metadata:[]
+  in
   let response =
     Model.Shared.Paginated.make ~data:[ alice; bob ] ~page:1 ~per_page:10
       ~total:2
@@ -71,7 +79,7 @@ let caqti_err err = Format.asprintf "%a" Caqti_error.pp err
 let test_db_person_create () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let result = Db.Person.create ~name:"Test Person" in
+  let result = Db.Person.create ~name:"Test Person" () in
   match result with
   | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok person ->
@@ -82,7 +90,7 @@ let test_db_person_create () =
 let test_db_person_get () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let create_result = Db.Person.create ~name:"Get Test" in
+  let create_result = Db.Person.create ~name:"Get Test" () in
   match create_result with
   | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok created -> (
@@ -99,9 +107,9 @@ let test_db_person_get () =
 let test_db_person_list () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let _ = Db.Person.create ~name:"Alice" in
-  let _ = Db.Person.create ~name:"Bob" in
-  let _ = Db.Person.create ~name:"Charlie" in
+  let _ = Db.Person.create ~name:"Alice" () in
+  let _ = Db.Person.create ~name:"Bob" () in
+  let _ = Db.Person.create ~name:"Charlie" () in
   let result = Db.Person.list ~page:1 ~per_page:10 () in
   match result with
   | Error err -> Alcotest.fail ("list failed: " ^ caqti_err err)
@@ -112,12 +120,13 @@ let test_db_person_list () =
 let test_db_person_update () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let create_result = Db.Person.create ~name:"Original Name" in
+  let create_result = Db.Person.create ~name:"Original Name" () in
   match create_result with
   | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok created -> (
       let update_result =
         Db.Person.update ~id:(Model.Person.id created) ~name:"Updated Name"
+          ~photo:None
       in
       match update_result with
       | Error err -> Alcotest.fail ("update failed: " ^ caqti_err err)
@@ -130,7 +139,7 @@ let test_db_person_update () =
 let test_db_person_delete () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let create_result = Db.Person.create ~name:"To Delete" in
+  let create_result = Db.Person.create ~name:"To Delete" () in
   match create_result with
   | Error err -> Alcotest.fail ("create failed: " ^ caqti_err err)
   | Ok created -> (

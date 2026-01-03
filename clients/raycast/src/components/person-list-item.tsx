@@ -7,6 +7,7 @@ import { FeedList } from "./feed-list";
 import { ImportOpml } from "./import-opml";
 import { PersonDetailMetadata } from "./person-detail-metadata";
 import { PersonEditForm } from "./person-edit-form";
+import { PersonRefreshMetadata } from "./person-refresh-metadata";
 
 interface PersonItemProps {
   person: Person.Person;
@@ -30,6 +31,7 @@ export function PersonListItem({ person, revalidate, showDetail, onToggleDetail 
     <List.Item
       key={String(person.id)}
       title={person.name}
+      icon={person.photo ? { source: person.photo } : undefined}
       accessories={accessories}
       detail={<PersonDetailMetadata person={person} />}
       actions={
@@ -56,6 +58,12 @@ export function PersonListItem({ person, revalidate, showDetail, onToggleDetail 
             icon={Icon.Pencil}
             shortcut={Keyboard.Shortcut.Common.Edit}
             target={<PersonEditForm person={person} revalidate={revalidate} />}
+          />
+          <Action.Push
+            title="Refresh from Website"
+            icon={Icon.ArrowClockwise}
+            shortcut={{ modifiers: ["cmd"], key: "r" }}
+            target={<PersonRefreshMetadata person={person} revalidate={revalidate} />}
           />
           <Action
             title={showDetail ? "Hide Details" : "Show Details"}
