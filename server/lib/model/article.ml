@@ -3,6 +3,8 @@ open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 type t = {
   id : int;
   feed_id : int;
+  person_id : int option;
+  person_name : string option; [@yojson.option]
   title : string option; [@yojson.option]
   url : string;
   published_at : string option; [@yojson.option]
@@ -23,6 +25,8 @@ type t = {
 
 let id t = t.id
 let feed_id t = t.feed_id
+let person_id t = t.person_id
+let person_name t = t.person_name
 let title t = t.title
 let url t = t.url
 let published_at t = t.published_at
@@ -39,12 +43,14 @@ let og_site_name t = t.og_site_name
 let og_fetched_at t = t.og_fetched_at
 let og_fetch_error t = t.og_fetch_error
 
-let create ~id ~feed_id ~title ~url ~published_at ~content ~author ~image_url
-    ~created_at ~read_at ~tags ~og_title ~og_description ~og_image ~og_site_name
-    ~og_fetched_at ~og_fetch_error =
+let create ~id ~feed_id ~person_id ~person_name ~title ~url ~published_at
+    ~content ~author ~image_url ~created_at ~read_at ~tags ~og_title
+    ~og_description ~og_image ~og_site_name ~og_fetched_at ~og_fetch_error =
   {
     id;
     feed_id;
+    person_id;
+    person_name;
     title;
     url;
     published_at;
@@ -68,14 +74,19 @@ let paginated_to_json response = Shared.Paginated.to_json yojson_of_t response
 let error_to_json = Shared.error_to_json
 
 let pp fmt t =
-  Format.fprintf fmt "{ id = %d; feed_id = %d; title = %a; url = %S }" t.id
+  Format.fprintf fmt
+    "{ id = %d; feed_id = %d; person_id = %a; title = %a; url = %S }" t.id
     t.feed_id
+    (Format.pp_print_option Format.pp_print_int)
+    t.person_id
     (Format.pp_print_option Format.pp_print_string)
     t.title t.url
 
 let equal a b =
   Int.equal a.id b.id
   && Int.equal a.feed_id b.feed_id
+  && Option.equal Int.equal a.person_id b.person_id
+  && Option.equal String.equal a.person_name b.person_name
   && Option.equal String.equal a.title b.title
   && String.equal a.url b.url
   && Option.equal String.equal a.published_at b.published_at

@@ -9,8 +9,8 @@ open Test_helpers
 
 let test_article_to_json () =
   let article =
-    Model.Article.create ~id:1 ~feed_id:1 ~title:(Some "Test Article")
-      ~url:"https://example.com/article"
+    Model.Article.create ~id:1 ~feed_id:1 ~person_id:None ~person_name:None
+      ~title:(Some "Test Article") ~url:"https://example.com/article"
       ~published_at:(Some "2024-01-01 12:00:00")
       ~content:(Some "Article content") ~author:(Some "John Doe")
       ~image_url:None ~created_at:"2024-01-01 12:00:00" ~read_at:None ~tags:[]

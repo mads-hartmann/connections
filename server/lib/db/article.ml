@@ -1,9 +1,11 @@
-(* Article row type with tags JSON and OG fields: 17 fields *)
-(* Split as t2 of (t5, t2 of (t6, t6)) *)
+(* Article row type with person, tags JSON and OG fields: 19 fields *)
+(* Split as t2 of (t2 of (t5, t2), t2 of (t6, t6)) *)
 let article_row_type =
   Caqti_type.(
     t2
-      (t5 int int (option string) string (option string))
+      (t2
+         (t5 int int (option int) (option string) (option string))
+         (t2 string (option string)))
       (t2
          (t6 (option string) (option string) (option string) string
             (option string) string)
@@ -30,22 +32,24 @@ let tags_subquery =
      JOIN tags t ON at.tag_id = t.id
      WHERE at.article_id = a.id)|}
 
-(* Base SELECT with tags JSON aggregation and OG fields *)
+(* Base SELECT with person, tags JSON aggregation and OG fields *)
 let select_with_tags =
   Printf.sprintf
-    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+    {|SELECT a.id, a.feed_id, a.person_id, p.name as person_name, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
        COALESCE(%s, '[]') as tags,
        a.og_title, a.og_description, a.og_image, a.og_site_name, a.og_fetched_at, a.og_fetch_error
-FROM articles a|}
+FROM articles a
+LEFT JOIN persons p ON a.person_id = p.id|}
     tags_subquery
 
 (* Base SELECT for tag-filtered queries (needs JOIN for filtering) *)
 let select_with_tags_filtered_by_tag =
   Printf.sprintf
-    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+    {|SELECT a.id, a.feed_id, a.person_id, p.name as person_name, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
        COALESCE(%s, '[]') as tags,
        a.og_title, a.og_description, a.og_image, a.og_site_name, a.og_fetched_at, a.og_fetch_error
 FROM articles a
+LEFT JOIN persons p ON a.person_id = p.id
 INNER JOIN article_tags at_filter ON a.id = at_filter.article_id
 INNER JOIN tags t_filter ON at_filter.tag_id = t_filter.id|}
     tags_subquery
@@ -142,10 +146,11 @@ let count_by_tag_unread_query =
 (* Base SELECT for person-filtered queries (needs JOIN through feeds) *)
 let select_with_tags_filtered_by_person =
   Printf.sprintf
-    {|SELECT a.id, a.feed_id, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
+    {|SELECT a.id, a.feed_id, a.person_id, p.name as person_name, a.title, a.url, a.published_at, a.content, a.author, a.image_url, a.created_at, a.read_at,
        COALESCE(%s, '[]') as tags,
        a.og_title, a.og_description, a.og_image, a.og_site_name, a.og_fetched_at, a.og_fetch_error
 FROM articles a
+LEFT JOIN persons p ON a.person_id = p.id
 INNER JOIN rss_feeds f ON a.feed_id = f.id|}
     tags_subquery
 
@@ -227,7 +232,7 @@ let exists_query =
 
 (* Helper to convert DB tuple to Model.Article.t *)
 let tuple_to_article
-    ( (id, feed_id, title, url, published_at),
+    ( ((id, feed_id, person_id, person_name, title), (url, published_at)),
       ( (content, author, image_url, created_at, read_at, tags_json),
         ( og_title,
           og_description,
@@ -235,9 +240,10 @@ let tuple_to_article
           og_site_name,
           og_fetched_at,
           og_fetch_error ) ) ) =
-  Model.Article.create ~id ~feed_id ~title ~url ~published_at ~content ~author
-    ~image_url ~created_at ~read_at ~tags:(Tag_json.parse tags_json) ~og_title
-    ~og_description ~og_image ~og_site_name ~og_fetched_at ~og_fetch_error
+  Model.Article.create ~id ~feed_id ~person_id ~person_name ~title ~url
+    ~published_at ~content ~author ~image_url ~created_at ~read_at
+    ~tags:(Tag_json.parse tags_json) ~og_title ~og_description ~og_image
+    ~og_site_name ~og_fetched_at ~og_fetch_error
 
 (* UPSERT - returns true if inserted, false if duplicate *)
 
