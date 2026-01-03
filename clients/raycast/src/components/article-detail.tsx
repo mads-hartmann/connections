@@ -54,32 +54,38 @@ export function ArticleDetail({ article, revalidateArticles }: ArticleDetailProp
     }
   };
 
-  const tagsLine = article.tags.length > 0 ? `**Tags:** ${article.tags.map((t) => t.name).join(", ")}` : null;
 
-  const metadata = [
-    article.author ? `**Author:** ${article.author}` : null,
-    `**Published:** ${formatDate(article.published_at)}`,
-    isRead ? `**Read:** ${formatDate(article.read_at)}` : "**Status:** Unread",
-    tagsLine,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
 
   const imageUrl = article.og_image || article.image_url;
   const imageLine = imageUrl ? `![](${imageUrl})\n\n` : "";
 
   const markdown = `# ${article.title || "Untitled"}
-
-${imageLine}${metadata}
-
----
-
+${imageLine}
 ${article.og_description || article.content || "*No content available*"}
 `;
 
   return (
     <Detail
       markdown={markdown}
+      metadata={
+        <Detail.Metadata>
+          {article.tags && (
+            <Detail.Metadata.TagList title="Tags">
+              {article.tags.map((tag) => (
+                <Detail.Metadata.TagList.Item key={tag.id} text={tag.name} />
+              ))}
+            </Detail.Metadata.TagList>
+          )}
+          <Detail.Metadata.Separator />
+          {article.author && <Detail.Metadata.Label title="Author" text={article.author} />}
+          <Detail.Metadata.Label title="Published" text={formatDate(article.published_at)} />
+          <Detail.Metadata.Label
+            title="Read"
+            text={isRead ? formatDate(article.read_at) : "Unread"}
+          />
+        </Detail.Metadata>
+      }
+      navigationTitle={article.title || undefined}
       actions={
         <ActionPanel>
           <Action.OpenInBrowser url={article.url} />

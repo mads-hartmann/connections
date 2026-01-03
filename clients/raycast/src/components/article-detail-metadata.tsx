@@ -25,22 +25,18 @@ export function ArticleDetailMetadata({ article }: { article: Article }) {
   return (
     <List.Item.Detail
       markdown={buildMarkdown(article)}
+      key={article.id}
       metadata={
         <List.Item.Detail.Metadata>
-          <List.Item.Detail.Metadata.Label title="Title" text={article.title || "Untitled"} />
           {article.person_name && <List.Item.Detail.Metadata.Label title="Person" text={article.person_name} />}
           {article.author && <List.Item.Detail.Metadata.Label title="Author" text={article.author} />}
-          <List.Item.Detail.Metadata.Separator />
           <List.Item.Detail.Metadata.Label title="Published" text={formatDate(article.published_at)} />
-          <List.Item.Detail.Metadata.Label title="Added" text={formatDate(article.created_at)} />
           <List.Item.Detail.Metadata.Label
-            title="Status"
+            title="Read"
             text={isRead ? `Read on ${formatDate(article.read_at)}` : "Unread"}
-            icon={isRead ? Icon.Checkmark : Icon.Circle}
           />
           {article.tags.length > 0 && (
             <>
-              <List.Item.Detail.Metadata.Separator />
               <List.Item.Detail.Metadata.TagList title="Tags">
                 {article.tags.map((tag) => (
                   <List.Item.Detail.Metadata.TagList.Item key={tag.id} text={tag.name} />
