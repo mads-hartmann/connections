@@ -11,6 +11,6 @@ let () =
       ("Db.Article", Test_article.db_suite);
       ("Feed_fetcher", Test_feed_fetcher.suite);
       ("Opml_parser", Test_opml_parser.suite);
-      ("Url_metadata", Test_url_metadata.suite);
+      ("Metadata", Test_metadata.suite);
       ("E2E", Test_e2e.suite);
     ]

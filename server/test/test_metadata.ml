@@ -122,8 +122,7 @@ let html_with_html_meta =
 
 let test_contact_extract_feeds () =
   let result =
-    Url_metadata.Contact_metadata.extract ~url:"https://example.com"
-      ~html:html_with_feeds
+    Metadata.Contact.extract ~url:"https://example.com" ~html:html_with_feeds
   in
   Alcotest.(check int) "found 3 feeds" 3 (List.length result.feeds);
   let rss_feed = List.nth result.feeds 0 in
@@ -134,7 +133,7 @@ let test_contact_extract_feeds () =
 
 let test_contact_extract_microformats () =
   let result =
-    Url_metadata.Contact_metadata.extract ~url:"https://example.com"
+    Metadata.Contact.extract ~url:"https://example.com"
       ~html:html_with_microformats
   in
   Alcotest.(check (option string))
@@ -153,8 +152,7 @@ let test_contact_extract_microformats () =
 
 let test_contact_extract_json_ld_person () =
   let result =
-    Url_metadata.Contact_metadata.extract ~url:"https://example.com"
-      ~html:html_with_json_ld
+    Metadata.Contact.extract ~url:"https://example.com" ~html:html_with_json_ld
   in
   (* JSON-LD article author should be extracted *)
   Alcotest.(check (option string)) "author name" (Some "Jane Smith") result.name;
@@ -168,7 +166,7 @@ let test_contact_extract_json_ld_person () =
 
 let test_article_extract_opengraph () =
   let result =
-    Url_metadata.Article_metadata.extract ~url:"https://example.com"
+    Metadata.Article.extract ~url:"https://example.com"
       ~html:html_with_opengraph
   in
   Alcotest.(check (option string)) "OG title" (Some "OG Title") result.title;
@@ -188,8 +186,7 @@ let test_article_extract_opengraph () =
 
 let test_article_extract_twitter () =
   let result =
-    Url_metadata.Article_metadata.extract ~url:"https://example.com"
-      ~html:html_with_twitter
+    Metadata.Article.extract ~url:"https://example.com" ~html:html_with_twitter
   in
   Alcotest.(check (option string))
     "Twitter title" (Some "Twitter Title") result.title;
@@ -202,8 +199,7 @@ let test_article_extract_twitter () =
 
 let test_article_extract_json_ld () =
   let result =
-    Url_metadata.Article_metadata.extract ~url:"https://example.com"
-      ~html:html_with_json_ld
+    Metadata.Article.extract ~url:"https://example.com" ~html:html_with_json_ld
   in
   Alcotest.(check (option string))
     "JSON-LD headline" (Some "JSON-LD Headline") result.title;
@@ -220,7 +216,7 @@ let test_article_extract_json_ld () =
 
 let test_article_extract_html_meta () =
   let result =
-    Url_metadata.Article_metadata.extract ~url:"https://example.com"
+    Metadata.Article.extract ~url:"https://example.com"
       ~html:html_with_html_meta
   in
   Alcotest.(check (option string))
@@ -254,9 +250,7 @@ let test_article_priority () =
 <body></body>
 </html>|}
   in
-  let result =
-    Url_metadata.Article_metadata.extract ~url:"https://example.com" ~html
-  in
+  let result = Metadata.Article.extract ~url:"https://example.com" ~html in
   Alcotest.(check (option string))
     "title from JSON-LD" (Some "JSON-LD Title") result.title;
   Alcotest.(check (option string))
@@ -277,7 +271,7 @@ let test_contact_relative_url_resolution () =
 </html>|}
   in
   let result =
-    Url_metadata.Contact_metadata.extract ~url:"https://example.com/blog/" ~html
+    Metadata.Contact.extract ~url:"https://example.com/blog/" ~html
   in
   let feed = List.nth result.feeds 0 in
   Alcotest.(check string)

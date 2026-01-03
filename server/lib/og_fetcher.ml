@@ -14,7 +14,7 @@ let fetch_for_article ~sw ~env (article : Model.Article.t) :
   Log.info (fun m ->
       m "Fetching metadata for article %d: %s" article_id article_url);
   let og_input =
-    match Url_metadata.Article_metadata.fetch ~sw ~env article_url with
+    match Metadata.Article.fetch ~sw ~env article_url with
     | Ok meta ->
         {
           Db.Article.og_title = meta.title;

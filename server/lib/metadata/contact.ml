@@ -202,8 +202,8 @@ let extract_feeds ~base_url soup : Feed.t list =
 
 (* Merge contact info from multiple sources with priority ordering.
    Priority: Microformats > JSON-LD > rel-me links *)
-let merge_contact ~(microformats : Extract_microformats.h_card option)
-    ~(json_ld : Extract_json_ld.person option) ~(rel_me : string list)
+let merge_contact ~(microformats : Extractors.Microformats.h_card option)
+    ~(json_ld : Extractors.Json_ld.person option) ~(rel_me : string list)
     ~(feeds : Feed.t list) : t =
   let name =
     match microformats with
@@ -239,7 +239,7 @@ let merge_contact ~(microformats : Extract_microformats.h_card option)
   (* Collect social profiles from all sources *)
   let raw_profiles =
     let from_json_ld =
-      Option.map (fun (jl : Extract_json_ld.person) -> jl.same_as) json_ld
+      Option.map (fun (jl : Extractors.Json_ld.person) -> jl.same_as) json_ld
       |> Option.value ~default:[]
     in
     rel_me @ from_json_ld
@@ -254,8 +254,8 @@ let extract ~url ~html =
   let base_url = Uri.of_string url in
   let soup = Soup.parse html in
   let feeds = extract_feeds ~base_url soup in
-  let json_ld = Extract_json_ld.extract soup in
-  let microformats = Extract_microformats.extract ~base_url soup in
+  let json_ld = Extractors.Json_ld.extract soup in
+  let microformats = Extractors.Microformats.extract ~base_url soup in
   let h_card = List.nth_opt microformats.cards 0 in
   let json_ld_person =
     match List.nth_opt json_ld.persons 0 with

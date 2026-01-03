@@ -70,9 +70,9 @@ let first_some options = List.find_opt Option.is_some options |> Option.join
 
 (* Merge article info from multiple sources with priority ordering.
    Priority: JSON-LD > OpenGraph > Twitter > HTML meta *)
-let merge_article ~(json_ld : Extract_json_ld.article option)
-    ~(opengraph : Extract_opengraph.t) ~(twitter : Extract_twitter.t)
-    ~(html_meta : Extract_html_meta.t) : t =
+let merge_article ~(json_ld : Extractors.Json_ld.article option)
+    ~(opengraph : Extractors.Opengraph.t) ~(twitter : Extractors.Twitter.t)
+    ~(html_meta : Extractors.Html_meta.t) : t =
   let title =
     first_some
       [
@@ -135,13 +135,12 @@ let merge_article ~(json_ld : Extract_json_ld.article option)
   }
 
 let extract ~url ~html =
-  let _ = url in
   let soup = Soup.parse html in
-  let json_ld = Extract_json_ld.extract soup in
-  let opengraph = Extract_opengraph.extract soup in
-  let twitter = Extract_twitter.extract soup in
+  let json_ld = Extractors.Json_ld.extract soup in
+  let opengraph = Extractors.Opengraph.extract soup in
+  let twitter = Extractors.Twitter.extract soup in
   let html_meta =
-    Extract_html_meta.extract ~base_url:(Uri.of_string url) soup
+    Extractors.Html_meta.extract ~base_url:(Uri.of_string url) soup
   in
   let json_ld_article = List.nth_opt json_ld.articles 0 in
   merge_article ~json_ld:json_ld_article ~opengraph ~twitter ~html_meta

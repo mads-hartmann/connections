@@ -24,10 +24,9 @@ let contact_handler request =
   in
   let sw, env = get_context () in
   let* result =
-    Url_metadata.Contact_metadata.fetch ~sw ~env valid_url
-    |> Handler_utils.or_bad_request
+    Metadata.Contact.fetch ~sw ~env valid_url |> Handler_utils.or_bad_request
   in
-  Handler_utils.json_response (Url_metadata.Contact_metadata.to_json result)
+  Handler_utils.json_response (Metadata.Contact.to_json result)
 
 (* Article metadata - content information *)
 let article_handler request =
@@ -40,10 +39,9 @@ let article_handler request =
   in
   let sw, env = get_context () in
   let* result =
-    Url_metadata.Article_metadata.fetch ~sw ~env valid_url
-    |> Handler_utils.or_bad_request
+    Metadata.Article.fetch ~sw ~env valid_url |> Handler_utils.or_bad_request
   in
-  Handler_utils.json_response (Url_metadata.Article_metadata.to_json result)
+  Handler_utils.json_response (Metadata.Article.to_json result)
 
 let routes () =
   let open Tapak.Router in
