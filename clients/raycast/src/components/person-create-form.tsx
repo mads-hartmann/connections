@@ -24,8 +24,8 @@ export function PersonCreateForm({ revalidate }: CreatePersonFormProps) {
 
     setIsLoading(true);
     try {
-      const metadata = await Metadata.fetchMetadata(url);
-      push(<PersonPreviewForm metadata={metadata} revalidate={revalidate} />);
+      const metadata = await Metadata.fetchContactMetadata(url);
+      push(<PersonPreviewForm metadata={metadata} sourceUrl={url} revalidate={revalidate} />);
     } catch (error) {
       showToast({
         style: Toast.Style.Failure,
@@ -55,7 +55,7 @@ export function PersonCreateForm({ revalidate }: CreatePersonFormProps) {
 async function createPerson(
   name: string,
   feeds?: Array<{ url: string; title: string | null }>,
-  profiles?: Array<Metadata.ClassifiedProfile>,
+  profiles?: Array<Metadata.ClassifiedProfileWithFieldType>,
 ) {
   const response = await fetch(`${getServerUrl()}/persons`, {
     method: "POST",
@@ -101,25 +101,20 @@ async function createPerson(
 }
 
 interface PersonPreviewFormProps {
-  metadata: Metadata.MetadataResponse;
+  metadata: Metadata.ContactMetadataResponse;
+  sourceUrl: string;
   revalidate: () => void;
 }
 
-function PersonPreviewForm({ metadata, revalidate }: PersonPreviewFormProps) {
+function PersonPreviewForm({ metadata, sourceUrl, revalidate }: PersonPreviewFormProps) {
   const { pop } = useNavigation();
   const [isCreating, setIsCreating] = useState(false);
 
   // Determine the best name to use
-  const suggestedName =
-    metadata.merged.author?.name ||
-    metadata.merged.content.author?.name ||
-    metadata.merged.site.name ||
-    metadata.merged.content.title ||
-    new URL(metadata.merged.url).hostname;
+  const suggestedName = metadata.name || new URL(sourceUrl).hostname;
 
-  const author = metadata.merged.author;
-  const site = metadata.merged.site;
-  const classifiedProfiles = author?.classified_profiles ?? [];
+  // Convert profiles to include field type info
+  const classifiedProfiles = metadata.social_profiles.map(Metadata.classifyProfile);
 
   async function handleSubmit(values: Record<string, unknown>) {
     const name = values.name as string;
@@ -135,7 +130,7 @@ function PersonPreviewForm({ metadata, revalidate }: PersonPreviewFormProps) {
     setIsCreating(true);
     try {
       // Collect selected feeds from checkbox values
-      const feedsToCreate = metadata.merged.feeds.filter((f) => values[`feed_${f.url}`] === true);
+      const feedsToCreate = metadata.feeds.filter((f) => values[`feed_${f.url}`] === true);
       // Collect selected metadata profiles from checkbox values
       const profilesToCreate = classifiedProfiles.filter((p) => values[`profile_${p.url}`] === true);
 
@@ -166,7 +161,7 @@ function PersonPreviewForm({ metadata, revalidate }: PersonPreviewFormProps) {
 
   // Build info strings for display
   const detailParts: string[] = [];
-  if (author?.location) detailParts.push(`📍 ${author.location}`);
+  if (metadata.location) detailParts.push(`📍 ${metadata.location}`);
 
   return (
     <Form
@@ -175,12 +170,12 @@ function PersonPreviewForm({ metadata, revalidate }: PersonPreviewFormProps) {
       actions={
         <ActionPanel>
           <Action.SubmitForm title="Create Person" icon={Icon.Plus} onSubmit={handleSubmit} />
-          <Action.OpenInBrowser title="Open URL" url={metadata.merged.url} />
+          <Action.OpenInBrowser title="Open URL" url={sourceUrl} />
         </ActionPanel>
       }
     >
       {/* Source URL */}
-      <Form.Description title="Source" text={metadata.merged.url} />
+      <Form.Description title="Source" text={sourceUrl} />
 
       {/* Name field with favicon/photo as visual context */}
       <Form.TextField
@@ -188,7 +183,7 @@ function PersonPreviewForm({ metadata, revalidate }: PersonPreviewFormProps) {
         title="Name"
         defaultValue={suggestedName || ""}
         placeholder="Enter person's name"
-        info={author?.bio || undefined}
+        info={metadata.bio || undefined}
       />
 
       {/* Show extracted metadata as read-only info */}
@@ -197,8 +192,8 @@ function PersonPreviewForm({ metadata, revalidate }: PersonPreviewFormProps) {
       <Form.Separator />
 
       {/* Feeds Section with Checkboxes */}
-      {metadata.merged.feeds.length > 0 ? (
-        metadata.merged.feeds.map((feed, index) => (
+      {metadata.feeds.length > 0 ? (
+        metadata.feeds.map((feed, index) => (
           <Form.Checkbox
             key={feed.url}
             id={`feed_${feed.url}`}
@@ -228,9 +223,6 @@ function PersonPreviewForm({ metadata, revalidate }: PersonPreviewFormProps) {
       ) : (
         <Form.Description title="Profiles" text="No social profiles discovered at this URL." />
       )}
-
-      {/* Site info if different from name */}
-      {site?.name && site.name !== suggestedName && <Form.Description title="Site" text={site.name} />}
     </Form>
   );
 }
