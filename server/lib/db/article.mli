@@ -63,3 +63,4 @@ val mark_read :
 val mark_all_read : feed_id:int -> (int, Caqti_error.t) result
 val mark_all_read_global : unit -> (int, Caqti_error.t) result
 val delete : id:int -> (bool, Caqti_error.t) result
+val delete_by_person_id : person_id:int -> (unit, Caqti_error.t) result

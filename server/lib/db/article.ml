@@ -221,6 +221,11 @@ let delete_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
     "DELETE FROM articles WHERE id = ?"
 
+let delete_by_person_id_query =
+  Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
+    {|DELETE FROM articles WHERE feed_id IN
+      (SELECT id FROM rss_feeds WHERE person_id = ?)|}
+
 let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
     "SELECT COUNT(*) FROM articles WHERE id = ?"
@@ -514,3 +519,11 @@ let delete ~id =
           pool
       in
       true
+
+(* DELETE all articles for a person (via their feeds) *)
+let delete_by_person_id ~person_id =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.exec delete_by_person_id_query person_id)
+    pool

@@ -245,6 +245,8 @@ let delete ~id =
   match exists with
   | 0 -> Ok false
   | _ ->
+      let* () = Article.delete_by_person_id ~person_id:id in
+      let* () = Rss_feed.delete_by_person_id ~person_id:id in
       let+ () =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec delete_query id)
