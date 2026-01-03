@@ -38,6 +38,8 @@ let create request person_id =
       Service.Rss_feed.create ~person_id ~url:valid_url ~title
       |> Handler_utils.or_feed_error
     in
+    let sw, env = get_context () in
+    Eio.Fiber.fork ~sw (fun () -> Cron.Feed_sync.process_feed ~sw ~env feed);
     Handler_utils.json_response ~status:`Created (Model.Rss_feed.to_json feed)
 
 let list_by_person (pagination : Pagination.Pagination.t) person_id =
