@@ -82,7 +82,7 @@ let refresh_metadata _request id =
   let* article = Service.Article.get ~id |> Handler_utils.or_article_error in
   let sw, env = get_context () in
   let* updated =
-    Cron.Article_metadata.fetch_for_article ~sw ~env article
+    Cron.Article_metadata_sync.fetch_for_article ~sw ~env article
     |> Handler_utils.or_db_error
   in
   let* result =

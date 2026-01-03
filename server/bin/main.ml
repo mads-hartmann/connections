@@ -40,7 +40,7 @@ let run db_path port no_scheduler log_file =
   (* Start background jobs unless disabled *)
   if not no_scheduler then (
     Cron.Feed_sync.start ~sw ~env;
-    Cron.Article_metadata.start ~sw ~env);
+    Cron.Article_metadata_sync.start ~sw ~env);
   Log.info (fun m ->
       m "Starting server on port %d with database %s%s" port db_path
         (if no_scheduler then " (scheduler disabled)" else ""));
