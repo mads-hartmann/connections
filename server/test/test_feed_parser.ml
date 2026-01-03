@@ -1,4 +1,4 @@
-(* Tests for Feed Fetcher - parsing only, no network *)
+(* Tests for Feed Parser - parsing only, no network *)
 
 open Connections_server
 
@@ -18,13 +18,13 @@ let test_parse_rss2_feed () =
   </channel>
 </rss>|}
   in
-  let result = Feed_fetcher.parse_feed rss_content in
+  let result = Feed_parser.parse rss_content in
   match result with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
-  | Ok (Feed_fetcher.Rss2 channel) ->
+  | Ok (Feed_parser.Rss2 channel) ->
       Alcotest.(check string) "title matches" "Test Feed" channel.title;
       Alcotest.(check int) "has 1 item" 1 (List.length channel.items)
-  | Ok (Feed_fetcher.Atom _) -> Alcotest.fail "expected RSS2, got Atom"
+  | Ok (Feed_parser.Atom _) -> Alcotest.fail "expected RSS2, got Atom"
 
 let test_parse_atom_feed () =
   let atom_content =
@@ -43,12 +43,12 @@ let test_parse_atom_feed () =
   </entry>
 </feed>|}
   in
-  let result = Feed_fetcher.parse_feed atom_content in
+  let result = Feed_parser.parse atom_content in
   match result with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
-  | Ok (Feed_fetcher.Atom feed) ->
+  | Ok (Feed_parser.Atom feed) ->
       Alcotest.(check int) "has 1 entry" 1 (List.length feed.entries)
-  | Ok (Feed_fetcher.Rss2 _) -> Alcotest.fail "expected Atom, got RSS2"
+  | Ok (Feed_parser.Rss2 _) -> Alcotest.fail "expected Atom, got RSS2"
 
 let test_extract_metadata_rss2 () =
   let rss_content =
@@ -61,11 +61,11 @@ let test_extract_metadata_rss2 () =
   </channel>
 </rss>|}
   in
-  let result = Feed_fetcher.parse_feed rss_content in
+  let result = Feed_parser.parse rss_content in
   match result with
   | Error msg -> Alcotest.fail ("parse failed: " ^ msg)
   | Ok parsed ->
-      let metadata = Feed_fetcher.extract_metadata parsed in
+      let metadata = Feed_parser.extract_metadata parsed in
       Alcotest.(check (option string))
         "title extracted" (Some "My Blog") metadata.title
 

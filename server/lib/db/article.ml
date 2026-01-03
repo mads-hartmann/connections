@@ -399,7 +399,8 @@ let list_by_person ~person_id ~page ~per_page ~unread_only =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         if unread_only then
-          Db.collect_list list_by_person_unread_query (person_id, per_page, offset)
+          Db.collect_list list_by_person_unread_query
+            (person_id, per_page, offset)
         else Db.collect_list list_by_person_query (person_id, per_page, offset))
       pool
   in

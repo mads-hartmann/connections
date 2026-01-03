@@ -37,10 +37,10 @@ let run db_path port no_scheduler log_file =
   Handlers.Import.set_context ~sw ~env;
   Handlers.Metadata.set_context ~sw ~env;
   Handlers.Article.set_context ~sw ~env;
-  (* Start background schedulers unless disabled *)
+  (* Start background jobs unless disabled *)
   if not no_scheduler then (
-    Scheduler.start ~sw ~env;
-    Og_fetcher.start ~sw ~env);
+    Cron.Feed_sync.start ~sw ~env;
+    Cron.Article_metadata_sync.start ~sw ~env);
   Log.info (fun m ->
       m "Starting server on port %d with database %s%s" port db_path
         (if no_scheduler then " (scheduler disabled)" else ""));

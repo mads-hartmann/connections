@@ -82,7 +82,8 @@ let refresh_metadata _request id =
   let* article = Service.Article.get ~id |> Handler_utils.or_article_error in
   let sw, env = get_context () in
   let* updated =
-    Og_fetcher.fetch_for_article ~sw ~env article |> Handler_utils.or_db_error
+    Cron.Article_metadata_sync.fetch_for_article ~sw ~env article
+    |> Handler_utils.or_db_error
   in
   let* result =
     updated |> Handler_utils.or_not_found "Article not found after update"
@@ -103,7 +104,8 @@ let routes () =
     get (s "articles")
     |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_all;
-    post (s "articles" / s "mark-all-read") |> request |> into mark_all_read_global;
+    post (s "articles" / s "mark-all-read")
+    |> request |> into mark_all_read_global;
     get (s "articles" / int) |> request |> into get_article;
     post (s "articles" / int / s "read") |> request |> into mark_read;
     post (s "articles" / int / s "refresh-metadata")

@@ -4,6 +4,46 @@ API backed by SQlite.
 
 It's written in OCaml (>= 5.4.0) and takes advantage of the new effects system which has influenced the library selection.
 
+## Project Structure
+
+```
+server/
+├── bin/                    # Executables
+│   └── main.ml             # Server entry point
+├── lib/                    # Library code
+│   ├── cron/               # Scheduled background jobs
+│   │   ├── feed_sync.ml    # RSS feed synchronization (hourly)
+│   │   └── article_metadata_sync.ml  # Article metadata fetching (5 min)
+│   ├── db/                 # Database queries (Caqti)
+│   ├── handlers/           # HTTP request handlers
+│   ├── metadata/           # URL metadata extraction
+│   │   ├── article.ml      # Article/content metadata (OG, Twitter, JSON-LD)
+│   │   ├── contact.ml      # Contact/person metadata (h-card, rel-me, feeds)
+│   │   └── extractors/     # Individual metadata extractors
+│   │       ├── opengraph.ml
+│   │       ├── twitter.ml
+│   │       ├── json_ld.ml
+│   │       ├── microformats.ml
+│   │       └── html_meta.ml
+│   ├── model/              # Domain types with JSON serialization
+│   ├── opml/               # OPML parsing and import
+│   ├── service/            # Business logic layer
+│   ├── feed_parser.ml      # RSS/Atom feed parsing utilities
+│   ├── html_helpers.ml     # HTML parsing utilities
+│   ├── http_client.ml      # HTTP client with redirect handling
+│   └── router.ml           # Route definitions
+└── test/                   # Test suite
+```
+
+### Directory Conventions
+
+- **cron/**: Background jobs that run on a schedule. Each module has `start`/`stop` functions.
+- **db/**: Database access layer. One module per table with query functions.
+- **handlers/**: HTTP handlers. One module per resource (persons, feeds, articles).
+- **metadata/**: URL metadata extraction. `article.ml` and `contact.ml` are the public API; `extractors/` contains format-specific parsers.
+- **model/**: Domain types. Each module defines a type `t` with `to_json`, `pp`, and `equal`.
+- **service/**: Business logic that coordinates between handlers and db.
+
 | Library | Purpose |
 |---------|---------|
 | [tapak](https://github.com/syaiful6/tapak) | Web framework built on Piaf with effect-based routing |
