@@ -8,6 +8,8 @@ export interface Tag {
 export interface Article {
   id: number;
   feed_id: number;
+  person_id: number | null;
+  person_name: string | null;
   title: string | null;
   url: string;
   published_at: string | null;

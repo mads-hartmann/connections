@@ -28,6 +28,7 @@ export function ArticleDetailMetadata({ article }: { article: Article }) {
       metadata={
         <List.Item.Detail.Metadata>
           <List.Item.Detail.Metadata.Label title="Title" text={article.title || "Untitled"} />
+          {article.person_name && <List.Item.Detail.Metadata.Label title="Person" text={article.person_name} />}
           {article.author && <List.Item.Detail.Metadata.Label title="Author" text={article.author} />}
           <List.Item.Detail.Metadata.Separator />
           <List.Item.Detail.Metadata.Label title="Published" text={formatDate(article.published_at)} />

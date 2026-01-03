@@ -45,7 +45,7 @@ type article_with_tags = {
 }
 
 (* Convert RSS2 item to article format with tags *)
-let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
+let rss2_item_to_article ~feed_id ~person_id (item : Syndic.Rss2.item) :
     article_with_tags option =
   let title, content = rss2_story_to_title_and_content item.story in
   let url =
@@ -62,6 +62,7 @@ let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
       let article =
         {
           Db.Article.feed_id;
+          person_id;
           title;
           url;
           published_at = Option.map ptime_to_string item.pubDate;
@@ -74,7 +75,7 @@ let rss2_item_to_article ~feed_id (item : Syndic.Rss2.item) :
       Some { article; tags }
 
 (* Convert Atom entry to article format with tags *)
-let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
+let atom_entry_to_article ~feed_id ~person_id (entry : Syndic.Atom.entry) :
     article_with_tags option =
   let url =
     let links = entry.links in
@@ -130,6 +131,7 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
       let article =
         {
           Db.Article.feed_id;
+          person_id;
           title;
           url;
           published_at =
@@ -144,12 +146,13 @@ let atom_entry_to_article ~feed_id (entry : Syndic.Atom.entry) :
       let tags = atom_entry_categories entry in
       Some { article; tags }
 
-let extract_articles_with_tags ~feed_id (feed : Feed_parser.parsed_feed) :
-    article_with_tags list =
+let extract_articles_with_tags ~feed_id ~person_id
+    (feed : Feed_parser.parsed_feed) : article_with_tags list =
   match feed with
   | Rss2 channel ->
-      List.filter_map (rss2_item_to_article ~feed_id) channel.items
-  | Atom feed -> List.filter_map (atom_entry_to_article ~feed_id) feed.entries
+      List.filter_map (rss2_item_to_article ~feed_id ~person_id) channel.items
+  | Atom feed ->
+      List.filter_map (atom_entry_to_article ~feed_id ~person_id) feed.entries
 
 let associate_tags_with_article ~article_id ~tag_names : unit =
   List.iter
@@ -177,6 +180,7 @@ let get_feed_tag_ids ~feed_id : int list =
 let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
   let feed_id = Model.Rss_feed.id feed in
   let feed_url = Model.Rss_feed.url feed in
+  let person_id = Some (Model.Rss_feed.person_id feed) in
   Log.info (fun m -> m "Fetching feed %d: %s" feed_id feed_url);
   match Http_client.fetch ~sw ~env feed_url with
   | Error msg ->
@@ -189,7 +193,7 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
               m "Failed to parse feed %d (%s): %s" feed_id feed_url msg)
       | Ok parsed_feed ->
           let articles_with_tags =
-            extract_articles_with_tags ~feed_id parsed_feed
+            extract_articles_with_tags ~feed_id ~person_id parsed_feed
           in
           let feed_tag_ids = get_feed_tag_ids ~feed_id in
           let count = ref 0 in

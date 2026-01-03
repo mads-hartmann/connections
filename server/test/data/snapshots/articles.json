@@ -3,6 +3,7 @@
     {
       "id": 340711,
       "feed_id": 9,
+      "person_id": null,
       "title": "Silent PC GPU upgrade",
       "url": "https://blog.thestateofme.com/2025/12/29/silent-pc-gpu-upgrade/",
       "published_at": "2025-12-29 14:16:36",
@@ -39,6 +40,7 @@
     {
       "id": 338070,
       "feed_id": 28,
+      "person_id": null,
       "title": "Quoting Aaron Levie",
       "url": "https://simonwillison.net/2025/Dec/29/aaron-levie/#atom-everything",
       "published_at": "2025-12-29 03:32:24",
@@ -62,6 +64,7 @@
     {
       "id": 336441,
       "feed_id": 28,
+      "person_id": null,
       "title": "simonw/actions-latest",
       "url": "https://simonwillison.net/2025/Dec/28/actions-latest/#atom-everything",
       "published_at": "2025-12-28 22:45:10",
@@ -87,6 +90,7 @@
     {
       "id": 321772,
       "feed_id": 28,
+      "person_id": null,
       "title": "Substack Network error = security content they don't allow to be sent",
       "url": "https://simonwillison.net/2025/Dec/28/substack-network-error/#atom-everything",
       "published_at": "2025-12-28 04:16:27",
@@ -109,6 +113,7 @@
     {
       "id": 340825,
       "feed_id": 13,
+      "person_id": null,
       "title": "The economics of technical speaking",
       "url": "https://architectelevator.com/strategy/economics-technical-speaking/",
       "published_at": "2025-12-28 03:00:00",
@@ -126,6 +131,7 @@
     {
       "id": 294054,
       "feed_id": 28,
+      "person_id": null,
       "title": "Pluribus training data",
       "url": "https://simonwillison.net/2025/Dec/27/john-cena/#atom-everything",
       "published_at": "2025-12-27 15:43:34",
@@ -149,6 +155,7 @@
     {
       "id": 292430,
       "feed_id": 28,
+      "person_id": null,
       "title": "Quoting Boris Cherny",
       "url": "https://simonwillison.net/2025/Dec/27/boris-cherny/#atom-everything",
       "published_at": "2025-12-27 14:13:43",
@@ -174,6 +181,7 @@
     {
       "id": 274566,
       "feed_id": 28,
+      "person_id": null,
       "title": "textarea.my on GitHub",
       "url": "https://simonwillison.net/2025/Dec/27/textarea-my/#atom-everything",
       "published_at": "2025-12-27 03:23:34",
@@ -190,6 +198,7 @@
     {
       "id": 275666,
       "feed_id": 12,
+      "person_id": null,
       "title": "1Password Dependency Breaks Syntax Highlighting",
       "url": "https://borretti.me/article/1password-dependency-breaks-syntax-highlighting",
       "published_at": "2025-12-27 01:00:00",
@@ -205,6 +214,7 @@
     {
       "id": 269170,
       "feed_id": 12,
+      "person_id": null,
       "title": "Using the Brother DS-640 Scanner on NixOS",
       "url": "https://borretti.me/article/using-the-brother-ds-640-scanner-on-nixos",
       "published_at": "2025-12-27 00:00:00",
@@ -220,6 +230,7 @@
     {
       "id": 269694,
       "feed_id": 28,
+      "person_id": null,
       "title": "How uv got so fast",
       "url": "https://simonwillison.net/2025/Dec/26/how-uv-got-so-fast/#atom-everything",
       "published_at": "2025-12-26 23:43:15",
@@ -241,6 +252,7 @@
     {
       "id": 258326,
       "feed_id": 28,
+      "person_id": null,
       "title": "How Rob Pike got spammed with an AI slop \"act of kindness\"",
       "url": "https://simonwillison.net/2025/Dec/26/slop-acts-of-kindness/#atom-everything",
       "published_at": "2025-12-26 18:16:28",
@@ -267,6 +279,7 @@
     {
       "id": 237214,
       "feed_id": 28,
+      "person_id": null,
       "title": "A new way to extract detailed transcripts from Claude Code",
       "url": "https://simonwillison.net/2025/Dec/25/claude-code-transcripts/#atom-everything",
       "published_at": "2025-12-25 23:52:17",
@@ -294,6 +307,7 @@
     {
       "id": 218332,
       "feed_id": 43,
+      "person_id": null,
       "title": "AoAH Day 25: Claude OCaml Marketplace for all your festive coding needs",
       "url": "https://anil.recoil.org/notes/aoah-2025-25",
       "published_at": "2025-12-25 00:00:00",
@@ -319,6 +333,7 @@
     {
       "id": 195788,
       "feed_id": 28,
+      "person_id": null,
       "title": "uv-init-demos",
       "url": "https://simonwillison.net/2025/Dec/24/uv-init-demos/#atom-everything",
       "published_at": "2025-12-24 22:05:23",
@@ -341,6 +356,7 @@
     {
       "id": 218333,
       "feed_id": 43,
+      "person_id": null,
       "title": "AoAH Day 24: Tuatara, an evolving Atom aggregator that mutates",
       "url": "https://anil.recoil.org/notes/aoah-2025-24",
       "published_at": "2025-12-24 00:00:00",
@@ -366,6 +382,7 @@
     {
       "id": 167239,
       "feed_id": 28,
+      "person_id": null,
       "title": "Quoting Salvatore Sanfilippo",
       "url": "https://simonwillison.net/2025/Dec/23/salvatore-sanfilippo/#atom-everything",
       "published_at": "2025-12-23 23:03:00",
@@ -387,6 +404,7 @@
     {
       "id": 164069,
       "feed_id": 28,
+      "person_id": null,
       "title": "MicroQuickJS",
       "url": "https://simonwillison.net/2025/Dec/23/microquickjs/#atom-everything",
       "published_at": "2025-12-23 20:53:40",
@@ -417,6 +435,7 @@
     {
       "id": 132369,
       "feed_id": 28,
+      "person_id": null,
       "title": "Cooking with Claude",
       "url": "https://simonwillison.net/2025/Dec/23/cooking-with-claude/#atom-everything",
       "published_at": "2025-12-23 05:01:34",
@@ -445,6 +464,7 @@
     {
       "id": 194527,
       "feed_id": 43,
+      "person_id": null,
       "title": "AoAH Day 23: Unpac unifies git branching with package management",
       "url": "https://anil.recoil.org/notes/aoah-2025-23",
       "published_at": "2025-12-23 00:00:00",
