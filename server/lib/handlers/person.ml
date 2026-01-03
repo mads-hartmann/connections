@@ -16,10 +16,11 @@ let get_person _request id =
   let* person = Service.Person.get ~id |> Handler_utils.or_person_error in
   Handler_utils.json_response (Model.Person.to_json person)
 
-type create_request = { name : string } [@@deriving yojson]
+type create_request = { name : string; url : string option [@yojson.option] }
+[@@deriving yojson]
 
 let create request =
-  let* { name } =
+  let* { name; url } =
     Handler_utils.parse_json_body create_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
@@ -27,6 +28,17 @@ let create request =
   else
     let* person =
       Service.Person.create ~name |> Handler_utils.or_person_error
+    in
+    let () =
+      match url with
+      | Some url when String.trim url <> "" ->
+          let website_field_type_id = Model.Metadata_field_type.(id Website) in
+          let _ =
+            Service.Person_metadata.create ~person_id:(Model.Person.id person)
+              ~field_type_id:website_field_type_id ~value:url
+          in
+          ()
+      | _ -> ()
     in
     Handler_utils.json_response ~status:`Created (Model.Person.to_json person)
 
