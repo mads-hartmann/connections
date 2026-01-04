@@ -54,13 +54,14 @@ export function ArticleCreateForm({ revalidate }: ArticleCreateFormProps) {
 
 async function createPerson(
   name: string,
+  websiteUrl?: string,
   feeds?: Array<{ url: string; title: string | null }>,
   profiles?: Array<Article.SocialProfile>,
 ): Promise<Article.ExistingPerson> {
   const response = await fetch(`${getServerUrl()}/persons`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, url: websiteUrl }),
   });
   if (!response.ok) {
     const error = await response.json();
@@ -131,8 +132,13 @@ function ArticlePreviewForm({ intake, revalidate }: ArticlePreviewFormProps) {
           const profilesToCreate =
             proposedPerson?.social_profiles.filter((p) => values[`profile_${p.url}`] === true) ?? [];
 
+          // Extract domain root URL for Website metadata
+          const articleUrl = new URL(intake.url);
+          const websiteUrl = `${articleUrl.protocol}//${articleUrl.hostname}`;
+
           const newPerson = await createPerson(
             personName.trim(),
+            websiteUrl,
             feedsToCreate.map((f) => ({ url: f.url, title: f.title || null })),
             profilesToCreate,
           );
