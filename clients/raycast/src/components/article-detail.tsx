@@ -1,5 +1,7 @@
 import { Action, ActionPanel, Detail, Icon, Keyboard, showToast, Toast } from "@raycast/api";
+import { usePromise } from "@raycast/utils";
 import { Article, markArticleRead, refreshArticleMetadata } from "../api/article";
+import { fetchArticleContent, isArticleContentError } from "../api/article-content";
 import { ArticleEditForm } from "./article-edit-form";
 
 interface ArticleDetailProps {
@@ -19,6 +21,8 @@ function formatDate(dateStr: string | null): string {
 
 export function ArticleDetail({ article, revalidateArticles }: ArticleDetailProps) {
   const isRead = article.read_at !== null;
+
+  const { data: articleContent, isLoading } = usePromise(fetchArticleContent, [article.url]);
 
   const toggleRead = async () => {
     try {
@@ -54,18 +58,26 @@ export function ArticleDetail({ article, revalidateArticles }: ArticleDetailProp
     }
   };
 
-
-
   const imageUrl = article.og_image || article.image_url;
   const imageLine = imageUrl ? `![](${imageUrl})\n\n` : "";
 
+  let contentBody: string;
+  if (articleContent && isArticleContentError(articleContent)) {
+    contentBody = `⚠️ ${articleContent.error}\n\n---\n\n${article.og_description || article.content || "*No content available*"}`;
+  } else if (articleContent) {
+    contentBody = articleContent.markdown;
+  } else {
+    contentBody = article.og_description || article.content || "*No content available*";
+  }
+
   const markdown = `# ${article.title || "Untitled"}
 ${imageLine}
-${article.og_description || article.content || "*No content available*"}
+${contentBody}
 `;
 
   return (
     <Detail
+      isLoading={isLoading}
       markdown={markdown}
       metadata={
         <Detail.Metadata>
@@ -79,10 +91,7 @@ ${article.og_description || article.content || "*No content available*"}
           <Detail.Metadata.Separator />
           {article.author && <Detail.Metadata.Label title="Author" text={article.author} />}
           <Detail.Metadata.Label title="Published" text={formatDate(article.published_at)} />
-          <Detail.Metadata.Label
-            title="Read"
-            text={isRead ? formatDate(article.read_at) : "Unread"}
-          />
+          <Detail.Metadata.Label title="Read" text={isRead ? formatDate(article.read_at) : "Unread"} />
         </Detail.Metadata>
       }
       navigationTitle={article.title || undefined}

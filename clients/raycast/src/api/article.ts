@@ -144,7 +144,7 @@ export async function markReadLater(id: number, readLater: boolean): Promise<Art
   }
   return response.json();
 }
-  
+
 export async function deleteArticle(article: Article): Promise<boolean> {
   const confirmed = await confirmAlert({
     title: "Delete Article",
