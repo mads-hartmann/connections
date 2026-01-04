@@ -2,6 +2,7 @@ import { Action, ActionPanel, getPreferenceValues, Icon, Keyboard, List } from "
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import { markAllArticlesRead } from "./actions/article-actions";
+import { ArticleCreateForm } from "./components/article-create-form";
 import { PersonCreateForm } from "./components/person-create-form";
 import { ImportOpml } from "./components/import-opml";
 import { ArticleListItem } from "./components/article-list-item";
@@ -145,6 +146,15 @@ export default function Command() {
               icon={Icon.Download}
               shortcut={{ modifiers: ["cmd", "shift"], key: "i" }}
               target={<ImportOpml revalidate={revalidateConnections} />}
+            />
+          </ActionPanel>
+        ) : isArticlesView ? (
+          <ActionPanel>
+            <Action.Push
+              title="Create Article"
+              icon={Icon.Plus}
+              shortcut={Keyboard.Shortcut.Common.New}
+              target={<ArticleCreateForm revalidate={revalidateArticles} />}
             />
           </ActionPanel>
         ) : undefined

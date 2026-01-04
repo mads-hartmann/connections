@@ -1,10 +1,11 @@
 (* Article row type with person, tags JSON and OG fields: 20 fields *)
 (* Split as t2 of (t2 of (t5, t2), t2 of (t7, t6)) *)
+(* Fields: id, feed_id, person_id, person_name, title, url, published_at, content, author, image_url, created_at, read_at, read_later_at, tags, og_* *)
 let article_row_type =
   Caqti_type.(
     t2
       (t2
-         (t5 int int (option int) (option string) (option string))
+         (t5 int (option int) (option int) (option string) (option string))
          (t2 string (option string)))
       (t2
          (t7 (option string) (option string) (option string) string
@@ -12,11 +13,11 @@ let article_row_type =
          (t6 (option string) (option string) (option string) (option string)
             (option string) (option string))))
 
-(* Upsert input type: 8 fields *)
+(* Upsert input type: 8 fields - feed_id is now optional *)
 let upsert_input_type =
   Caqti_type.(
     t2
-      (t4 int (option int) (option string) string)
+      (t4 (option int) (option int) (option string) string)
       (t4 (option string) (option string) (option string) (option string)))
 
 let upsert_query =
@@ -62,6 +63,24 @@ let get_query =
 let get_by_feed_url_query =
   Caqti_request.Infix.(Caqti_type.(t2 int string) ->? article_row_type)
     (select_with_tags ^ " WHERE a.feed_id = ? AND a.url = ?")
+
+let get_by_url_query =
+  Caqti_request.Infix.(Caqti_type.string ->? article_row_type)
+    (select_with_tags ^ " WHERE a.url = ?")
+
+(* Insert query that returns the new ID *)
+let insert_query =
+  Caqti_request.Infix.(
+    Caqti_type.(
+      t2
+        (t4 (option int) (option int) (option string) string)
+        (t4 (option string) (option string) (option string) (option string)))
+    ->! Caqti_type.int)
+    {|
+      INSERT INTO articles (feed_id, person_id, title, url, published_at, content, author, image_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING id
+    |}
 
 let list_by_feed_query =
   Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* article_row_type)
@@ -268,7 +287,7 @@ let tuple_to_article
 (* UPSERT - returns true if inserted, false if duplicate *)
 
 type create_input = {
-  feed_id : int;
+  feed_id : int option;
   person_id : int option;
   title : string option;
   url : string;
@@ -347,6 +366,33 @@ let get_by_feed_url ~feed_id ~url =
       Db.find_opt get_by_feed_url_query (feed_id, url))
     pool
   |> Result.map (Option.map tuple_to_article)
+
+(* GET by url *)
+let get_by_url ~url =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.find_opt get_by_url_query url)
+    pool
+  |> Result.map (Option.map tuple_to_article)
+
+(* CREATE - inserts and returns the new article, fails if URL exists *)
+let create (input : create_input) =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let { feed_id; person_id; title; url; published_at; content; author; image_url }
+      =
+    input
+  in
+  let params =
+    ((feed_id, person_id, title, url), (published_at, content, author, image_url))
+  in
+  let* id =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find insert_query params)
+      pool
+  in
+  get ~id |> Result.map Option.get
 
 (* LIST BY FEED with pagination *)
 let list_by_feed ~feed_id ~page ~per_page =

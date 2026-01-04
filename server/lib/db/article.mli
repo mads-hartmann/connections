@@ -1,5 +1,5 @@
 type create_input = {
-  feed_id : int;
+  feed_id : int option;
   person_id : int option;
   title : string option;
   url : string;
@@ -19,10 +19,13 @@ type og_metadata_input = {
 
 val upsert : create_input -> (unit, Caqti_error.t) result
 val upsert_many : create_input list -> (int, Caqti_error.t) result
+val create : create_input -> (Model.Article.t, Caqti_error.t) result
 val get : id:int -> (Model.Article.t option, Caqti_error.t) result
 
 val get_by_feed_url :
   feed_id:int -> url:string -> (Model.Article.t option, Caqti_error.t) result
+
+val get_by_url : url:string -> (Model.Article.t option, Caqti_error.t) result
 
 val list_by_feed :
   feed_id:int ->

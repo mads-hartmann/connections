@@ -24,3 +24,6 @@ val update :
   (Model.Person.t option, Caqti_error.t) result
 
 val delete : id:int -> (bool, Caqti_error.t) result
+
+val find_by_domain :
+  domains:string list -> (Model.Person.t option, Caqti_error.t) result

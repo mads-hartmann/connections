@@ -1,9 +1,10 @@
 (* Domain-specific errors *)
 module Error = struct
-  type t = Not_found | Database of Caqti_error.t
+  type t = Not_found | Already_exists | Database of Caqti_error.t
 
   let pp fmt = function
     | Not_found -> Format.fprintf fmt "Article not found"
+    | Already_exists -> Format.fprintf fmt "Article with this URL already exists"
     | Database err -> Format.fprintf fmt "Database error: %a" Caqti_error.pp err
 
   let to_string err = Format.asprintf "%a" pp err
@@ -16,6 +17,41 @@ let get ~id =
   | Error err -> Error (Error.Database err)
   | Ok None -> Error Error.Not_found
   | Ok (Some article) -> Ok article
+
+let get_by_url ~url =
+  Db.Article.get_by_url ~url |> Result.map_error (fun err -> Error.Database err)
+
+type create_input = {
+  url : string;
+  person_id : int option;
+  title : string option;
+  published_at : string option;
+  content : string option;
+  author : string option;
+  image_url : string option;
+}
+
+let create input =
+  let open Result.Syntax in
+  (* Check if article with this URL already exists *)
+  let* existing = get_by_url ~url:input.url in
+  match existing with
+  | Some _ -> Error Error.Already_exists
+  | None ->
+      let db_input : Db.Article.create_input =
+        {
+          feed_id = None;
+          person_id = input.person_id;
+          title = input.title;
+          url = input.url;
+          published_at = input.published_at;
+          content = input.content;
+          author = input.author;
+          image_url = input.image_url;
+        }
+      in
+      Db.Article.create db_input
+      |> Result.map_error (fun err -> Error.Database err)
 
 let list_all ~page ~per_page ~unread_only ~read_later_only ~tag ?query () =
   match tag with

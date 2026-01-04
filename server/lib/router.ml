@@ -24,5 +24,6 @@ let build () =
          Handlers.Tag.routes ();
          Handlers.Import.routes ();
          Handlers.Metadata.routes ();
+         Handlers.Intake.routes ();
        ])
     ()

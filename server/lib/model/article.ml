@@ -2,7 +2,7 @@ open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 type t = {
   id : int;
-  feed_id : int;
+  feed_id : int option;
   person_id : int option;
   person_name : string option; [@yojson.option]
   title : string option; [@yojson.option]
@@ -79,8 +79,10 @@ let error_to_json = Shared.error_to_json
 
 let pp fmt t =
   Format.fprintf fmt
-    "{ id = %d; feed_id = %d; person_id = %a; title = %a; url = %S; read_later_at = %a }"
-    t.id t.feed_id
+    "{ id = %d; feed_id = %a; person_id = %a; title = %a; url = %S; read_later_at = %a }"
+    t.id
+    (Format.pp_print_option Format.pp_print_int)
+    t.feed_id
     (Format.pp_print_option Format.pp_print_int)
     t.person_id
     (Format.pp_print_option Format.pp_print_string)
@@ -90,7 +92,7 @@ let pp fmt t =
 
 let equal a b =
   Int.equal a.id b.id
-  && Int.equal a.feed_id b.feed_id
+  && Option.equal Int.equal a.feed_id b.feed_id
   && Option.equal Int.equal a.person_id b.person_id
   && Option.equal String.equal a.person_name b.person_name
   && Option.equal String.equal a.title b.title

@@ -1,7 +1,7 @@
 type t
 
 val id : t -> int
-val feed_id : t -> int
+val feed_id : t -> int option
 val person_id : t -> int option
 val person_name : t -> string option
 val title : t -> string option
@@ -23,7 +23,7 @@ val og_fetch_error : t -> string option
 
 val create :
   id:int ->
-  feed_id:int ->
+  feed_id:int option ->
   person_id:int option ->
   person_name:string option ->
   title:string option ->
