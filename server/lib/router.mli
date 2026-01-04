@@ -1,1 +1,1 @@
-val build : unit -> Tapak.App.t
+val build : unit -> Tapak.handler
