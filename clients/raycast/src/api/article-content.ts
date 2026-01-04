@@ -24,12 +24,7 @@ export function isArticleContentError(result: ArticleContentResult): result is A
 
 export async function fetchArticleContent(url: string): Promise<ArticleContentResult> {
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      },
-    });
+    const response = await fetch(url);
 
     if (!response.ok) {
       return { error: `Failed to fetch article: ${response.status} ${response.statusText}` };
