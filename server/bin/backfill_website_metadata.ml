@@ -108,7 +108,14 @@ let process_person ~sw ~env ~dry_run ~stats person =
   match website_url with
   | None -> ()
   | Some url -> (
-      match Metadata.Contact.fetch ~sw ~env url with
+      let fetch_with_timeout () =
+        Eio.Time.with_timeout_exn (Eio.Stdenv.clock env) 30.0 (fun () ->
+            Metadata.Contact.fetch ~sw ~env url)
+      in
+      match fetch_with_timeout () with
+      | exception Eio.Time.Timeout ->
+          Log.warn (fun m ->
+              m "Timeout fetching metadata from %s for %s (id=%d)" url name person_id)
       | Error e ->
           Log.warn (fun m ->
               m "Could not fetch metadata from %s for %s (id=%d): %s" url name
