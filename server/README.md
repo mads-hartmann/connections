@@ -84,7 +84,7 @@ opam switch create connections 5.4.0
 Install dependencies using opam. Note that [tapak](https://github.com/syaiful6/tapak) is not published to opam and must be pinned first:
 
 ```bash
-opam pin add tapak https://github.com/syaiful6/tapak.git -y
+opam pin add tapak https://github.com/syaiful6/tapak.git#85aaf8baf068e921f86a90be653a137ff58c2db6 -y
 opam install . --deps-only
 ```
 
