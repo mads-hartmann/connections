@@ -22,7 +22,7 @@ function formatDate(dateStr: string | null): string {
 export function ArticleDetail({ article, revalidateArticles }: ArticleDetailProps) {
   const isRead = article.read_at !== null;
 
-  const { data: articleContent, isLoading } = usePromise(fetchArticleContent, [article.url]);
+  const { data: articleContent, isLoading } = usePromise(fetchArticleContent, [article.id]);
 
   const toggleRead = async () => {
     try {
