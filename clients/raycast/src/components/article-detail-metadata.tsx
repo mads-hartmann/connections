@@ -23,14 +23,14 @@ function formatDate(dateStr: string | null): string {
 export function ArticleDetailMetadata({ article }: { article: Article }) {
   const isRead = article.read_at !== null;
   const isReadLater = article.read_later_at !== null;
+  const by = article.person_name || article.author
   return (
     <List.Item.Detail
       markdown={buildMarkdown(article)}
       key={article.id}
       metadata={
         <List.Item.Detail.Metadata>
-          {article.person_name && <List.Item.Detail.Metadata.Label title="Person" text={article.person_name} />}
-          {article.author && <List.Item.Detail.Metadata.Label title="Author" text={article.author} />}
+          {by && <List.Item.Detail.Metadata.Label title="By" text={by} />}
           <List.Item.Detail.Metadata.Label title="Published" text={formatDate(article.published_at)} />
           <List.Item.Detail.Metadata.Label
             title="Read"
