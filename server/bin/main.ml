@@ -49,7 +49,7 @@ let run db_path port no_scheduler log_file =
   let app = Router.build () in
   let address = `Tcp (Eio.Net.Ipaddr.V4.any, port) in
   let config = Piaf.Server.Config.create address in
-  ignore (Tapak.Server.run_with ~config ~env app)
+  ignore (Tapak.run_with ~config ~env app)
 
 (* CLI argument definitions *)
 open Cmdliner

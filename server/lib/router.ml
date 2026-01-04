@@ -13,7 +13,7 @@ let health_routes () =
   [ get (s "health") |> request |> into health_check ]
 
 let build () =
-  App.routes ~not_found
+  Router.routes ~not_found
     (List.concat
        [
          health_routes ();
@@ -25,4 +25,3 @@ let build () =
          Handlers.Import.routes ();
          Handlers.Metadata.routes ();
        ])
-    ()
