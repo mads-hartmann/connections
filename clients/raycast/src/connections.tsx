@@ -158,7 +158,7 @@ export default function Command() {
         return (
           <>
             {withUnread.length > 0 && (
-              <List.Section title="With Unread" subtitle={`${totalUnread} unread articles`}>
+              <List.Section title="Unread" subtitle={`${totalUnread} unread articles`}>
                 {withUnread.map((person) => (
                   <PersonListItem
                     key={String(person.id)}
@@ -171,7 +171,7 @@ export default function Command() {
               </List.Section>
             )}
             {withoutUnread.length > 0 && (
-              <List.Section title="All Caught Up">
+              <List.Section title="All">
                 {withoutUnread.map((person) => (
                   <PersonListItem
                     key={String(person.id)}
