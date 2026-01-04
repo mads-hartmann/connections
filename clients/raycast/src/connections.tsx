@@ -150,16 +150,42 @@ export default function Command() {
         ) : undefined
       }
     >
-      {selectedView === "connections" &&
-        connectionsData?.map((person) => (
-          <PersonListItem
-            key={String(person.id)}
-            person={person}
-            revalidate={revalidateConnections}
-            showDetail={showConnectionsDetail}
-            onToggleDetail={() => setShowConnectionsDetail(!showConnectionsDetail)}
-          />
-        ))}
+      {selectedView === "connections" && (() => {
+        const withUnread = connectionsData?.filter((p) => p.unread_article_count > 0) ?? [];
+        const withoutUnread = connectionsData?.filter((p) => p.unread_article_count === 0) ?? [];
+        const totalUnread = withUnread.reduce((sum, p) => sum + p.unread_article_count, 0);
+
+        return (
+          <>
+            {withUnread.length > 0 && (
+              <List.Section title="Unread" subtitle={`${totalUnread} unread articles`}>
+                {withUnread.map((person) => (
+                  <PersonListItem
+                    key={String(person.id)}
+                    person={person}
+                    revalidate={revalidateConnections}
+                    showDetail={showConnectionsDetail}
+                    onToggleDetail={() => setShowConnectionsDetail(!showConnectionsDetail)}
+                  />
+                ))}
+              </List.Section>
+            )}
+            {withoutUnread.length > 0 && (
+              <List.Section title="All">
+                {withoutUnread.map((person) => (
+                  <PersonListItem
+                    key={String(person.id)}
+                    person={person}
+                    revalidate={revalidateConnections}
+                    showDetail={showConnectionsDetail}
+                    onToggleDetail={() => setShowConnectionsDetail(!showConnectionsDetail)}
+                  />
+                ))}
+              </List.Section>
+            )}
+          </>
+        );
+      })()}
 
       {isArticlesView &&
         articlesData?.map((article) => (
