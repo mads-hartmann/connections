@@ -7,3 +7,8 @@
 (executable
  (name update_snapshots)
  (libraries e2e_helpers eio eio_main unix))
+
+(executable
+ (name backfill_website_metadata)
+ (public_name backfill_website_metadata)
+ (libraries connections_server eio_main logs logs.fmt fmt.tty cmdliner))
