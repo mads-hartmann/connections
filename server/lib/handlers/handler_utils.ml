@@ -77,6 +77,8 @@ let or_article_error result =
   Result.map_error
     (function
       | Service.Article.Error.Not_found -> not_found "Article not found"
+      | Service.Article.Error.Already_exists ->
+          error_response `Conflict "Article with this URL already exists"
       | Service.Article.Error.Database err ->
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result

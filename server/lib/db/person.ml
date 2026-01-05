@@ -308,3 +308,56 @@ let list_with_counts ~page ~per_page ?query () =
   in
   let data = List.map (attach_metadata_with_counts metadata_tbl) persons in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
+
+(* Find person by domain - checks Website metadata and feed URLs *)
+let find_by_domain_query =
+  Caqti_request.Infix.(Caqti_type.(t4 string string string string) ->* person_row_type)
+    (select_with_tags
+    ^ {|
+      WHERE p.id IN (
+        -- Match Website metadata (field_type_id = 6)
+        SELECT pm.person_id FROM person_metadata pm
+        WHERE pm.field_type_id = 6
+        AND (pm.value LIKE '%://' || ? || '%' OR pm.value LIKE '%://' || ? || '%')
+        UNION
+        -- Match feed URLs
+        SELECT f.person_id FROM rss_feeds f
+        WHERE f.url LIKE '%://' || ? || '%' OR f.url LIKE '%://' || ? || '%'
+      )
+      LIMIT 1
+    |})
+
+let find_by_domain ~domains =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  match domains with
+  | [] -> Ok None
+  | domain :: fallback_domains ->
+      (* Try each domain in order until we find a match *)
+      let rec try_domains = function
+        | [] -> Ok None
+        | d :: rest -> (
+            let pattern_with_slash = d ^ "/"
+            and pattern_exact = d in
+            let* rows =
+              Caqti_eio.Pool.use
+                (fun (module Db : Caqti_eio.CONNECTION) ->
+                  Db.collect_list find_by_domain_query
+                    (pattern_with_slash, pattern_exact, pattern_with_slash, pattern_exact))
+                pool
+            in
+            match rows with
+            | [] -> try_domains rest
+            | row :: _ ->
+                let person = tuple_to_person row in
+                let+ metadata_rows =
+                  Caqti_eio.Pool.use
+                    (fun (module Db : Caqti_eio.CONNECTION) ->
+                      Db.collect_list metadata_by_person_query
+                        (Model.Person.id person))
+                    pool
+                in
+                let metadata = List.filter_map tuple_to_metadata metadata_rows in
+                Some (Model.Person.with_metadata person metadata))
+      in
+      try_domains (domain :: fallback_domains)

@@ -24,3 +24,4 @@ val list_with_counts :
 
 val update : id:int -> name:string -> photo:string option -> (Model.Person.t, Error.t) result
 val delete : id:int -> (unit, Error.t) result
+val find_by_domain : domains:string list -> (Model.Person.t option, Error.t) result

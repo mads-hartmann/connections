@@ -61,7 +61,7 @@ let rss2_item_to_article ~feed_id ~person_id (item : Syndic.Rss2.item) :
   | Some url ->
       let article =
         {
-          Db.Article.feed_id;
+          Db.Article.feed_id = Some feed_id;
           person_id;
           title;
           url;
@@ -130,7 +130,7 @@ let atom_entry_to_article ~feed_id ~person_id (entry : Syndic.Atom.entry) :
       in
       let article =
         {
-          Db.Article.feed_id;
+          Db.Article.feed_id = Some feed_id;
           person_id;
           title;
           url;
