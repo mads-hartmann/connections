@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  pull_request:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.4.0
+      - run: opam pin add tapak https://github.com/syaiful6/tapak.git#85aaf8baf068e921f86a90be653a137ff58c2db6 -y --no-action
+      - run: opam install . --deps-only --with-test
+      - run: opam exec -- dune build
+      - run: opam exec -- dune runtest
+
+  raycast-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: clients/raycast
+      - run: npm run lint
+        working-directory: clients/raycast
+      - run: npm run build
+        working-directory: clients/raycast
