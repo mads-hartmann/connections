@@ -31,6 +31,12 @@ type create_input = {
   image_url : string option;
 }
 
+let is_unique_constraint_error err =
+  let err_str = Caqti_error.show err in
+  let pattern = Str.regexp_string "UNIQUE constraint" in
+  (try ignore (Str.search_forward pattern err_str 0); true
+   with Not_found -> false)
+
 let create input =
   let open Result.Syntax in
   (* Check if article with this URL already exists *)
@@ -50,8 +56,13 @@ let create input =
           image_url = input.image_url;
         }
       in
-      Db.Article.create db_input
-      |> Result.map_error (fun err -> Error.Database err)
+      (* Handle race condition: feed sync might have inserted the article
+         between our check and insert *)
+      (match Db.Article.create db_input with
+      | Ok article -> Ok article
+      | Error err when is_unique_constraint_error err ->
+          Error Error.Already_exists
+      | Error err -> Error (Error.Database err))
 
 let list_all ~page ~per_page ~unread_only ~read_later_only ~tag ?query () =
   match tag with

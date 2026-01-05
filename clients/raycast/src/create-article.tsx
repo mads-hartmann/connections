@@ -108,8 +108,8 @@ function ArticlePreviewForm({ intake }: ArticlePreviewFormProps) {
   const hasExistingPerson = intake.person !== null;
   const proposedPerson = intake.proposed_person;
 
-  // Suggested name for new person
-  const suggestedPersonName = proposedPerson?.name || new URL(intake.url).hostname;
+  // Suggested name for new person - prefer article author, then proposed person name, then hostname
+  const suggestedPersonName = intake.article.author_name || proposedPerson?.name || new URL(intake.url).hostname;
 
   async function handleSubmit(values: Record<string, unknown>) {
     setIsCreating(true);
