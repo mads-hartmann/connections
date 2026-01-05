@@ -37,6 +37,11 @@ let get_with_person_check_query =
     "SELECT id, person_id, field_type_id, value FROM person_metadata WHERE id \
      = ? AND person_id = ?"
 
+let find_existing_query =
+  Caqti_request.Infix.(Caqti_type.(t3 int int string) ->? row_type)
+    "SELECT id, person_id, field_type_id, value FROM person_metadata WHERE \
+     person_id = ? AND field_type_id = ? AND LOWER(TRIM(value)) = LOWER(TRIM(?))"
+
 let tuple_to_metadata (id, person_id, field_type_id, value) =
   match Model.Metadata_field_type.of_id field_type_id with
   | Some field_type ->
@@ -45,21 +50,35 @@ let tuple_to_metadata (id, person_id, field_type_id, value) =
 
 type create_error = [ `Invalid_field_type | `Caqti of Caqti_error.t ]
 
+let find_existing ~person_id ~field_type_id ~value =
+  let pool = Pool.get () in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.find_opt find_existing_query (person_id, field_type_id, value))
+    pool
+  |> Result.map (fun opt -> Option.bind opt tuple_to_metadata)
+
 let create ~person_id ~field_type_id ~value =
   let pool = Pool.get () in
   match Model.Metadata_field_type.of_id field_type_id with
   | None -> Error `Invalid_field_type
   | Some field_type -> (
-      let result =
-        Caqti_eio.Pool.use
-          (fun (module Db : Caqti_eio.CONNECTION) ->
-            Db.find insert_query (person_id, field_type_id, value))
-          pool
-      in
-      match result with
+      match find_existing ~person_id ~field_type_id ~value with
       | Error e -> Error (`Caqti e)
-      | Ok id ->
-          Ok (Model.Person_metadata.create ~id ~person_id ~field_type ~value))
+      | Ok (Some existing) -> Ok existing
+      | Ok None -> (
+          let result =
+            Caqti_eio.Pool.use
+              (fun (module Db : Caqti_eio.CONNECTION) ->
+                Db.find insert_query (person_id, field_type_id, value))
+              pool
+          in
+          match result with
+          | Error e -> Error (`Caqti e)
+          | Ok id ->
+              Ok
+                (Model.Person_metadata.create ~id ~person_id ~field_type ~value))
+      )
 
 let get ~id =
   let pool = Pool.get () in

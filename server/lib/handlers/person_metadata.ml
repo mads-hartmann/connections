@@ -12,15 +12,14 @@ let create request person_id =
     Handler_utils.parse_json_body create_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
-  if String.trim value = "" then
-    Handler_utils.bad_request "Value cannot be empty"
+  let value = String.trim value in
+  if value = "" then Handler_utils.bad_request "Value cannot be empty"
   else
     let* metadata =
       Service.Person_metadata.create ~person_id ~field_type_id ~value
       |> Handler_utils.or_person_metadata_error
     in
-    Handler_utils.json_response ~status:`Created
-      (Model.Person_metadata.to_json metadata)
+    Handler_utils.json_response (Model.Person_metadata.to_json metadata)
 
 let update request person_id metadata_id =
   let* { value } =

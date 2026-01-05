@@ -120,3 +120,7 @@ CREATE TABLE IF NOT EXISTS person_metadata (
 );
 
 CREATE INDEX IF NOT EXISTS idx_person_metadata_person_id ON person_metadata(person_id);
+
+-- Unique constraint for idempotent metadata creation (case-insensitive, trimmed)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_person_metadata_unique
+  ON person_metadata(person_id, field_type_id, LOWER(TRIM(value)));
