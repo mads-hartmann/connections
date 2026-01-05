@@ -124,3 +124,14 @@ CREATE INDEX IF NOT EXISTS idx_person_metadata_person_id ON person_metadata(pers
 -- Unique constraint for idempotent metadata creation (case-insensitive, trimmed)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_person_metadata_unique
   ON person_metadata(person_id, field_type_id, LOWER(TRIM(value)));
+
+-- Article content cache (stores markdown conversion of article HTML)
+CREATE TABLE IF NOT EXISTS article_content (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  article_id INTEGER NOT NULL UNIQUE,
+  markdown TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_article_content_article_id ON article_content(article_id);

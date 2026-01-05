@@ -38,3 +38,6 @@ val or_tag_error :
 
 val or_person_metadata_error :
   ('a, Service.Person_metadata.Error.t) result -> ('a, Tapak.Response.t) result
+
+val or_article_content_error :
+  ('a, Service.Article_content.Error.t) result -> ('a, Tapak.Response.t) result
