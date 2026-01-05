@@ -27,7 +27,7 @@ let get_query =
 
 let list_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->* person_row_type)
-    (select_with_tags ^ " ORDER BY p.id LIMIT ? OFFSET ?")
+    (select_with_tags ^ " ORDER BY p.name ASC LIMIT ? OFFSET ?")
 
 let count_query =
   Caqti_request.Infix.(Caqti_type.unit ->! Caqti_type.int)
@@ -36,7 +36,7 @@ let count_query =
 let list_filtered_query =
   Caqti_request.Infix.(Caqti_type.(t3 string int int) ->* person_row_type)
     (select_with_tags
-   ^ " WHERE p.name LIKE ? ORDER BY p.name DESC LIMIT ? OFFSET ?")
+   ^ " WHERE p.name LIKE ? ORDER BY p.name ASC LIMIT ? OFFSET ?")
 
 let count_filtered_query =
   Caqti_request.Infix.(Caqti_type.string ->! Caqti_type.int)
@@ -60,7 +60,9 @@ let list_with_counts_query =
       LEFT JOIN rss_feeds f ON f.person_id = p.id
       LEFT JOIN articles a ON a.feed_id = f.id
       GROUP BY p.id
-      ORDER BY p.id
+      ORDER BY
+        CASE WHEN COUNT(CASE WHEN a.read_at IS NULL THEN 1 END) > 0 THEN 0 ELSE 1 END,
+        p.name ASC
       LIMIT ? OFFSET ?
     |}
 
@@ -84,7 +86,9 @@ let list_with_counts_filtered_query =
       LEFT JOIN articles a ON a.feed_id = f.id
       WHERE p.name LIKE ?
       GROUP BY p.id
-      ORDER BY p.name DESC
+      ORDER BY
+        CASE WHEN COUNT(CASE WHEN a.read_at IS NULL THEN 1 END) > 0 THEN 0 ELSE 1 END,
+        p.name ASC
       LIMIT ? OFFSET ?
     |}
 

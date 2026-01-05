@@ -37,6 +37,15 @@
       "metadata": []
     },
     {
+      "id": 47,
+      "name": "Anil Madhavapeddy",
+      "tags": [],
+      "feed_count": 1,
+      "article_count": 342,
+      "unread_article_count": 335,
+      "metadata": []
+    },
+    {
       "id": 12,
       "name": "Arkadiy Tetelman",
       "tags": [],
@@ -185,15 +194,6 @@
           "value": "https://x.com/Mads_Hartmann"
         }
       ]
-    },
-    {
-      "id": 27,
-      "name": "Malte Ubl",
-      "tags": [],
-      "feed_count": 1,
-      "article_count": 115,
-      "unread_article_count": 115,
-      "metadata": []
     }
   ],
   "page": 1,
