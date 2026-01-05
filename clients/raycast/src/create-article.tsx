@@ -1,13 +1,9 @@
-import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
+import { Action, ActionPanel, Form, Icon, popToRoot, showToast, Toast, useNavigation } from "@raycast/api";
 import { useState } from "react";
-import { getServerUrl } from "../api/config";
-import * as Article from "../api/article";
+import { getServerUrl } from "./api/config";
+import * as Article from "./api/article";
 
-interface ArticleCreateFormProps {
-  revalidate: () => void;
-}
-
-export function ArticleCreateForm({ revalidate }: ArticleCreateFormProps) {
+export default function Command() {
   const { push } = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -25,7 +21,7 @@ export function ArticleCreateForm({ revalidate }: ArticleCreateFormProps) {
     setIsLoading(true);
     try {
       const intake = await Article.fetchArticleIntake(url);
-      push(<ArticlePreviewForm intake={intake} revalidate={revalidate} />);
+      push(<ArticlePreviewForm intake={intake} />);
     } catch (error) {
       showToast({
         style: Toast.Style.Failure,
@@ -103,11 +99,9 @@ async function createPerson(
 
 interface ArticlePreviewFormProps {
   intake: Article.ArticleIntakeResponse;
-  revalidate: () => void;
 }
 
-function ArticlePreviewForm({ intake, revalidate }: ArticlePreviewFormProps) {
-  const { pop } = useNavigation();
+function ArticlePreviewForm({ intake }: ArticlePreviewFormProps) {
   const [isCreating, setIsCreating] = useState(false);
 
   // Determine if we have an existing person or need to create one
@@ -170,9 +164,7 @@ function ArticlePreviewForm({ intake, revalidate }: ArticlePreviewFormProps) {
         title: "Article created",
         message: parts.length > 0 ? parts.join(", ") : undefined,
       });
-      revalidate();
-      pop();
-      pop(); // Go back to main list
+      popToRoot();
     } catch (error) {
       showToast({
         style: Toast.Style.Failure,

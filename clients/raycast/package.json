@@ -45,6 +45,12 @@
       "mode": "view"
     },
     {
+      "name": "create-article",
+      "title": "Create Article",
+      "description": "Add an article by URL",
+      "mode": "view"
+    },
+    {
       "name": "unread-count",
       "title": "Unread Articles",
       "description": "Shows unread article count in menu bar",

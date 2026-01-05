@@ -2,7 +2,6 @@ import { Action, ActionPanel, getPreferenceValues, Icon, Keyboard, List } from "
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
 import { markAllArticlesRead } from "./actions/article-actions";
-import { ArticleCreateForm } from "./components/article-create-form";
 import { PersonCreateForm } from "./components/person-create-form";
 import { ImportOpml } from "./components/import-opml";
 import { ArticleListItem } from "./components/article-list-item";
