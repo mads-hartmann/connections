@@ -23,7 +23,7 @@ function formatDate(dateStr: string | null): string {
 export function ArticleDetailMetadata({ article }: { article: Article }) {
   const isRead = article.read_at !== null;
   const isReadLater = article.read_later_at !== null;
-  const by = article.person_name || article.author
+  const by = article.person_name || article.author;
   return (
     <List.Item.Detail
       markdown={buildMarkdown(article)}
