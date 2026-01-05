@@ -156,6 +156,91 @@ let test_db_person_delete () =
           | Ok None -> ()
           | Ok (Some _) -> Alcotest.fail "person still exists after delete"))
 
+let test_db_metadata_create_idempotent () =
+  with_eio @@ fun ~sw ~env ->
+  setup_test_db ~sw ~stdenv:env;
+  let person = Db.Person.create ~name:"Test Person" () |> Result.get_ok in
+  let person_id = Model.Person.id person in
+  let field_type_id = Model.Metadata_field_type.id Model.Metadata_field_type.Email in
+  let value = "test@example.com" in
+  (* First creation *)
+  let first = Db.Person_metadata.create ~person_id ~field_type_id ~value in
+  match first with
+  | Error _ -> Alcotest.fail "first create failed"
+  | Ok first_metadata ->
+      (* Second creation with same values should return existing *)
+      let second = Db.Person_metadata.create ~person_id ~field_type_id ~value in
+      match second with
+      | Error _ -> Alcotest.fail "second create failed"
+      | Ok second_metadata ->
+          Alcotest.(check int)
+            "same id returned"
+            (Model.Person_metadata.id first_metadata)
+            (Model.Person_metadata.id second_metadata)
+
+let test_db_metadata_create_idempotent_case_insensitive () =
+  with_eio @@ fun ~sw ~env ->
+  setup_test_db ~sw ~stdenv:env;
+  let person = Db.Person.create ~name:"Test Person" () |> Result.get_ok in
+  let person_id = Model.Person.id person in
+  let field_type_id = Model.Metadata_field_type.id Model.Metadata_field_type.Email in
+  (* First creation with lowercase *)
+  let first = Db.Person_metadata.create ~person_id ~field_type_id ~value:"test@example.com" in
+  match first with
+  | Error _ -> Alcotest.fail "first create failed"
+  | Ok first_metadata ->
+      (* Second creation with different case should return existing *)
+      let second = Db.Person_metadata.create ~person_id ~field_type_id ~value:"TEST@EXAMPLE.COM" in
+      match second with
+      | Error _ -> Alcotest.fail "second create failed"
+      | Ok second_metadata ->
+          Alcotest.(check int)
+            "same id returned for different case"
+            (Model.Person_metadata.id first_metadata)
+            (Model.Person_metadata.id second_metadata)
+
+let test_db_metadata_create_idempotent_trimmed () =
+  with_eio @@ fun ~sw ~env ->
+  setup_test_db ~sw ~stdenv:env;
+  let person = Db.Person.create ~name:"Test Person" () |> Result.get_ok in
+  let person_id = Model.Person.id person in
+  let field_type_id = Model.Metadata_field_type.id Model.Metadata_field_type.Email in
+  (* First creation without whitespace *)
+  let first = Db.Person_metadata.create ~person_id ~field_type_id ~value:"test@example.com" in
+  match first with
+  | Error _ -> Alcotest.fail "first create failed"
+  | Ok first_metadata ->
+      (* Second creation with whitespace should return existing *)
+      let second = Db.Person_metadata.create ~person_id ~field_type_id ~value:"  test@example.com  " in
+      match second with
+      | Error _ -> Alcotest.fail "second create failed"
+      | Ok second_metadata ->
+          Alcotest.(check int)
+            "same id returned for whitespace-padded value"
+            (Model.Person_metadata.id first_metadata)
+            (Model.Person_metadata.id second_metadata)
+
+let test_db_metadata_create_different_values () =
+  with_eio @@ fun ~sw ~env ->
+  setup_test_db ~sw ~stdenv:env;
+  let person = Db.Person.create ~name:"Test Person" () |> Result.get_ok in
+  let person_id = Model.Person.id person in
+  let field_type_id = Model.Metadata_field_type.id Model.Metadata_field_type.Email in
+  (* First creation *)
+  let first = Db.Person_metadata.create ~person_id ~field_type_id ~value:"first@example.com" in
+  match first with
+  | Error _ -> Alcotest.fail "first create failed"
+  | Ok first_metadata ->
+      (* Second creation with different value should create new *)
+      let second = Db.Person_metadata.create ~person_id ~field_type_id ~value:"second@example.com" in
+      match second with
+      | Error _ -> Alcotest.fail "second create failed"
+      | Ok second_metadata ->
+          Alcotest.(check bool)
+            "different ids for different values"
+            true
+            (Model.Person_metadata.id first_metadata <> Model.Person_metadata.id second_metadata)
+
 let db_suite =
   [
     Alcotest.test_case "create person" `Quick test_db_person_create;
@@ -163,6 +248,14 @@ let db_suite =
     Alcotest.test_case "list persons" `Quick test_db_person_list;
     Alcotest.test_case "update person" `Quick test_db_person_update;
     Alcotest.test_case "delete person" `Quick test_db_person_delete;
+    Alcotest.test_case "metadata create idempotent" `Quick
+      test_db_metadata_create_idempotent;
+    Alcotest.test_case "metadata create idempotent case-insensitive" `Quick
+      test_db_metadata_create_idempotent_case_insensitive;
+    Alcotest.test_case "metadata create idempotent trimmed" `Quick
+      test_db_metadata_create_idempotent_trimmed;
+    Alcotest.test_case "metadata create different values" `Quick
+      test_db_metadata_create_different_values;
   ]
 
 (* Handler tests are stubbed - Tapak doesn't have Dream's request mocking *)

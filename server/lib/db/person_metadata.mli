@@ -1,5 +1,11 @@
 type create_error = [ `Invalid_field_type | `Caqti of Caqti_error.t ]
 
+val find_existing :
+  person_id:int ->
+  field_type_id:int ->
+  value:string ->
+  (Model.Person_metadata.t option, Caqti_error.t) result
+
 val create :
   person_id:int ->
   field_type_id:int ->
