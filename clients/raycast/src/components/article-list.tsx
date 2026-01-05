@@ -5,10 +5,11 @@ import * as ArticleApi from "../api/article";
 import * as Tag from "../api/tag";
 import { ArticleListItem } from "./article-list-item";
 
-type ArticleListProps =
+type ArticleListProps = (
   | { feedId: number; feedTitle: string; tag?: never; personId?: never; personName?: never }
   | { tag: Tag.Tag; feedId?: never; feedTitle?: never; personId?: never; personName?: never }
-  | { personId: number; personName: string; feedId?: never; feedTitle?: never; tag?: never };
+  | { personId: number; personName: string; feedId?: never; feedTitle?: never; tag?: never }
+) & { defaultFilter?: "all" | "unread" };
 
 async function confirmMarkAllRead(feedTitle: string): Promise<boolean> {
   return await confirmAlert({
@@ -22,7 +23,7 @@ async function confirmMarkAllRead(feedTitle: string): Promise<boolean> {
 }
 
 export function ArticleList(props: ArticleListProps) {
-  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [showUnreadOnly, setShowUnreadOnly] = useState(props.defaultFilter === "unread");
   const [showDetail, setShowDetail] = useState(true);
 
   const isTagView = "tag" in props && props.tag !== undefined;
