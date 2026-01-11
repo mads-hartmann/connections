@@ -39,7 +39,13 @@ export function PersonListItem({ person, revalidate, showDetail, onToggleDetail 
           <Action.Push
             title="View Articles"
             icon={Icon.Document}
-            target={<ArticleList personId={person.id} personName={person.name} />}
+            target={
+              <ArticleList
+                personId={person.id}
+                personName={person.name}
+                defaultFilter={person.unread_article_count > 0 ? "unread" : "all"}
+              />
+            }
           />
           <Action.Push
             title="View Feeds"
