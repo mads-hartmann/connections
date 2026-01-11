@@ -9,7 +9,7 @@ open Test_helpers
 
 let test_article_to_json () =
   let article =
-    Model.Article.create ~id:1 ~feed_id:1 ~person_id:None ~person_name:None
+    Model.Article.create ~id:1 ~feed_id:(Some 1) ~person_id:None ~person_name:None
       ~title:(Some "Test Article") ~url:"https://example.com/article"
       ~published_at:(Some "2024-01-01 12:00:00")
       ~content:(Some "Article content") ~author:(Some "John Doe")
@@ -38,7 +38,7 @@ let test_db_article_upsert () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
   let person, feed = setup_person_and_feed () in
-  let feed_id = Model.Rss_feed.id feed in
+  let feed_id = Some (Model.Rss_feed.id feed) in
   let person_id = Some (Model.Person.id person) in
   let input : Db.Article.create_input =
     {
@@ -67,7 +67,7 @@ let test_db_article_list_by_feed () =
   let _ =
     Db.Article.upsert
       {
-        feed_id;
+        feed_id = Some feed_id;
         person_id;
         title = Some "Article 1";
         url = "https://example.com/a1";
@@ -80,7 +80,7 @@ let test_db_article_list_by_feed () =
   let _ =
     Db.Article.upsert
       {
-        feed_id;
+        feed_id = Some feed_id;
         person_id;
         title = Some "Article 2";
         url = "https://example.com/a2";
@@ -107,7 +107,7 @@ let test_db_article_mark_read () =
   let _ =
     Db.Article.upsert
       {
-        feed_id;
+        feed_id = Some feed_id;
         person_id;
         title = Some "To Read";
         url = "https://example.com/read";

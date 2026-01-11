@@ -45,9 +45,11 @@ CREATE TABLE IF NOT EXISTS feed_tags (
 );
 
 -- Articles table
+-- Note: UNIQUE constraint on (feed_id, url) allows same URL in different feeds
+-- For manually-created articles (feed_id = NULL), we check uniqueness in application code
 CREATE TABLE IF NOT EXISTS articles (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  feed_id INTEGER NOT NULL,
+  feed_id INTEGER,
   person_id INTEGER,
   title TEXT,
   url TEXT NOT NULL,

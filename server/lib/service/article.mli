@@ -1,11 +1,24 @@
 module Error : sig
-  type t = Not_found | Database of Caqti_error.t
+  type t = Not_found | Already_exists | Database of Caqti_error.t
 
   val pp : Format.formatter -> t -> unit
   val to_string : t -> string
 end
 
 val get : id:int -> (Model.Article.t, Error.t) result
+val get_by_url : url:string -> (Model.Article.t option, Error.t) result
+
+type create_input = {
+  url : string;
+  person_id : int option;
+  title : string option;
+  published_at : string option;
+  content : string option;
+  author : string option;
+  image_url : string option;
+}
+
+val create : create_input -> (Model.Article.t, Error.t) result
 
 val list_all :
   page:int ->

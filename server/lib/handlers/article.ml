@@ -92,6 +92,39 @@ let delete_article _request id =
   let* () = Service.Article.delete ~id |> Handler_utils.or_article_error in
   Response.of_string ~body:"" `No_content
 
+type create_request = {
+  url : string;
+  person_id : int option; [@yojson.option]
+  title : string option; [@yojson.option]
+  published_at : string option; [@yojson.option]
+  content : string option; [@yojson.option]
+  author : string option; [@yojson.option]
+  image_url : string option; [@yojson.option]
+}
+[@@deriving yojson]
+
+let create request =
+  let* req =
+    Handler_utils.parse_json_body create_request_of_yojson request
+    |> Handler_utils.or_bad_request
+  in
+  let* valid_url =
+    Handler_utils.validate_url req.url |> Handler_utils.or_bad_request
+  in
+  let input : Service.Article.create_input =
+    {
+      url = valid_url;
+      person_id = req.person_id;
+      title = req.title;
+      published_at = req.published_at;
+      content = req.content;
+      author = req.author;
+      image_url = req.image_url;
+    }
+  in
+  let* article = Service.Article.create input |> Handler_utils.or_article_error in
+  Handler_utils.json_response ~status:`Created (Model.Article.to_json article)
+
 let refresh_metadata _request id =
   let* article = Service.Article.get ~id |> Handler_utils.or_article_error in
   let sw, env = get_context () in
@@ -120,6 +153,7 @@ let routes () =
     |> request |> into list_all;
     post (s "articles" / s "mark-all-read")
     |> request |> into mark_all_read_global;
+    post (s "articles") |> request |> into create;
     get (s "articles" / int) |> request |> into get_article;
     post (s "articles" / int / s "read") |> request |> into mark_read;
     post (s "articles" / int / s "read-later") |> request |> into mark_read_later;

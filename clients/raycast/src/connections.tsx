@@ -131,23 +131,22 @@ export default function Command() {
           </List.Dropdown.Section>
         </List.Dropdown>
       }
+      // This action panel is only shown when the list is empty.
       actions={
-        selectedView === "connections" ? (
-          <ActionPanel>
-            <Action.Push
-              title="Create Person"
-              icon={Icon.Plus}
-              shortcut={Keyboard.Shortcut.Common.New}
-              target={<PersonCreateForm revalidate={revalidateConnections} />}
-            />
-            <Action.Push
-              title="Import from OPML"
-              icon={Icon.Download}
-              shortcut={{ modifiers: ["cmd", "shift"], key: "i" }}
-              target={<ImportOpml revalidate={revalidateConnections} />}
-            />
-          </ActionPanel>
-        ) : undefined
+        <ActionPanel>
+          <Action.Push
+            title="Create Person"
+            icon={Icon.Plus}
+            shortcut={Keyboard.Shortcut.Common.New}
+            target={<PersonCreateForm revalidate={revalidateConnections} />}
+          />
+          <Action.Push
+            title="Import from OPML"
+            icon={Icon.Download}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "i" }}
+            target={<ImportOpml revalidate={revalidateConnections} />}
+          />
+        </ActionPanel>
       }
     >
       {selectedView === "connections" &&

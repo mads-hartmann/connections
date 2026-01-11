@@ -8,7 +8,7 @@ export interface Tag {
 
 export interface Article {
   id: number;
-  feed_id: number;
+  feed_id: number | null;
   person_id: number | null;
   person_name: string | null;
   title: string | null;
@@ -165,4 +165,86 @@ export async function deleteArticle(article: Article): Promise<boolean> {
     return true;
   }
   return false;
+}
+
+// Intake types for article creation flow
+export interface ArticleMetadata {
+  title?: string;
+  description?: string;
+  image?: string;
+  published_at?: string;
+  author_name?: string;
+  site_name?: string;
+  canonical_url?: string;
+}
+
+export interface MetadataFieldType {
+  id: number;
+  name: string;
+}
+
+export interface Feed {
+  url: string;
+  title?: string;
+  format: "rss" | "atom" | "json_feed";
+}
+
+export interface SocialProfile {
+  url: string;
+  field_type: MetadataFieldType;
+}
+
+export interface ProposedPerson {
+  name?: string;
+  photo?: string;
+  bio?: string;
+  location?: string;
+  feeds: Feed[];
+  social_profiles: SocialProfile[];
+}
+
+export interface ExistingPerson {
+  id: number;
+  name: string;
+  photo?: string;
+}
+
+export interface ArticleIntakeResponse {
+  url: string;
+  article: ArticleMetadata;
+  person: ExistingPerson | null;
+  proposed_person: ProposedPerson | null;
+}
+
+export async function fetchArticleIntake(url: string): Promise<ArticleIntakeResponse> {
+  const params = new URLSearchParams({ url });
+  const response = await fetch(`${getServerUrl()}/intake/article?${params.toString()}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch article intake");
+  }
+  return response.json();
+}
+
+export interface CreateArticleInput {
+  url: string;
+  person_id?: number;
+  title?: string;
+  published_at?: string;
+  content?: string;
+  author?: string;
+  image_url?: string;
+}
+
+export async function createArticle(input: CreateArticleInput): Promise<Article> {
+  const response = await fetch(`${getServerUrl()}/articles`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create article");
+  }
+  return response.json();
 }

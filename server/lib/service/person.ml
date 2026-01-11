@@ -36,3 +36,7 @@ let delete ~id =
   | Error err -> Error (Error.Database err)
   | Ok false -> Error Error.Not_found
   | Ok true -> Ok ()
+
+let find_by_domain ~domains =
+  Db.Person.find_by_domain ~domains
+  |> Result.map_error (fun err -> Error.Database err)
