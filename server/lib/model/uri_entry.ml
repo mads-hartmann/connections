@@ -72,35 +72,39 @@ let create ~id ~feed_id ~connection_id ~connection_name ~kind ~title ~url
     og_fetch_error;
   }
 
-let option_to_json key to_json = function
-  | Some v -> [ (key, to_json v) ]
-  | None -> []
+let nullable_string_to_json = function
+  | Some v -> `String v
+  | None -> `Null
+
+let nullable_int_to_json = function
+  | Some v -> `Int v
+  | None -> `Null
 
 let to_json t =
   `Assoc
     ([
        ("id", `Int t.id);
+       ("feed_id", nullable_int_to_json t.feed_id);
+       ("connection_id", nullable_int_to_json t.connection_id);
+       ("connection_name", nullable_string_to_json t.connection_name);
        ("kind", Uri_kind.yojson_of_t t.kind);
+       ("title", nullable_string_to_json t.title);
        ("url", `String t.url);
+       ("published_at", nullable_string_to_json t.published_at);
+       ("content", nullable_string_to_json t.content);
+       ("author", nullable_string_to_json t.author);
+       ("image_url", nullable_string_to_json t.image_url);
        ("created_at", `String t.created_at);
+       ("read_at", nullable_string_to_json t.read_at);
+       ("read_later_at", nullable_string_to_json t.read_later_at);
        ("tags", `List (List.map Tag.yojson_of_t t.tags));
-     ]
-    @ option_to_json "feed_id" (fun x -> `Int x) t.feed_id
-    @ option_to_json "connection_id" (fun x -> `Int x) t.connection_id
-    @ option_to_json "connection_name" (fun x -> `String x) t.connection_name
-    @ option_to_json "title" (fun x -> `String x) t.title
-    @ option_to_json "published_at" (fun x -> `String x) t.published_at
-    @ option_to_json "content" (fun x -> `String x) t.content
-    @ option_to_json "author" (fun x -> `String x) t.author
-    @ option_to_json "image_url" (fun x -> `String x) t.image_url
-    @ option_to_json "read_at" (fun x -> `String x) t.read_at
-    @ option_to_json "read_later_at" (fun x -> `String x) t.read_later_at
-    @ option_to_json "og_title" (fun x -> `String x) t.og_title
-    @ option_to_json "og_description" (fun x -> `String x) t.og_description
-    @ option_to_json "og_image" (fun x -> `String x) t.og_image
-    @ option_to_json "og_site_name" (fun x -> `String x) t.og_site_name
-    @ option_to_json "og_fetched_at" (fun x -> `String x) t.og_fetched_at
-    @ option_to_json "og_fetch_error" (fun x -> `String x) t.og_fetch_error)
+       ("og_title", nullable_string_to_json t.og_title);
+       ("og_description", nullable_string_to_json t.og_description);
+       ("og_image", nullable_string_to_json t.og_image);
+       ("og_site_name", nullable_string_to_json t.og_site_name);
+       ("og_fetched_at", nullable_string_to_json t.og_fetched_at);
+       ("og_fetch_error", nullable_string_to_json t.og_fetch_error);
+     ])
 
 let paginated_to_json response = Shared.Paginated.to_json to_json response
 let error_to_json = Shared.error_to_json
