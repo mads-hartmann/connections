@@ -58,6 +58,7 @@ val mark_read_later :
 
 val mark_all_read : feed_id:int -> (int, Caqti_error.t) result
 val mark_all_read_global : unit -> (int, Caqti_error.t) result
+val mark_all_read_by_connection : connection_id:int -> (int, Caqti_error.t) result
 val delete : id:int -> (bool, Caqti_error.t) result
 val delete_by_connection_id : connection_id:int -> (unit, Caqti_error.t) result
 

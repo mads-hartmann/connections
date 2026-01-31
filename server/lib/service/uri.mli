@@ -49,4 +49,5 @@ val mark_read : id:int -> read:bool -> (Model.Uri_entry.t, Error.t) result
 val mark_read_later : id:int -> read_later:bool -> (Model.Uri_entry.t, Error.t) result
 val mark_all_read : feed_id:int -> (int, Error.t) result
 val mark_all_read_global : unit -> (int, Error.t) result
+val mark_all_read_by_connection : connection_id:int -> (int, Error.t) result
 val delete : id:int -> (unit, Error.t) result

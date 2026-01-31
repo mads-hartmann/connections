@@ -156,6 +156,13 @@ let mark_all_read_global _request =
   in
   Handler_utils.json_response (`Assoc [ ("marked_read", `Int count) ])
 
+let mark_all_read_by_connection _request connection_id =
+  let* _ = Service.Connection.get ~id:connection_id |> Handler_utils.or_connection_error in
+  let* count =
+    Service.Uri.mark_all_read_by_connection ~connection_id |> Handler_utils.or_uri_error
+  in
+  Handler_utils.json_response (`Assoc [ ("marked_read", `Int count) ])
+
 let delete_uri _request id =
   let* () = Service.Uri.delete ~id |> Handler_utils.or_uri_error in
   Response.of_string ~body:"" `No_content
@@ -191,6 +198,8 @@ let routes () =
     get (s "connections" / int / s "uris")
     |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_by_connection;
+    post (s "connections" / int / s "uris" / s "mark-all-read")
+    |> request |> into mark_all_read_by_connection;
     get (s "uris")
     |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_all;

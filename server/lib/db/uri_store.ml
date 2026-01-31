@@ -169,6 +169,14 @@ let mark_all_read_global_query =
       SELECT COUNT(*) FROM updated
     |}
 
+let mark_all_read_by_connection_query =
+  Caqti_request.Infix.(Caqti_type.(t2 string int) ->* Caqti_type.int)
+    {|
+      UPDATE uris SET read_at = ?
+      WHERE connection_id = ? AND read_at IS NULL
+      RETURNING id
+    |}
+
 let delete_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
     "DELETE FROM uris WHERE id = ?"
@@ -371,6 +379,16 @@ let mark_all_read_global () =
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
       Db.find mark_all_read_global_query now)
+    pool
+
+let mark_all_read_by_connection ~connection_id =
+  let pool = Pool.get () in
+  let now = Ptime_clock.now () |> Ptime.to_rfc3339 in
+  Caqti_eio.Pool.use
+    (fun (module Db : Caqti_eio.CONNECTION) ->
+      Db.fold mark_all_read_by_connection_query
+        (fun _id count -> count + 1)
+        (now, connection_id) 0)
     pool
 
 let delete ~id =
