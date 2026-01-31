@@ -35,7 +35,7 @@ let run db_path port no_scheduler log_file =
   (* Set handler contexts for feed refresh, OPML import, URL metadata, article refresh, and person refresh *)
   Handlers.Rss_feed.set_context ~sw ~env;
   Handlers.Import.set_context ~sw ~env;
-  Handlers.Metadata.set_context ~sw ~env;
+  Handlers.Url_metadata.set_context ~sw ~env;
   Handlers.Article.set_context ~sw ~env;
   Handlers.Person.set_context ~sw ~env;
   (* Start background jobs unless disabled *)

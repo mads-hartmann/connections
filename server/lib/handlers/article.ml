@@ -112,6 +112,14 @@ let refresh_metadata _request id =
   in
   Handler_utils.json_response (Model.Article.to_json result)
 
+let get_content _request id =
+  let sw, env = get_context () in
+  let* markdown =
+    Service.Article_content.get ~sw ~env ~article_id:id
+    |> Handler_utils.or_article_content_error
+  in
+  Handler_utils.json_response (`Assoc [ ("markdown", `String markdown) ])
+
 let routes () =
   let open Tapak.Router in
   [
@@ -131,6 +139,7 @@ let routes () =
     post (s "articles" / s "mark-all-read")
     |> request |> into mark_all_read_global;
     get (s "articles" / int) |> request |> into get_article;
+    get (s "articles" / int / s "content") |> request |> into get_content;
     post (s "articles" / int / s "read") |> request |> into mark_read;
     post (s "articles" / int / s "read-later") |> request |> into mark_read_later;
     post (s "articles" / int / s "refresh-metadata")

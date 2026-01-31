@@ -121,3 +121,15 @@ let or_person_metadata_error result =
       | Service.Person_metadata.Error.Database err ->
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result
+
+(* Convert Service.Article_content.Error.t to response *)
+let or_article_content_error result =
+  Result.map_error
+    (function
+      | Service.Article_content.Error.Article_not_found ->
+          not_found "Article not found"
+      | Service.Article_content.Error.Fetch_failed msg ->
+          error_response `Bad_gateway (Printf.sprintf "Failed to fetch article: %s" msg)
+      | Service.Article_content.Error.Database err ->
+          internal_error (Format.asprintf "%a" Caqti_error.pp err))
+    result
