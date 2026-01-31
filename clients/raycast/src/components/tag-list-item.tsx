@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
 import * as Tag from "../api/tag";
-import { ArticleList } from "./article-list";
+import { UriList } from "./uri-list";
 import { TagCreateForm } from "./tag-create-form";
 import { TagEditForm } from "./tag-edit-form";
 
@@ -24,7 +24,7 @@ export function TagListItem({ tag, revalidate }: TagListItemProps) {
       icon={Icon.Tag}
       actions={
         <ActionPanel>
-          <Action.Push title="View Articles" icon={Icon.List} target={<ArticleList tag={tag} />} />
+          <Action.Push title="View URIs" icon={Icon.List} target={<UriList tag={tag} />} />
           <Action.Push
             title="Edit Tag"
             icon={Icon.Pencil}

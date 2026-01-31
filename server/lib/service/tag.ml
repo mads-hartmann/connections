@@ -33,16 +33,16 @@ let update ~id ~name =
   | Ok None -> Error Error.Not_found
   | Ok (Some tag) -> Ok tag
 
-let add_to_person ~person_id ~tag_id =
-  Db.Tag.add_to_person ~person_id ~tag_id
+let add_to_connection ~connection_id ~tag_id =
+  Db.Tag.add_to_connection ~connection_id ~tag_id
   |> Result.map_error (fun err -> Error.Database err)
 
-let remove_from_person ~person_id ~tag_id =
-  Db.Tag.remove_from_person ~person_id ~tag_id
+let remove_from_connection ~connection_id ~tag_id =
+  Db.Tag.remove_from_connection ~connection_id ~tag_id
   |> Result.map_error (fun err -> Error.Database err)
 
-let get_by_person ~person_id =
-  Db.Tag.get_by_person ~person_id
+let get_by_connection ~connection_id =
+  Db.Tag.get_by_connection ~connection_id
   |> Result.map_error (fun err -> Error.Database err)
 
 let add_to_feed ~feed_id ~tag_id =
@@ -57,14 +57,14 @@ let get_by_feed ~feed_id =
   Db.Tag.get_by_feed ~feed_id
   |> Result.map_error (fun err -> Error.Database err)
 
-let add_to_article ~article_id ~tag_id =
-  Db.Tag.add_to_article ~article_id ~tag_id
+let add_to_uri ~uri_id ~tag_id =
+  Db.Tag.add_to_uri ~uri_id ~tag_id
   |> Result.map_error (fun err -> Error.Database err)
 
-let remove_from_article ~article_id ~tag_id =
-  Db.Tag.remove_from_article ~article_id ~tag_id
+let remove_from_uri ~uri_id ~tag_id =
+  Db.Tag.remove_from_uri ~uri_id ~tag_id
   |> Result.map_error (fun err -> Error.Database err)
 
-let get_by_article ~article_id =
-  Db.Tag.get_by_article ~article_id
+let get_by_uri ~uri_id =
+  Db.Tag.get_by_uri ~uri_id
   |> Result.map_error (fun err -> Error.Database err)

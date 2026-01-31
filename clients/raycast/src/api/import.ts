@@ -5,10 +5,10 @@ export interface FeedInfo {
   title: string | null;
 }
 
-export interface PersonInfo {
+export interface ConnectionInfo {
   name: string;
   feeds: FeedInfo[];
-  categories: string[];
+  tags: string[];
 }
 
 export interface ImportError {
@@ -17,18 +17,18 @@ export interface ImportError {
 }
 
 export interface PreviewResponse {
-  people: PersonInfo[];
+  connections: ConnectionInfo[];
   errors: ImportError[];
 }
 
 export interface ConfirmRequest {
-  people: PersonInfo[];
+  connections: ConnectionInfo[];
 }
 
 export interface ConfirmResponse {
-  created_people: number;
+  created_connections: number;
   created_feeds: number;
-  created_categories: number;
+  created_tags: number;
 }
 
 export async function previewOpml(opmlContent: string): Promise<PreviewResponse> {

@@ -30,7 +30,7 @@ export function ImportOpml({ revalidate }: ImportOpmlProps) {
       // Get preview from API
       const preview = await Import.previewOpml(content);
 
-      if (preview.people.length === 0) {
+      if (preview.connections.length === 0) {
         showToast({
           style: Toast.Style.Failure,
           title: "No feeds found",
@@ -65,12 +65,12 @@ export function ImportOpml({ revalidate }: ImportOpmlProps) {
       }
     >
       <Form.FilePicker id="file" title="OPML File" allowMultipleSelection={false} canChooseDirectories={false} />
-      <Form.Description text="Select an OPML file exported from your RSS reader. The import will extract author information from each feed and group them by person." />
+      <Form.Description text="Select an OPML file exported from your RSS reader. The import will extract author information from each feed and group them by connection." />
     </Form>
   );
 }
 
-// Step 2: Preview and select people to import
+// Step 2: Preview and select connections to import
 interface ImportPreviewProps {
   preview: Import.PreviewResponse;
   revalidate: () => void;
@@ -78,45 +78,47 @@ interface ImportPreviewProps {
 
 function ImportPreview({ preview, revalidate }: ImportPreviewProps) {
   const { pop } = useNavigation();
-  const [selectedPeople, setSelectedPeople] = useState<Set<string>>(new Set(preview.people.map((p) => p.name)));
+  const [selectedConnections, setSelectedConnections] = useState<Set<string>>(
+    new Set(preview.connections.map((c) => c.name)),
+  );
   const [isImporting, setIsImporting] = useState(false);
 
-  const togglePerson = (name: string) => {
-    const newSelected = new Set(selectedPeople);
+  const toggleConnection = (name: string) => {
+    const newSelected = new Set(selectedConnections);
     if (newSelected.has(name)) {
       newSelected.delete(name);
     } else {
       newSelected.add(name);
     }
-    setSelectedPeople(newSelected);
+    setSelectedConnections(newSelected);
   };
 
   const toggleAll = () => {
-    if (selectedPeople.size === preview.people.length) {
-      setSelectedPeople(new Set());
+    if (selectedConnections.size === preview.connections.length) {
+      setSelectedConnections(new Set());
     } else {
-      setSelectedPeople(new Set(preview.people.map((p) => p.name)));
+      setSelectedConnections(new Set(preview.connections.map((c) => c.name)));
     }
   };
 
   const handleImport = async () => {
-    const peopleToImport = preview.people.filter((p) => selectedPeople.has(p.name));
-    if (peopleToImport.length === 0) {
+    const connectionsToImport = preview.connections.filter((c) => selectedConnections.has(c.name));
+    if (connectionsToImport.length === 0) {
       showToast({
         style: Toast.Style.Failure,
-        title: "No people selected",
-        message: "Please select at least one person to import",
+        title: "No connections selected",
+        message: "Please select at least one connection to import",
       });
       return;
     }
 
     setIsImporting(true);
     try {
-      const result = await Import.confirmImport({ people: peopleToImport });
+      const result = await Import.confirmImport({ connections: connectionsToImport });
       showToast({
         style: Toast.Style.Success,
         title: "Import complete",
-        message: `Created ${result.created_people} people, ${result.created_feeds} feeds, ${result.created_categories} categories`,
+        message: `Created ${result.created_connections} connections, ${result.created_feeds} feeds, ${result.created_tags} tags`,
       });
       revalidate();
       pop();
@@ -132,33 +134,44 @@ function ImportPreview({ preview, revalidate }: ImportPreviewProps) {
   };
 
   return (
-    <List isLoading={isImporting} navigationTitle="Import Preview" searchBarPlaceholder="Filter people...">
-      <List.Section title="People to Import" subtitle={`${selectedPeople.size} of ${preview.people.length} selected`}>
-        {preview.people.map((person) => (
+    <List isLoading={isImporting} navigationTitle="Import Preview" searchBarPlaceholder="Filter connections...">
+      <List.Section
+        title="Connections to Import"
+        subtitle={`${selectedConnections.size} of ${preview.connections.length} selected`}
+      >
+        {preview.connections.map((connection) => (
           <List.Item
-            key={person.name}
-            title={person.name}
-            subtitle={`${person.feeds.length} feed${person.feeds.length !== 1 ? "s" : ""}`}
+            key={connection.name}
+            title={connection.name}
+            subtitle={`${connection.feeds.length} feed${connection.feeds.length !== 1 ? "s" : ""}`}
             accessories={[
-              ...(person.categories.length > 0 ? [{ tag: person.categories.join(", ") }] : []),
+              ...(connection.tags.length > 0 ? [{ tag: connection.tags.join(", ") }] : []),
               {
-                icon: selectedPeople.has(person.name) ? Icon.CheckCircle : Icon.Circle,
+                icon: selectedConnections.has(connection.name) ? Icon.CheckCircle : Icon.Circle,
               },
             ]}
             actions={
               <ActionPanel>
                 <Action
-                  title={selectedPeople.has(person.name) ? "Deselect" : "Select"}
-                  icon={selectedPeople.has(person.name) ? Icon.Circle : Icon.CheckCircle}
-                  onAction={() => togglePerson(person.name)}
+                  title={selectedConnections.has(connection.name) ? "Deselect" : "Select"}
+                  icon={selectedConnections.has(connection.name) ? Icon.Circle : Icon.CheckCircle}
+                  onAction={() => toggleConnection(connection.name)}
                 />
                 <Action
-                  title={selectedPeople.size === preview.people.length ? "Deselect All" : "Select All"}
+                  title={selectedConnections.size === preview.connections.length ? "Deselect All" : "Select All"}
                   icon={Icon.CheckCircle}
                   onAction={toggleAll}
                 />
-                <Action title={`Import ${selectedPeople.size} People`} icon={Icon.Download} onAction={handleImport} />
-                <Action.Push title="View Feeds" icon={Icon.List} target={<PersonFeedsList person={person} />} />
+                <Action
+                  title={`Import ${selectedConnections.size} Connections`}
+                  icon={Icon.Download}
+                  onAction={handleImport}
+                />
+                <Action.Push
+                  title="View Feeds"
+                  icon={Icon.List}
+                  target={<ConnectionFeedsList connection={connection} />}
+                />
               </ActionPanel>
             }
           />
@@ -175,16 +188,16 @@ function ImportPreview({ preview, revalidate }: ImportPreviewProps) {
   );
 }
 
-// Detail view for a person's feeds
-interface PersonFeedsListProps {
-  person: Import.PersonInfo;
+// Detail view for a connection's feeds
+interface ConnectionFeedsListProps {
+  connection: Import.ConnectionInfo;
 }
 
-function PersonFeedsList({ person }: PersonFeedsListProps) {
+function ConnectionFeedsList({ connection }: ConnectionFeedsListProps) {
   return (
-    <List navigationTitle={`${person.name}'s Feeds`}>
-      <List.Section title="Feeds" subtitle={`${person.feeds.length} total`}>
-        {person.feeds.map((feed) => (
+    <List navigationTitle={`${connection.name}'s Feeds`}>
+      <List.Section title="Feeds" subtitle={`${connection.feeds.length} total`}>
+        {connection.feeds.map((feed) => (
           <List.Item
             key={feed.url}
             title={feed.title || feed.url}
@@ -193,10 +206,10 @@ function PersonFeedsList({ person }: PersonFeedsListProps) {
           />
         ))}
       </List.Section>
-      {person.categories.length > 0 && (
-        <List.Section title="Categories">
-          {person.categories.map((category) => (
-            <List.Item key={category} title={category} icon={Icon.Tag} />
+      {connection.tags.length > 0 && (
+        <List.Section title="Tags">
+          {connection.tags.map((tag) => (
+            <List.Item key={tag} title={tag} icon={Icon.Tag} />
           ))}
         </List.Section>
       )}

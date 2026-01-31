@@ -72,12 +72,12 @@ let or_db_error result =
     (fun err -> internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result
 
-(* Convert Service.Article.Error.t to response *)
-let or_article_error result =
+(* Convert Service.Uri.Error.t to response *)
+let or_uri_error result =
   Result.map_error
     (function
-      | Service.Article.Error.Not_found -> not_found "Article not found"
-      | Service.Article.Error.Database err ->
+      | Service.Uri.Error.Not_found -> not_found "URI not found"
+      | Service.Uri.Error.Database err ->
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result
 
@@ -90,12 +90,12 @@ let or_feed_error result =
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result
 
-(* Convert Service.Person.Error.t to response *)
-let or_person_error result =
+(* Convert Service.Connection.Error.t to response *)
+let or_connection_error result =
   Result.map_error
     (function
-      | Service.Person.Error.Not_found -> not_found "Person not found"
-      | Service.Person.Error.Database err ->
+      | Service.Connection.Error.Not_found -> not_found "Connection not found"
+      | Service.Connection.Error.Database err ->
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result
 
@@ -108,28 +108,28 @@ let or_tag_error result =
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result
 
-(* Convert Service.Person_metadata.Error.t to response *)
-let or_person_metadata_error result =
+(* Convert Service.Connection_metadata.Error.t to response *)
+let or_connection_metadata_error result =
   Result.map_error
     (function
-      | Service.Person_metadata.Error.Not_found ->
+      | Service.Connection_metadata.Error.Not_found ->
           not_found "Metadata not found"
-      | Service.Person_metadata.Error.Person_not_found ->
-          not_found "Person not found"
-      | Service.Person_metadata.Error.Invalid_field_type ->
+      | Service.Connection_metadata.Error.Connection_not_found ->
+          not_found "Connection not found"
+      | Service.Connection_metadata.Error.Invalid_field_type ->
           bad_request "Invalid field type"
-      | Service.Person_metadata.Error.Database err ->
+      | Service.Connection_metadata.Error.Database err ->
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result
 
-(* Convert Service.Article_content.Error.t to response *)
-let or_article_content_error result =
+(* Convert Service.Uri_content.Error.t to response *)
+let or_uri_content_error result =
   Result.map_error
     (function
-      | Service.Article_content.Error.Article_not_found ->
-          not_found "Article not found"
-      | Service.Article_content.Error.Fetch_failed msg ->
-          error_response `Bad_gateway (Printf.sprintf "Failed to fetch article: %s" msg)
-      | Service.Article_content.Error.Database err ->
+      | Service.Uri_content.Error.Uri_not_found ->
+          not_found "URI not found"
+      | Service.Uri_content.Error.Fetch_failed msg ->
+          error_response `Bad_gateway (Printf.sprintf "Failed to fetch URI: %s" msg)
+      | Service.Uri_content.Error.Database err ->
           internal_error (Format.asprintf "%a" Caqti_error.pp err))
     result

@@ -42,8 +42,8 @@ export async function listAll(): Promise<Tag[]> {
   return allTags;
 }
 
-export function listByPersonUrl(personId: number) {
-  return `${getServerUrl()}/persons/${personId}/tags`;
+export function listByConnectionUrl(connectionId: number) {
+  return `${getServerUrl()}/connections/${connectionId}/tags`;
 }
 
 export function listByFeedUrl(feedId: number) {
@@ -108,34 +108,34 @@ export async function deleteTag(tag: Tag): Promise<boolean> {
   return false;
 }
 
-// Person-Tag associations
+// Connection-Tag associations
 
-export async function listByPerson(personId: number): Promise<Tag[]> {
-  const response = await fetch(`${getServerUrl()}/persons/${personId}/tags`);
+export async function listByConnection(connectionId: number): Promise<Tag[]> {
+  const response = await fetch(`${getServerUrl()}/connections/${connectionId}/tags`);
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to fetch person tags");
+    throw new Error(error.error || "Failed to fetch connection tags");
   }
   return response.json();
 }
 
-export async function addToPerson(personId: number, tagId: number): Promise<void> {
-  const response = await fetch(`${getServerUrl()}/persons/${personId}/tags/${tagId}`, {
+export async function addToConnection(connectionId: number, tagId: number): Promise<void> {
+  const response = await fetch(`${getServerUrl()}/connections/${connectionId}/tags/${tagId}`, {
     method: "POST",
   });
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to add tag to person");
+    throw new Error(error.error || "Failed to add tag to connection");
   }
 }
 
-export async function removeFromPerson(personId: number, tagId: number): Promise<void> {
-  const response = await fetch(`${getServerUrl()}/persons/${personId}/tags/${tagId}`, {
+export async function removeFromConnection(connectionId: number, tagId: number): Promise<void> {
+  const response = await fetch(`${getServerUrl()}/connections/${connectionId}/tags/${tagId}`, {
     method: "DELETE",
   });
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to remove tag from person");
+    throw new Error(error.error || "Failed to remove tag from connection");
   }
 }
 
@@ -170,24 +170,24 @@ export async function removeFromFeed(feedId: number, tagId: number): Promise<voi
   }
 }
 
-// Article-Tag associations
+// URI-Tag associations
 
-export async function addToArticle(articleId: number, tagId: number): Promise<void> {
-  const response = await fetch(`${getServerUrl()}/articles/${articleId}/tags/${tagId}`, {
+export async function addToUri(uriId: number, tagId: number): Promise<void> {
+  const response = await fetch(`${getServerUrl()}/uris/${uriId}/tags/${tagId}`, {
     method: "POST",
   });
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to add tag to article");
+    throw new Error(error.error || "Failed to add tag to URI");
   }
 }
 
-export async function removeFromArticle(articleId: number, tagId: number): Promise<void> {
-  const response = await fetch(`${getServerUrl()}/articles/${articleId}/tags/${tagId}`, {
+export async function removeFromUri(uriId: number, tagId: number): Promise<void> {
+  const response = await fetch(`${getServerUrl()}/uris/${uriId}/tags/${tagId}`, {
     method: "DELETE",
   });
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to remove tag from article");
+    throw new Error(error.error || "Failed to remove tag from URI");
   }
 }

@@ -1,0 +1,14 @@
+{
+  "id": 1,
+  "feed_id": 1,
+  "connection_id": null,
+  "title": "Topics for 2025",
+  "url": "https://blog.mads-hartmann.com/2025/01/03/topics-for-2025.html",
+  "published_at": "2025-01-03 19:00:00",
+  "content": "<p>Recently I’ve been feeling the urge to play around with tech for no other reason than the enjoyment of figuring out how something works. I haven’t felt this way for a very long time so I cherish the feeling; turns out I might not be devolving into an un-excitable blob as I had feared.</p>\n\n<p>Here’s a short list of the topics that are most present in my mind, in no specific order:</p>\n\n<ul>\n  <li><strong>Unikernels</strong> - I’ve been sort-of-but-not-really following along since my OCaml days (~2015) and want to see what has happened in this space.</li>\n  <li><strong>macOS <a href=\"https://developer.apple.com/documentation/hypervisor\">Hypervisor.framework</a></strong></li>\n  <li><strong>Rust</strong> - I suspect I’ll quite like the language and I a few prototypes in mind where Rust might be a good fit.</li>\n  <li><strong>Real-time sync engines</strong> - I watched the <a href=\"https://linear.app/blog/scaling-the-linear-sync-engine\">Linear Sync engine talks</a> and find the approach quite intriguing; I haven’t worked on a webapp with this kind of architecture before.</li>\n  <li><strong>CRDTs</strong> - They keep popping up yet I never sat down to study them. I recently read the blog-post series <a href=\"https://jakelazaroff.com/words/an-interactive-intro-to-crdts/\">An Interactive Intro to CRDTs</a> which makes them very approachable so I want to build something with them to get a bit of practice.</li>\n  <li><strong>SwiftUI</strong> - I have a few ideas for small-ish native macOS apps I’d like to create.</li>\n  <li><strong>WebGPU</strong> - I have zero experience with GPU programming, and WebGPU seems to be a fairly easy way to play around with it as I’m familiar with all of the surrounding technologies.</li>\n</ul>\n\n<p>My current thinking is to pick any number of the topics above and build little prototypes with them throughout the year; small enough in scope that I can actually complete them with the limited spare time I have. I guess we’ll see if my motivation holds once I’m fully back from vacation 😉🤞</p>",
+  "author": "Mads Hartmann",
+  "created_at": "2025-12-11 20:21:28",
+  "read_at": "2025-12-12 21:56:59",
+  "read_later_at": null,
+  "tags": []
+}

@@ -3,7 +3,7 @@ import { getServerUrl } from "./config";
 
 export interface Feed {
   id: number;
-  person_id: number;
+  connection_id: number;
   url: string;
   title: string | null;
   created_at: string;
@@ -18,9 +18,9 @@ export interface FeedsResponse {
   total_pages: number;
 }
 
-export function listUrl({ personId, page }: { personId: number; page: number }) {
+export function listUrl({ connectionId, page }: { connectionId: number; page: number }) {
   const params = new URLSearchParams({ page: String(page), per_page: "20" });
-  return `${getServerUrl()}/persons/${personId}/feeds?${params.toString()}`;
+  return `${getServerUrl()}/connections/${connectionId}/feeds?${params.toString()}`;
 }
 
 export function listAllUrl({ page, query }: { page: number; query?: string }) {
@@ -31,11 +31,11 @@ export function listAllUrl({ page, query }: { page: number; query?: string }) {
   return `${getServerUrl()}/feeds?${params.toString()}`;
 }
 
-export async function createFeed(personId: number, url: string, title: string) {
-  const response = await fetch(`${getServerUrl()}/persons/${personId}/feeds`, {
+export async function createFeed(connectionId: number, url: string, title: string) {
+  const response = await fetch(`${getServerUrl()}/connections/${connectionId}/feeds`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ person_id: personId, url, title }),
+    body: JSON.stringify({ connection_id: connectionId, url, title }),
   });
   if (!response.ok) {
     const error = await response.json();

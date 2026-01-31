@@ -8,13 +8,13 @@ let caqti_err err = Format.asprintf "%a" Caqti_error.pp err
 let test_db_rss_feed_create () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let person_result = Db.Person.create ~name:"Feed Owner" () in
-  match person_result with
-  | Error err -> Alcotest.fail ("create person failed: " ^ caqti_err err)
-  | Ok person -> (
-      let person_id = Model.Person.id person in
+  let connection_result = Db.Connection.create ~name:"Feed Owner" () in
+  match connection_result with
+  | Error err -> Alcotest.fail ("create connection failed: " ^ caqti_err err)
+  | Ok connection -> (
+      let connection_id = Model.Connection.id connection in
       let result =
-        Db.Rss_feed.create ~person_id ~url:"https://example.com/feed.xml"
+        Db.Rss_feed.create ~connection_id ~url:"https://example.com/feed.xml"
           ~title:(Some "Test Feed")
       in
       match result with
@@ -28,14 +28,14 @@ let test_db_rss_feed_create () =
             "title matches" (Some "Test Feed")
             (Model.Rss_feed.title feed);
           Alcotest.(check int)
-            "person_id matches" person_id
-            (Model.Rss_feed.person_id feed))
+            "connection_id matches" connection_id
+            (Model.Rss_feed.connection_id feed))
 
 let test_db_rss_feed_get () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let person, feed = setup_person_and_feed () in
-  let _ = person in
+  let connection, feed = setup_connection_and_feed () in
+  let _ = connection in
   let feed_id = Model.Rss_feed.id feed in
   let result = Db.Rss_feed.get ~id:feed_id in
   match result with
@@ -46,23 +46,23 @@ let test_db_rss_feed_get () =
       Alcotest.(check string)
         "url matches" (Model.Rss_feed.url feed) (Model.Rss_feed.url found)
 
-let test_db_rss_feed_list_by_person () =
+let test_db_rss_feed_list_by_connection () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let person_result = Db.Person.create ~name:"Feed Owner" () in
-  match person_result with
-  | Error err -> Alcotest.fail ("create person failed: " ^ caqti_err err)
-  | Ok person -> (
-      let person_id = Model.Person.id person in
+  let connection_result = Db.Connection.create ~name:"Feed Owner" () in
+  match connection_result with
+  | Error err -> Alcotest.fail ("create connection failed: " ^ caqti_err err)
+  | Ok connection -> (
+      let connection_id = Model.Connection.id connection in
       let _ =
-        Db.Rss_feed.create ~person_id ~url:"https://feed1.com/rss"
+        Db.Rss_feed.create ~connection_id ~url:"https://feed1.com/rss"
           ~title:(Some "Feed 1")
       in
       let _ =
-        Db.Rss_feed.create ~person_id ~url:"https://feed2.com/rss"
+        Db.Rss_feed.create ~connection_id ~url:"https://feed2.com/rss"
           ~title:(Some "Feed 2")
       in
-      let result = Db.Rss_feed.list_by_person ~person_id ~page:1 ~per_page:10 in
+      let result = Db.Rss_feed.list_by_connection ~connection_id ~page:1 ~per_page:10 in
       match result with
       | Error err -> Alcotest.fail ("list failed: " ^ caqti_err err)
       | Ok paginated ->
@@ -73,8 +73,8 @@ let test_db_rss_feed_list_by_person () =
 let test_db_rss_feed_delete () =
   with_eio @@ fun ~sw ~env ->
   setup_test_db ~sw ~stdenv:env;
-  let person, feed = setup_person_and_feed () in
-  let _ = person in
+  let connection, feed = setup_connection_and_feed () in
+  let _ = connection in
   let feed_id = Model.Rss_feed.id feed in
   let result = Db.Rss_feed.delete ~id:feed_id in
   match result with
@@ -91,7 +91,7 @@ let db_suite =
   [
     Alcotest.test_case "create feed" `Quick test_db_rss_feed_create;
     Alcotest.test_case "get feed" `Quick test_db_rss_feed_get;
-    Alcotest.test_case "list feeds by person" `Quick
-      test_db_rss_feed_list_by_person;
+    Alcotest.test_case "list feeds by connection" `Quick
+      test_db_rss_feed_list_by_connection;
     Alcotest.test_case "delete feed" `Quick test_db_rss_feed_delete;
   ]

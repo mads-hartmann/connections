@@ -43,22 +43,22 @@ let update_tag request id =
     let* tag = Service.Tag.update ~id ~name |> Handler_utils.or_tag_error in
     Handler_utils.json_response (Model.Tag.to_json tag)
 
-let add_to_person _request person_id tag_id =
+let add_to_connection _request connection_id tag_id =
   let* () =
-    Service.Tag.add_to_person ~person_id ~tag_id |> Handler_utils.or_tag_error
+    Service.Tag.add_to_connection ~connection_id ~tag_id |> Handler_utils.or_tag_error
   in
   Response.of_string ~body:"" `No_content
 
-let remove_from_person _request person_id tag_id =
+let remove_from_connection _request connection_id tag_id =
   let* () =
-    Service.Tag.remove_from_person ~person_id ~tag_id
+    Service.Tag.remove_from_connection ~connection_id ~tag_id
     |> Handler_utils.or_tag_error
   in
   Response.of_string ~body:"" `No_content
 
-let list_by_person _request person_id =
+let list_by_connection _request connection_id =
   let* tags =
-    Service.Tag.get_by_person ~person_id |> Handler_utils.or_tag_error
+    Service.Tag.get_by_connection ~connection_id |> Handler_utils.or_tag_error
   in
   Handler_utils.json_response (Model.Tag.list_to_json tags)
 
@@ -78,15 +78,15 @@ let list_by_feed _request feed_id =
   let* tags = Service.Tag.get_by_feed ~feed_id |> Handler_utils.or_tag_error in
   Handler_utils.json_response (Model.Tag.list_to_json tags)
 
-let add_to_article _request article_id tag_id =
+let add_to_uri _request uri_id tag_id =
   let* () =
-    Service.Tag.add_to_article ~article_id ~tag_id |> Handler_utils.or_tag_error
+    Service.Tag.add_to_uri ~uri_id ~tag_id |> Handler_utils.or_tag_error
   in
   Response.of_string ~body:"" `No_content
 
-let remove_from_article _request article_id tag_id =
+let remove_from_uri _request uri_id tag_id =
   let* () =
-    Service.Tag.remove_from_article ~article_id ~tag_id
+    Service.Tag.remove_from_uri ~uri_id ~tag_id
     |> Handler_utils.or_tag_error
   in
   Response.of_string ~body:"" `No_content
@@ -101,15 +101,15 @@ let routes () =
     post (s "tags") |> request |> into create;
     patch (s "tags" / int) |> request |> into update_tag;
     delete (s "tags" / int) |> request |> into delete_tag;
-    get (s "persons" / int / s "tags") |> request |> into list_by_person;
-    post (s "persons" / int / s "tags" / int) |> request |> into add_to_person;
-    delete (s "persons" / int / s "tags" / int)
-    |> request |> into remove_from_person;
+    get (s "connections" / int / s "tags") |> request |> into list_by_connection;
+    post (s "connections" / int / s "tags" / int) |> request |> into add_to_connection;
+    delete (s "connections" / int / s "tags" / int)
+    |> request |> into remove_from_connection;
     get (s "feeds" / int / s "tags") |> request |> into list_by_feed;
     post (s "feeds" / int / s "tags" / int) |> request |> into add_to_feed;
     delete (s "feeds" / int / s "tags" / int)
     |> request |> into remove_from_feed;
-    post (s "articles" / int / s "tags" / int) |> request |> into add_to_article;
-    delete (s "articles" / int / s "tags" / int)
-    |> request |> into remove_from_article;
+    post (s "uris" / int / s "tags" / int) |> request |> into add_to_uri;
+    delete (s "uris" / int / s "tags" / int)
+    |> request |> into remove_from_uri;
   ]

@@ -17,10 +17,10 @@ let build () =
     (List.concat
        [
          health_routes ();
-         Handlers.Person.routes ();
-         Handlers.Person_metadata.routes ();
+         Handlers.Connection.routes ();
+         Handlers.Connection_metadata.routes ();
          Handlers.Rss_feed.routes ();
-         Handlers.Article.routes ();
+         Handlers.Uri_handler.routes ();
          Handlers.Tag.routes ();
          Handlers.Import.routes ();
          Handlers.Url_metadata.routes ();

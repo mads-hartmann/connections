@@ -1,5 +1,5 @@
 (* One-off script to backfill metadata from RSS feed URLs.
-   For each person with feeds:
+   For each connection with feeds:
    - Adds Website metadata if missing (extracted from feed URL)
    - Fetches the website and extracts photo and social profiles
    - Adds photo if not already set
@@ -21,29 +21,29 @@ let extract_root_url feed_url =
 let has_metadata_of_type field_type metadata =
   List.exists
     (fun m ->
-      Model.Metadata_field_type.equal (Model.Person_metadata.field_type m) field_type)
+      Model.Metadata_field_type.equal (Model.Connection_metadata.field_type m) field_type)
     metadata
 
 let find_website_url metadata =
   List.find_opt
     (fun m ->
       Model.Metadata_field_type.equal
-        (Model.Person_metadata.field_type m)
+        (Model.Connection_metadata.field_type m)
         Model.Metadata_field_type.Website)
     metadata
-  |> Option.map Model.Person_metadata.value
+  |> Option.map Model.Connection_metadata.value
 
-let add_metadata ~person_id ~field_type ~value =
+let add_metadata ~connection_id ~field_type ~value =
   let field_type_id = Model.Metadata_field_type.id field_type in
-  match Db.Person_metadata.create ~person_id ~field_type_id ~value with
+  match Db.Connection_metadata.create ~connection_id ~field_type_id ~value with
   | Error `Invalid_field_type -> Error "Invalid field type"
   | Error (`Caqti e) -> Error (Format.asprintf "%a" Caqti_error.pp e)
   | Ok _ -> Ok ()
 
-let update_photo ~person_id ~name ~photo =
-  match Db.Person.update ~id:person_id ~name ~photo:(Some photo) with
+let update_photo ~connection_id ~name ~photo =
+  match Db.Connection.update ~id:connection_id ~name ~photo:(Some photo) with
   | Error e -> Error (Format.asprintf "%a" Caqti_error.pp e)
-  | Ok None -> Error "Person not found"
+  | Ok None -> Error "Connection not found"
   | Ok (Some _) -> Ok ()
 
 type update_stats = {
@@ -52,54 +52,54 @@ type update_stats = {
   mutable profiles_added : int;
 }
 
-let process_person ~sw ~env ~dry_run ~stats person =
-  let person_id = Model.Person.id person in
-  let name = Model.Person.name person in
-  let metadata = Model.Person.metadata person in
-  let current_photo = Model.Person.photo person in
+let process_connection ~sw ~env ~dry_run ~stats connection =
+  let connection_id = Model.Connection.id connection in
+  let name = Model.Connection.name connection in
+  let metadata = Model.Connection.metadata connection in
+  let current_photo = Model.Connection.photo connection in
 
   (* Step 1: Ensure website metadata exists *)
   let website_url =
     match find_website_url metadata with
     | Some url -> Some url
     | None -> (
-        match Db.Rss_feed.list_by_person ~person_id ~page:1 ~per_page:1 with
+        match Db.Rss_feed.list_by_connection ~connection_id ~page:1 ~per_page:1 with
         | Error e ->
             Log.err (fun m ->
-                m "Error fetching feeds for %s (id=%d): %a" name person_id
+                m "Error fetching feeds for %s (id=%d): %a" name connection_id
                   Caqti_error.pp e);
             None
         | Ok paginated -> (
             match paginated.Model.Shared.Paginated.data with
             | [] ->
-                Log.debug (fun m -> m "No feeds for %s (id=%d)" name person_id);
+                Log.debug (fun m -> m "No feeds for %s (id=%d)" name connection_id);
                 None
             | feed :: _ -> (
                 match extract_root_url (Model.Rss_feed.url feed) with
                 | None ->
                     Log.warn (fun m ->
                         m "Could not extract root URL from %s for %s (id=%d)"
-                          (Model.Rss_feed.url feed) name person_id);
+                          (Model.Rss_feed.url feed) name connection_id);
                     None
                 | Some root_url ->
                     if dry_run then (
                       Log.info (fun m ->
                           m "[DRY RUN] Would add website %s for %s (id=%d)" root_url
-                            name person_id);
+                            name connection_id);
                       stats.websites_added <- stats.websites_added + 1;
                       Some root_url)
                     else (
                       match
-                        add_metadata ~person_id
+                        add_metadata ~connection_id
                           ~field_type:Model.Metadata_field_type.Website ~value:root_url
                       with
                       | Error e ->
                           Log.err (fun m ->
-                              m "Error adding website for %s (id=%d): %s" name person_id e);
+                              m "Error adding website for %s (id=%d): %s" name connection_id e);
                           None
                       | Ok () ->
                           Log.info (fun m ->
-                              m "Added website %s for %s (id=%d)" root_url name person_id);
+                              m "Added website %s for %s (id=%d)" root_url name connection_id);
                           stats.websites_added <- stats.websites_added + 1;
                           Some root_url))))
   in
@@ -115,34 +115,34 @@ let process_person ~sw ~env ~dry_run ~stats person =
       match fetch_with_timeout () with
       | exception Eio.Time.Timeout ->
           Log.warn (fun m ->
-              m "Timeout fetching metadata from %s for %s (id=%d)" url name person_id)
+              m "Timeout fetching metadata from %s for %s (id=%d)" url name connection_id)
       | Error e ->
           Log.warn (fun m ->
               m "Could not fetch metadata from %s for %s (id=%d): %s" url name
-                person_id e)
+                connection_id e)
       | Ok contact ->
           (* Step 3: Add photo if not set *)
           (match (current_photo, contact.photo) with
           | None, Some photo ->
               if dry_run then (
                 Log.info (fun m ->
-                    m "[DRY RUN] Would add photo for %s (id=%d): %s" name person_id
+                    m "[DRY RUN] Would add photo for %s (id=%d): %s" name connection_id
                       photo);
                 stats.photos_added <- stats.photos_added + 1)
               else (
-                match update_photo ~person_id ~name ~photo with
+                match update_photo ~connection_id ~name ~photo with
                 | Error e ->
                     Log.err (fun m ->
-                        m "Error adding photo for %s (id=%d): %s" name person_id e)
+                        m "Error adding photo for %s (id=%d): %s" name connection_id e)
                 | Ok () ->
                     Log.info (fun m ->
-                        m "Added photo for %s (id=%d): %s" name person_id photo);
+                        m "Added photo for %s (id=%d): %s" name connection_id photo);
                     stats.photos_added <- stats.photos_added + 1)
           | Some _, _ ->
-              Log.debug (fun m -> m "%s (id=%d) already has photo" name person_id)
+              Log.debug (fun m -> m "%s (id=%d) already has photo" name connection_id)
           | None, None ->
               Log.debug (fun m ->
-                  m "No photo found for %s (id=%d)" name person_id));
+                  m "No photo found for %s (id=%d)" name connection_id));
 
           (* Step 4: Add social profiles that don't exist *)
           List.iter
@@ -157,26 +157,26 @@ let process_person ~sw ~env ~dry_run ~stats person =
               then ()
               else if has_metadata_of_type field_type metadata then
                 Log.debug (fun m ->
-                    m "%s (id=%d) already has %s" name person_id
+                    m "%s (id=%d) already has %s" name connection_id
                       (Model.Metadata_field_type.name field_type))
               else if dry_run then (
                 Log.info (fun m ->
                     m "[DRY RUN] Would add %s for %s (id=%d): %s"
                       (Model.Metadata_field_type.name field_type)
-                      name person_id profile.url);
+                      name connection_id profile.url);
                 stats.profiles_added <- stats.profiles_added + 1)
               else
-                match add_metadata ~person_id ~field_type ~value:profile.url with
+                match add_metadata ~connection_id ~field_type ~value:profile.url with
                 | Error e ->
                     Log.err (fun m ->
                         m "Error adding %s for %s (id=%d): %s"
                           (Model.Metadata_field_type.name field_type)
-                          name person_id e)
+                          name connection_id e)
                 | Ok () ->
                     Log.info (fun m ->
                         m "Added %s for %s (id=%d): %s"
                           (Model.Metadata_field_type.name field_type)
-                          name person_id profile.url);
+                          name connection_id profile.url);
                     stats.profiles_added <- stats.profiles_added + 1)
             contact.social_profiles)
 
@@ -200,27 +200,27 @@ let run db_path dry_run =
       m "Starting backfill%s with database %s"
         (if dry_run then " (dry run)" else "")
         db_path);
-  (* Fetch all persons with metadata *)
-  match Db.Person.list ~page:1 ~per_page:10000 () with
+  (* Fetch all connections with metadata *)
+  match Db.Connection.list ~page:1 ~per_page:10000 () with
   | Error e ->
-      Log.err (fun m -> m "Error fetching persons: %a" Caqti_error.pp e)
+      Log.err (fun m -> m "Error fetching connections: %a" Caqti_error.pp e)
   | Ok paginated ->
-      let persons = paginated.Model.Shared.Paginated.data in
-      (* Fetch metadata for each person *)
-      let persons_with_metadata =
+      let connections = paginated.Model.Shared.Paginated.data in
+      (* Fetch metadata for each connection *)
+      let connections_with_metadata =
         List.filter_map
-          (fun person ->
+          (fun connection ->
             match
-              Db.Person_metadata.list_by_person ~person_id:(Model.Person.id person)
+              Db.Connection_metadata.list_by_connection ~connection_id:(Model.Connection.id connection)
             with
             | Error _ -> None
-            | Ok metadata -> Some (Model.Person.with_metadata person metadata))
-          persons
+            | Ok metadata -> Some (Model.Connection.with_metadata connection metadata))
+          connections
       in
       let stats =
         { websites_added = 0; photos_added = 0; profiles_added = 0 }
       in
-      List.iter (process_person ~sw ~env ~dry_run ~stats) persons_with_metadata;
+      List.iter (process_connection ~sw ~env ~dry_run ~stats) connections_with_metadata;
       Log.info (fun m ->
           m "Backfill complete: %d websites, %d photos, %d profiles added"
             stats.websites_added stats.photos_added stats.profiles_added)

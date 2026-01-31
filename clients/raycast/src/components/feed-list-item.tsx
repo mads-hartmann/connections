@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Icon, Keyboard, List, showToast, Toast } from "@raycast/api";
 import * as Feed from "../api/feed";
-import { ArticleList } from "./article-list";
+import { UriList } from "./uri-list";
 import { FeedCreateForm } from "./feed-create-form";
 import { FeedEditForm } from "./feed-edit-form";
 
@@ -16,10 +16,10 @@ interface FeedListItemProps {
   feed: Feed.Feed;
   revalidate: () => void;
   /** If provided, shows Create Feed action */
-  personId?: number;
+  connectionId?: number;
 }
 
-export function FeedListItem({ feed, revalidate, personId }: FeedListItemProps) {
+export function FeedListItem({ feed, revalidate, connectionId }: FeedListItemProps) {
   const deleteFeed = async () => {
     const deleted = await Feed.deleteFeed(feed);
     if (deleted) {
@@ -53,9 +53,9 @@ export function FeedListItem({ feed, revalidate, personId }: FeedListItemProps) 
       actions={
         <ActionPanel>
           <Action.Push
-            title="View Articles"
+            title="View URIs"
             icon={Icon.List}
-            target={<ArticleList feedId={feed.id} feedTitle={feed.title || feed.url} />}
+            target={<UriList feedId={feed.id} feedTitle={feed.title || feed.url} />}
           />
           <Action.Push
             title="Edit Feed"
@@ -63,12 +63,12 @@ export function FeedListItem({ feed, revalidate, personId }: FeedListItemProps) 
             shortcut={Keyboard.Shortcut.Common.Edit}
             target={<FeedEditForm feed={feed} revalidate={revalidate} />}
           />
-          {personId !== undefined && (
+          {connectionId !== undefined && (
             <Action.Push
               title="Create Feed"
               icon={Icon.Plus}
               shortcut={Keyboard.Shortcut.Common.New}
-              target={<FeedCreateForm personId={personId} revalidate={revalidate} />}
+              target={<FeedCreateForm connectionId={connectionId} revalidate={revalidate} />}
             />
           )}
           <Action

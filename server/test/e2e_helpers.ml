@@ -21,12 +21,12 @@ let snapshots_dir = Filename.concat workspace_root "server/test/data/snapshots"
 (* Endpoints to test - IDs must match data in test.db *)
 let endpoints =
   [
-    "/persons";
-    "/persons/8";
+    "/connections";
+    "/connections/8";
     "/feeds";
     "/feeds/2";
-    "/articles";
-    "/articles/1";
+    "/uris";
+    "/uris/1";
     "/tags";
   ]
 

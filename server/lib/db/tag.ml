@@ -45,18 +45,18 @@ let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
     "SELECT COUNT(*) FROM tags WHERE id = ?"
 
-let add_to_person_query =
+let add_to_connection_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->. Caqti_type.unit)
-    "INSERT OR IGNORE INTO person_tags (person_id, tag_id) VALUES (?, ?)"
+    "INSERT OR IGNORE INTO connection_tags (connection_id, tag_id) VALUES (?, ?)"
 
-let remove_from_person_query =
+let remove_from_connection_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->. Caqti_type.unit)
-    "DELETE FROM person_tags WHERE person_id = ? AND tag_id = ?"
+    "DELETE FROM connection_tags WHERE connection_id = ? AND tag_id = ?"
 
-let get_by_person_query =
+let get_by_connection_query =
   Caqti_request.Infix.(Caqti_type.int ->* tag_row_type)
-    "SELECT t.id, t.name FROM tags t INNER JOIN person_tags pt ON t.id = \
-     pt.tag_id WHERE pt.person_id = ? ORDER BY t.name"
+    "SELECT t.id, t.name FROM tags t INNER JOIN connection_tags ct ON t.id = \
+     ct.tag_id WHERE ct.connection_id = ? ORDER BY t.name"
 
 let tuple_to_tag (id, name) = Model.Tag.create ~id ~name
 
@@ -168,25 +168,25 @@ let update ~id ~name =
       in
       Some (Model.Tag.create ~id ~name)
 
-let add_to_person ~person_id ~tag_id =
+let add_to_connection ~connection_id ~tag_id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
-      Db.exec add_to_person_query (person_id, tag_id))
+      Db.exec add_to_connection_query (connection_id, tag_id))
     pool
 
-let remove_from_person ~person_id ~tag_id =
+let remove_from_connection ~connection_id ~tag_id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
-      Db.exec remove_from_person_query (person_id, tag_id))
+      Db.exec remove_from_connection_query (connection_id, tag_id))
     pool
 
-let get_by_person ~person_id =
+let get_by_connection ~connection_id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
-      Db.collect_list get_by_person_query person_id)
+      Db.collect_list get_by_connection_query connection_id)
     pool
   |> Result.map (List.map tuple_to_tag)
 
@@ -226,38 +226,38 @@ let get_by_feed ~feed_id =
     pool
   |> Result.map (List.map tuple_to_tag)
 
-(* Article-Tag associations *)
-let add_to_article_query =
+(* URI-Tag associations *)
+let add_to_uri_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->. Caqti_type.unit)
-    "INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?, ?)"
+    "INSERT OR IGNORE INTO uri_tags (uri_id, tag_id) VALUES (?, ?)"
 
-let remove_from_article_query =
+let remove_from_uri_query =
   Caqti_request.Infix.(Caqti_type.(t2 int int) ->. Caqti_type.unit)
-    "DELETE FROM article_tags WHERE article_id = ? AND tag_id = ?"
+    "DELETE FROM uri_tags WHERE uri_id = ? AND tag_id = ?"
 
-let get_by_article_query =
+let get_by_uri_query =
   Caqti_request.Infix.(Caqti_type.int ->* tag_row_type)
-    "SELECT t.id, t.name FROM tags t INNER JOIN article_tags at ON t.id = \
-     at.tag_id WHERE at.article_id = ? ORDER BY t.name"
+    "SELECT t.id, t.name FROM tags t INNER JOIN uri_tags ut ON t.id = \
+     ut.tag_id WHERE ut.uri_id = ? ORDER BY t.name"
 
-let add_to_article ~article_id ~tag_id =
+let add_to_uri ~uri_id ~tag_id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
-      Db.exec add_to_article_query (article_id, tag_id))
+      Db.exec add_to_uri_query (uri_id, tag_id))
     pool
 
-let remove_from_article ~article_id ~tag_id =
+let remove_from_uri ~uri_id ~tag_id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
-      Db.exec remove_from_article_query (article_id, tag_id))
+      Db.exec remove_from_uri_query (uri_id, tag_id))
     pool
 
-let get_by_article ~article_id =
+let get_by_uri ~uri_id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
-      Db.collect_list get_by_article_query article_id)
+      Db.collect_list get_by_uri_query uri_id)
     pool
   |> Result.map (List.map tuple_to_tag)

@@ -1,13 +1,13 @@
 val create :
-  person_id:int ->
+  connection_id:int ->
   url:string ->
   title:string option ->
   (Model.Rss_feed.t option, Caqti_error.t) result
 
 val get : id:int -> (Model.Rss_feed.t option, Caqti_error.t) result
 
-val list_by_person :
-  person_id:int ->
+val list_by_connection :
+  connection_id:int ->
   page:int ->
   per_page:int ->
   (Model.Rss_feed.t Model.Shared.Paginated.t, Caqti_error.t) result
@@ -19,7 +19,7 @@ val update :
   (Model.Rss_feed.t option, Caqti_error.t) result
 
 val delete : id:int -> (bool, Caqti_error.t) result
-val delete_by_person_id : person_id:int -> (unit, Caqti_error.t) result
+val delete_by_connection_id : connection_id:int -> (unit, Caqti_error.t) result
 val list_all : unit -> (Model.Rss_feed.t list, Caqti_error.t) result
 
 val list_all_paginated :

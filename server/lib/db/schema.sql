@@ -1,8 +1,8 @@
 -- Enable foreign key constraints
 PRAGMA foreign_keys = ON;
 
--- Persons table
-CREATE TABLE IF NOT EXISTS persons (
+-- Connections table (formerly persons)
+CREATE TABLE IF NOT EXISTS connections (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   photo TEXT
@@ -14,25 +14,25 @@ CREATE TABLE IF NOT EXISTS tags (
   name TEXT NOT NULL UNIQUE
 );
 
--- Person-Tag junction table
-CREATE TABLE IF NOT EXISTS person_tags (
-  person_id INTEGER NOT NULL,
+-- Connection-Tag junction table (formerly person_tags)
+CREATE TABLE IF NOT EXISTS connection_tags (
+  connection_id INTEGER NOT NULL,
   tag_id INTEGER NOT NULL,
-  PRIMARY KEY (person_id, tag_id),
-  FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE,
+  PRIMARY KEY (connection_id, tag_id),
+  FOREIGN KEY (connection_id) REFERENCES connections(id) ON DELETE CASCADE,
   FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
 -- RSS feeds table
 CREATE TABLE IF NOT EXISTS rss_feeds (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  person_id INTEGER NOT NULL,
+  connection_id INTEGER NOT NULL,
   url TEXT NOT NULL,
   title TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   last_fetched_at TEXT,
-  FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE RESTRICT,
-  UNIQUE(person_id, url)
+  FOREIGN KEY (connection_id) REFERENCES connections(id) ON DELETE RESTRICT,
+  UNIQUE(connection_id, url)
 );
 
 -- Feed-Tag junction table
@@ -44,11 +44,29 @@ CREATE TABLE IF NOT EXISTS feed_tags (
   FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
--- Articles table
-CREATE TABLE IF NOT EXISTS articles (
+-- URI kinds enum table
+CREATE TABLE IF NOT EXISTS uri_kinds (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE
+);
+
+-- Seed URI kinds
+INSERT OR IGNORE INTO uri_kinds (id, name) VALUES
+  (1, 'blog'),
+  (2, 'video'),
+  (3, 'tweet'),
+  (4, 'book'),
+  (5, 'site'),
+  (6, 'unknown'),
+  (7, 'podcast'),
+  (8, 'paper');
+
+-- URIs table (formerly articles)
+CREATE TABLE IF NOT EXISTS uris (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  feed_id INTEGER NOT NULL,
-  person_id INTEGER,
+  feed_id INTEGER,
+  connection_id INTEGER,
+  kind_id INTEGER NOT NULL DEFAULT 6,
   title TEXT,
   url TEXT NOT NULL,
   published_at TEXT,
@@ -65,33 +83,39 @@ CREATE TABLE IF NOT EXISTS articles (
   og_fetched_at TEXT,
   og_fetch_error TEXT,
   FOREIGN KEY (feed_id) REFERENCES rss_feeds(id) ON DELETE CASCADE,
-  FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE SET NULL,
-  UNIQUE(feed_id, url)
+  FOREIGN KEY (connection_id) REFERENCES connections(id) ON DELETE SET NULL,
+  FOREIGN KEY (kind_id) REFERENCES uri_kinds(id)
 );
 
--- Article-Tag junction table
-CREATE TABLE IF NOT EXISTS article_tags (
-  article_id INTEGER NOT NULL,
+-- Unique constraint: URL must be unique per feed (for RSS-discovered URIs)
+-- For manual URIs (feed_id IS NULL), URL must be globally unique
+CREATE UNIQUE INDEX IF NOT EXISTS idx_uris_feed_url ON uris(feed_id, url) WHERE feed_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_uris_url_no_feed ON uris(url) WHERE feed_id IS NULL;
+
+-- URI-Tag junction table (formerly article_tags)
+CREATE TABLE IF NOT EXISTS uri_tags (
+  uri_id INTEGER NOT NULL,
   tag_id INTEGER NOT NULL,
-  PRIMARY KEY (article_id, tag_id),
-  FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+  PRIMARY KEY (uri_id, tag_id),
+  FOREIGN KEY (uri_id) REFERENCES uris(id) ON DELETE CASCADE,
   FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
--- Indexes for articles table
-CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id);
-CREATE INDEX IF NOT EXISTS idx_articles_person_id ON articles(person_id);
-CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at);
-CREATE INDEX IF NOT EXISTS idx_articles_read_later_at ON articles(read_later_at);
-CREATE INDEX IF NOT EXISTS idx_articles_og_fetched_at ON articles(og_fetched_at);
+-- Indexes for uris table
+CREATE INDEX IF NOT EXISTS idx_uris_feed_id ON uris(feed_id);
+CREATE INDEX IF NOT EXISTS idx_uris_connection_id ON uris(connection_id);
+CREATE INDEX IF NOT EXISTS idx_uris_read_at ON uris(read_at);
+CREATE INDEX IF NOT EXISTS idx_uris_read_later_at ON uris(read_later_at);
+CREATE INDEX IF NOT EXISTS idx_uris_og_fetched_at ON uris(og_fetched_at);
+CREATE INDEX IF NOT EXISTS idx_uris_kind_id ON uris(kind_id);
 
 -- Indexes for tag lookups
-CREATE INDEX IF NOT EXISTS idx_person_tags_person_id ON person_tags(person_id);
-CREATE INDEX IF NOT EXISTS idx_person_tags_tag_id ON person_tags(tag_id);
+CREATE INDEX IF NOT EXISTS idx_connection_tags_connection_id ON connection_tags(connection_id);
+CREATE INDEX IF NOT EXISTS idx_connection_tags_tag_id ON connection_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_feed_tags_feed_id ON feed_tags(feed_id);
 CREATE INDEX IF NOT EXISTS idx_feed_tags_tag_id ON feed_tags(tag_id);
-CREATE INDEX IF NOT EXISTS idx_article_tags_article_id ON article_tags(article_id);
-CREATE INDEX IF NOT EXISTS idx_article_tags_tag_id ON article_tags(tag_id);
+CREATE INDEX IF NOT EXISTS idx_uri_tags_uri_id ON uri_tags(uri_id);
+CREATE INDEX IF NOT EXISTS idx_uri_tags_tag_id ON uri_tags(tag_id);
 
 -- Metadata field types (static lookup table)
 CREATE TABLE IF NOT EXISTS metadata_field_types (
@@ -109,29 +133,29 @@ INSERT OR IGNORE INTO metadata_field_types (id, name) VALUES
   (6, 'Website'),
   (7, 'X');
 
--- Person metadata
-CREATE TABLE IF NOT EXISTS person_metadata (
+-- Connection metadata (formerly person_metadata)
+CREATE TABLE IF NOT EXISTS connection_metadata (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  person_id INTEGER NOT NULL,
+  connection_id INTEGER NOT NULL,
   field_type_id INTEGER NOT NULL,
   value TEXT NOT NULL,
-  FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE,
+  FOREIGN KEY (connection_id) REFERENCES connections(id) ON DELETE CASCADE,
   FOREIGN KEY (field_type_id) REFERENCES metadata_field_types(id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_person_metadata_person_id ON person_metadata(person_id);
+CREATE INDEX IF NOT EXISTS idx_connection_metadata_connection_id ON connection_metadata(connection_id);
 
 -- Unique constraint for idempotent metadata creation (case-insensitive, trimmed)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_person_metadata_unique
-  ON person_metadata(person_id, field_type_id, LOWER(TRIM(value)));
+CREATE UNIQUE INDEX IF NOT EXISTS idx_connection_metadata_unique
+  ON connection_metadata(connection_id, field_type_id, LOWER(TRIM(value)));
 
--- Article content cache (stores markdown conversion of article HTML)
-CREATE TABLE IF NOT EXISTS article_content (
+-- URI content cache (stores markdown conversion of URI HTML)
+CREATE TABLE IF NOT EXISTS uri_content (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  article_id INTEGER NOT NULL UNIQUE,
+  uri_id INTEGER NOT NULL UNIQUE,
   markdown TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+  FOREIGN KEY (uri_id) REFERENCES uris(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_article_content_article_id ON article_content(article_id);
+CREATE INDEX IF NOT EXISTS idx_uri_content_uri_id ON uri_content(uri_id);

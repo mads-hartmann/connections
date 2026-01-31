@@ -16,36 +16,36 @@ let get_context () =
   | _ -> failwith "Handler context not initialized"
 
 type create_request = {
-  person_id : int;
+  connection_id : int;
   url : string;
   title : string option; [@yojson.option]
 }
 [@@deriving yojson]
 
-let create request person_id =
-  let* { person_id = body_person_id; url; title } =
+let create request connection_id =
+  let* { connection_id = body_connection_id; url; title } =
     Handler_utils.parse_json_body create_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
-  if body_person_id <> person_id then
+  if body_connection_id <> connection_id then
     Handler_utils.bad_request
-      "person_id in URL does not match person_id in body"
+      "connection_id in URL does not match connection_id in body"
   else
     let* valid_url =
       Handler_utils.validate_url url |> Handler_utils.or_bad_request
     in
     let* feed =
-      Service.Rss_feed.create ~person_id ~url:valid_url ~title
+      Service.Rss_feed.create ~connection_id ~url:valid_url ~title
       |> Handler_utils.or_feed_error
     in
     let sw, env = get_context () in
     Eio.Fiber.fork ~sw (fun () -> Cron.Feed_sync.process_feed ~sw ~env feed);
     Handler_utils.json_response ~status:`Created (Model.Rss_feed.to_json feed)
 
-let list_by_person (pagination : Pagination.Pagination.t) person_id =
-  let* _ = Service.Person.get ~id:person_id |> Handler_utils.or_person_error in
+let list_by_connection (pagination : Pagination.Pagination.t) connection_id =
+  let* _ = Service.Connection.get ~id:connection_id |> Handler_utils.or_connection_error in
   let* paginated =
-    Service.Rss_feed.list_by_person ~person_id ~page:pagination.page
+    Service.Rss_feed.list_by_connection ~connection_id ~page:pagination.page
       ~per_page:pagination.per_page
     |> Handler_utils.or_feed_error
   in
@@ -100,10 +100,10 @@ let list_all request (pagination : Pagination.Pagination.t) =
 let routes () =
   let open Tapak.Router in
   [
-    post (s "persons" / int / s "feeds") |> request |> into create;
-    get (s "persons" / int / s "feeds")
+    post (s "connections" / int / s "feeds") |> request |> into create;
+    get (s "connections" / int / s "feeds")
     |> extract Pagination.Pagination.pagination_extractor
-    |> into list_by_person;
+    |> into list_by_connection;
     get (s "feeds")
     |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_all;

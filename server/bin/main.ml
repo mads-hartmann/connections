@@ -32,16 +32,16 @@ let run db_path port no_scheduler log_file =
   (* Initialize database *)
   Db.Pool.init ~sw ~stdenv:env db_path;
   Db.Pool.apply_schema ();
-  (* Set handler contexts for feed refresh, OPML import, URL metadata, article refresh, and person refresh *)
+  (* Set handler contexts for feed refresh, OPML import, URL metadata, URI refresh, and connection refresh *)
   Handlers.Rss_feed.set_context ~sw ~env;
   Handlers.Import.set_context ~sw ~env;
   Handlers.Url_metadata.set_context ~sw ~env;
-  Handlers.Article.set_context ~sw ~env;
-  Handlers.Person.set_context ~sw ~env;
+  Handlers.Uri_handler.set_context ~sw ~env;
+  Handlers.Connection.set_context ~sw ~env;
   (* Start background jobs unless disabled *)
   if not no_scheduler then (
     Cron.Feed_sync.start ~sw ~env;
-    Cron.Article_metadata_sync.start ~sw ~env);
+    Cron.Uri_metadata_sync.start ~sw ~env);
   Log.info (fun m ->
       m "Starting server on port %d with database %s%s" port db_path
         (if no_scheduler then " (scheduler disabled)" else ""));

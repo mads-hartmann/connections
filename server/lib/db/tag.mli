@@ -13,20 +13,20 @@ val list :
 
 val delete : id:int -> (bool, Caqti_error.t) result
 val update : id:int -> name:string -> (Model.Tag.t option, Caqti_error.t) result
-val add_to_person : person_id:int -> tag_id:int -> (unit, Caqti_error.t) result
+val add_to_connection : connection_id:int -> tag_id:int -> (unit, Caqti_error.t) result
 
-val remove_from_person :
-  person_id:int -> tag_id:int -> (unit, Caqti_error.t) result
+val remove_from_connection :
+  connection_id:int -> tag_id:int -> (unit, Caqti_error.t) result
 
-val get_by_person : person_id:int -> (Model.Tag.t list, Caqti_error.t) result
+val get_by_connection : connection_id:int -> (Model.Tag.t list, Caqti_error.t) result
 val add_to_feed : feed_id:int -> tag_id:int -> (unit, Caqti_error.t) result
 val remove_from_feed : feed_id:int -> tag_id:int -> (unit, Caqti_error.t) result
 val get_by_feed : feed_id:int -> (Model.Tag.t list, Caqti_error.t) result
 
-val add_to_article :
-  article_id:int -> tag_id:int -> (unit, Caqti_error.t) result
+val add_to_uri :
+  uri_id:int -> tag_id:int -> (unit, Caqti_error.t) result
 
-val remove_from_article :
-  article_id:int -> tag_id:int -> (unit, Caqti_error.t) result
+val remove_from_uri :
+  uri_id:int -> tag_id:int -> (unit, Caqti_error.t) result
 
-val get_by_article : article_id:int -> (Model.Tag.t list, Caqti_error.t) result
+val get_by_uri : uri_id:int -> (Model.Tag.t list, Caqti_error.t) result
