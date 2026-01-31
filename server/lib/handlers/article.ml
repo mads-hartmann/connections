@@ -88,6 +88,14 @@ let mark_all_read_global _request =
   in
   Handler_utils.json_response (`Assoc [ ("marked_read", `Int count) ])
 
+let mark_all_read_by_person _request person_id =
+  let* _ = Service.Person.get ~id:person_id |> Handler_utils.or_person_error in
+  let* count =
+    Service.Article.mark_all_read_by_person ~person_id
+    |> Handler_utils.or_article_error
+  in
+  Handler_utils.json_response (`Assoc [ ("marked_read", `Int count) ])
+
 let delete_article _request id =
   let* () = Service.Article.delete ~id |> Handler_utils.or_article_error in
   Response.of_string ~body:"" `No_content
@@ -115,6 +123,8 @@ let routes () =
     get (s "persons" / int / s "articles")
     |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_by_person;
+    post (s "persons" / int / s "articles" / s "mark-all-read")
+    |> request |> into mark_all_read_by_person;
     get (s "articles")
     |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list_all;

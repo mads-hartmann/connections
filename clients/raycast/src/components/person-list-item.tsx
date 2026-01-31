@@ -1,4 +1,5 @@
 import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api";
+import { markAllArticlesReadByPerson } from "../actions/person-actions";
 import * as Person from "../api/person";
 import { AddMetadataForm } from "./add-metadata-form";
 import { ArticleList } from "./article-list";
@@ -46,6 +47,12 @@ export function PersonListItem({ person, revalidate, showDetail, onToggleDetail 
                 defaultFilter={person.unread_article_count > 0 ? "unread" : "all"}
               />
             }
+          />
+          <Action
+            title="Mark All as Read"
+            icon={Icon.CheckCircle}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
+            onAction={() => markAllArticlesReadByPerson(person.id, person.name, revalidate)}
           />
           <Action.Push
             title="View Feeds"

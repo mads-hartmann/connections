@@ -120,6 +120,18 @@ export async function markAllArticlesReadGlobal(): Promise<MarkAllReadResponse> 
   return response.json();
 }
 
+export async function markAllArticlesReadByPerson(personId: number): Promise<MarkAllReadResponse> {
+  const response = await fetch(`${getServerUrl()}/persons/${personId}/articles/mark-all-read`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to mark all articles as read");
+  }
+  return response.json();
+}
+
 export async function refreshArticleMetadata(id: number): Promise<Article> {
   const response = await fetch(`${getServerUrl()}/articles/${id}/refresh-metadata`, {
     method: "POST",
