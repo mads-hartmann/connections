@@ -35,7 +35,7 @@ let run db_path port no_scheduler log_file =
   (* Set handler contexts for feed refresh, OPML import, URL metadata, article refresh, and person refresh *)
   Handlers.Rss_feed.set_context ~sw ~env;
   Handlers.Import.set_context ~sw ~env;
-  Handlers.Metadata.set_context ~sw ~env;
+  Handlers.Url_metadata.set_context ~sw ~env;
   Handlers.Article.set_context ~sw ~env;
   Handlers.Person.set_context ~sw ~env;
   (* Start background jobs unless disabled *)
@@ -49,7 +49,7 @@ let run db_path port no_scheduler log_file =
   let app = Router.build () in
   let address = `Tcp (Eio.Net.Ipaddr.V4.any, port) in
   let config = Piaf.Server.Config.create address in
-  ignore (Tapak.run_with ~config ~env app)
+  ignore (Tapak.Server.run_with ~config ~env app)
 
 (* CLI argument definitions *)
 open Cmdliner
