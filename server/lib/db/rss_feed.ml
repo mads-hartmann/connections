@@ -5,13 +5,13 @@ let rss_feed_row_type =
 let insert_query =
   Caqti_request.Infix.(
     Caqti_type.(t3 int string (option string)) ->! Caqti_type.int)
-    "INSERT INTO rss_feeds (person_id, url, title) VALUES (?, ?, ?) RETURNING \
+    "INSERT INTO rss_feeds (connection_id, url, title) VALUES (?, ?, ?) RETURNING \
      id"
 
 (* Base SELECT with tags JSON aggregation *)
 let select_with_tags =
   {|
-    SELECT f.id, f.person_id, f.url, f.title, f.created_at, f.last_fetched_at,
+    SELECT f.id, f.connection_id, f.url, f.title, f.created_at, f.last_fetched_at,
            COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
                      FROM feed_tags ft
                      JOIN tags t ON ft.tag_id = t.id
@@ -23,14 +23,14 @@ let get_query =
   Caqti_request.Infix.(Caqti_type.int ->? rss_feed_row_type)
     (select_with_tags ^ " WHERE f.id = ?")
 
-let list_by_person_query =
+let list_by_connection_query =
   Caqti_request.Infix.(Caqti_type.(t3 int int int) ->* rss_feed_row_type)
     (select_with_tags
-   ^ " WHERE f.person_id = ? ORDER BY f.created_at DESC LIMIT ? OFFSET ?")
+   ^ " WHERE f.connection_id = ? ORDER BY f.created_at DESC LIMIT ? OFFSET ?")
 
-let count_by_person_query =
+let count_by_connection_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
-    "SELECT COUNT(*) FROM rss_feeds WHERE person_id = ?"
+    "SELECT COUNT(*) FROM rss_feeds WHERE connection_id = ?"
 
 let update_query =
   Caqti_request.Infix.(
@@ -41,9 +41,9 @@ let delete_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
     "DELETE FROM rss_feeds WHERE id = ?"
 
-let delete_by_person_id_query =
+let delete_by_connection_id_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
-    "DELETE FROM rss_feeds WHERE person_id = ?"
+    "DELETE FROM rss_feeds WHERE connection_id = ?"
 
 let exists_query =
   Caqti_request.Infix.(Caqti_type.int ->! Caqti_type.int)
@@ -77,18 +77,18 @@ let update_last_fetched_query =
 
 (* Helper to convert DB tuple to Model.Rss_feed.t *)
 let tuple_to_feed
-    (id, person_id, url, title, created_at, last_fetched_at, tags_json) =
-  Model.Rss_feed.create ~id ~person_id ~url ~title ~created_at ~last_fetched_at
+    (id, connection_id, url, title, created_at, last_fetched_at, tags_json) =
+  Model.Rss_feed.create ~id ~connection_id ~url ~title ~created_at ~last_fetched_at
     ~tags:(Tag_json.parse tags_json)
 
 (* CREATE *)
-let create ~person_id ~url ~title =
+let create ~connection_id ~url ~title =
   let open Result.Syntax in
   let pool = Pool.get () in
   let* id =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.find insert_query (person_id, url, title))
+        Db.find insert_query (connection_id, url, title))
       pool
   in
   Caqti_eio.Pool.use
@@ -105,20 +105,20 @@ let get ~id =
   |> Result.map (Option.map tuple_to_feed)
 
 (* LIST with pagination *)
-let list_by_person ~person_id ~page ~per_page =
+let list_by_connection ~connection_id ~page ~per_page =
   let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
   let* total =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.find count_by_person_query person_id)
+        Db.find count_by_connection_query connection_id)
       pool
   in
   let+ rows =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
-        Db.collect_list list_by_person_query (person_id, per_page, offset))
+        Db.collect_list list_by_connection_query (connection_id, per_page, offset))
       pool
   in
   let data = List.map tuple_to_feed rows in
@@ -176,12 +176,12 @@ let delete ~id =
       in
       true
 
-(* DELETE all feeds for a person *)
-let delete_by_person_id ~person_id =
+(* DELETE all feeds for a connection *)
+let delete_by_connection_id ~connection_id =
   let pool = Pool.get () in
   Caqti_eio.Pool.use
     (fun (module Db : Caqti_eio.CONNECTION) ->
-      Db.exec delete_by_person_id_query person_id)
+      Db.exec delete_by_connection_id_query connection_id)
     pool
 
 (* LIST ALL - no pagination, for scheduler *)

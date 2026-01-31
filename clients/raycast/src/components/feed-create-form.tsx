@@ -2,16 +2,16 @@ import { Action, ActionPanel, Form, showToast, Toast, useNavigation } from "@ray
 import * as Feed from "../api/feed";
 
 interface CreateFeedFormProps {
-  personId: number;
+  connectionId: number;
   revalidate: () => void;
 }
 
-export function FeedCreateForm({ personId, revalidate }: CreateFeedFormProps) {
+export function FeedCreateForm({ connectionId, revalidate }: CreateFeedFormProps) {
   const { pop } = useNavigation();
 
   async function handleSubmit(values: { url: string; title: string }) {
     try {
-      await Feed.createFeed(personId, values.url, values.title);
+      await Feed.createFeed(connectionId, values.url, values.title);
       revalidate();
       pop();
     } catch (error) {

@@ -1,7 +1,7 @@
 type t
 
 val id : t -> int
-val person_id : t -> int
+val connection_id : t -> int
 val url : t -> string
 val title : t -> string option
 val created_at : t -> string
@@ -10,7 +10,7 @@ val tags : t -> Tag.t list
 
 val create :
   id:int ->
-  person_id:int ->
+  connection_id:int ->
   url:string ->
   title:string option ->
   created_at:string ->

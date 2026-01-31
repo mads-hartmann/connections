@@ -3,21 +3,21 @@ open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 (* Shared types for preview and confirm *)
 type feed_info = { url : string; title : string option } [@@deriving yojson]
 
-type person_info = { name : string; feeds : feed_info list; tags : string list }
+type connection_info = { name : string; feeds : feed_info list; tags : string list }
 [@@deriving yojson]
 
 type import_error = { url : string; error : string } [@@deriving yojson]
 
 type preview_response = {
-  people : person_info list;
+  connections : connection_info list;
   errors : import_error list;
 }
 [@@deriving yojson]
 
-type confirm_request = { people : person_info list } [@@deriving yojson]
+type confirm_request = { connections : connection_info list } [@@deriving yojson]
 
 type confirm_response = {
-  created_people : int;
+  created_connections : int;
   created_feeds : int;
   created_tags : int;
 }
@@ -113,16 +113,16 @@ let process_entries ~sw ~env (entries : Opml_parser.feed_entry list) :
       Hashtbl.replace by_author author_name (feed :: feeds, new_tags))
     successes;
   (* Convert to list *)
-  let people : person_info list =
+  let connections : connection_info list =
     Hashtbl.fold
       (fun name (feeds, tags) acc ->
-        ({ name; feeds = List.rev feeds; tags = List.rev tags } : person_info)
+        ({ name; feeds = List.rev feeds; tags = List.rev tags } : connection_info)
         :: acc)
       by_author []
   in
   (* Sort by name *)
-  let people = List.sort (fun a b -> String.compare a.name b.name) people in
-  ({ people; errors } : preview_response)
+  let connections = List.sort (fun a b -> String.compare a.name b.name) connections in
+  ({ connections; errors } : preview_response)
 
 (* Parse OPML and generate preview *)
 let preview ~sw ~env (opml_content : string) : (preview_response, string) result
@@ -138,9 +138,9 @@ let preview ~sw ~env (opml_content : string) : (preview_response, string) result
 
 let caqti_err err = Format.asprintf "%a" Caqti_error.pp err
 
-(* Confirm import - create people, feeds, and tags *)
+(* Confirm import - create connections, feeds, and tags *)
 let confirm (request : confirm_request) : (confirm_response, string) result =
-  let created_people = ref 0 in
+  let created_connections = ref 0 in
   let created_feeds = ref 0 in
   let created_tags = ref 0 in
   let tag_cache = Hashtbl.create 16 in
@@ -158,23 +158,23 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
             incr created_tags;
             Ok tag_id)
   in
-  (* Process each person *)
-  let rec process_people = function
+  (* Process each connection *)
+  let rec process_connections = function
     | [] -> Ok ()
-    | (person : person_info) :: rest -> (
-        (* Create person *)
-        let person_result = Db.Person.create ~name:person.name () in
-        match person_result with
+    | (connection : connection_info) :: rest -> (
+        (* Create connection *)
+        let connection_result = Db.Connection.create ~name:connection.name () in
+        match connection_result with
         | Error err -> Error (caqti_err err)
-        | Ok created_person -> (
-            let created_person_id = Model.Person.id created_person in
-            incr created_people;
-            (* Create feeds for this person *)
+        | Ok created_connection -> (
+            let created_connection_id = Model.Connection.id created_connection in
+            incr created_connections;
+            (* Create feeds for this connection *)
             let rec create_feeds = function
               | [] -> Ok ()
               | (feed : feed_info) :: rest -> (
                   let feed_result =
-                    Db.Rss_feed.create ~person_id:created_person_id
+                    Db.Rss_feed.create ~connection_id:created_connection_id
                       ~url:feed.url ~title:feed.title
                   in
                   match feed_result with
@@ -183,10 +183,10 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
                       incr created_feeds;
                       create_feeds rest)
             in
-            match create_feeds person.feeds with
+            match create_feeds connection.feeds with
             | Error msg -> Error msg
             | Ok () -> (
-                (* Add tags to person *)
+                (* Add tags to connection *)
                 let rec add_tags = function
                   | [] -> Ok ()
                   | tag_name :: rest -> (
@@ -194,22 +194,22 @@ let confirm (request : confirm_request) : (confirm_response, string) result =
                       | Error msg -> Error msg
                       | Ok tag_id -> (
                           match
-                            Db.Tag.add_to_person ~person_id:created_person_id
+                            Db.Tag.add_to_connection ~connection_id:created_connection_id
                               ~tag_id
                           with
                           | Error err -> Error (caqti_err err)
                           | Ok () -> add_tags rest))
                 in
-                match add_tags person.tags with
+                match add_tags connection.tags with
                 | Error msg -> Error msg
-                | Ok () -> process_people rest)))
+                | Ok () -> process_connections rest)))
   in
-  match process_people request.people with
+  match process_connections request.connections with
   | Error msg -> Error msg
   | Ok () ->
       Ok
         {
-          created_people = !created_people;
+          created_connections = !created_connections;
           created_feeds = !created_feeds;
           created_tags = !created_tags;
         }

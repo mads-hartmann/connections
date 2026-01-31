@@ -51,7 +51,7 @@ export function classifyProfile(profile: ClassifiedProfile): ClassifiedProfileWi
 
 export async function fetchContactMetadata(url: string): Promise<ContactMetadataResponse> {
   const params = new URLSearchParams({ url });
-  const response = await fetch(`${getServerUrl()}/contact-metadata?${params.toString()}`);
+  const response = await fetch(`${getServerUrl()}/discovery/connection-metadata?${params.toString()}`);
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to fetch metadata");

@@ -6,15 +6,15 @@ module Error : sig
 end
 
 val create :
-  person_id:int ->
+  connection_id:int ->
   url:string ->
   title:string option ->
   (Model.Rss_feed.t, Error.t) result
 
 val get : id:int -> (Model.Rss_feed.t, Error.t) result
 
-val list_by_person :
-  person_id:int ->
+val list_by_connection :
+  connection_id:int ->
   page:int ->
   per_page:int ->
   (Model.Rss_feed.t Model.Shared.Paginated.t, Error.t) result

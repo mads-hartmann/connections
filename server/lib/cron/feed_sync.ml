@@ -39,14 +39,22 @@ let atom_entry_categories (entry : Syndic.Atom.entry) : string list =
       match cat.label with Some label -> Some label | None -> Some cat.term)
     entry.categories
 
-type article_with_tags = {
-  article : Db.Article.create_input;
+type uri_with_tags = {
+  feed_id : int;
+  connection_id : int option;
+  kind : Model.Uri_kind.t;
+  title : string option;
+  url : string;
+  published_at : string option;
+  content : string option;
+  author : string option;
+  image_url : string option;
   tags : string list;
 }
 
-(* Convert RSS2 item to article format with tags *)
-let rss2_item_to_article ~feed_id ~person_id (item : Syndic.Rss2.item) :
-    article_with_tags option =
+(* Convert RSS2 item to URI format with tags *)
+let rss2_item_to_uri ~feed_id ~connection_id (item : Syndic.Rss2.item) :
+    uri_with_tags option =
   let title, content = rss2_story_to_title_and_content item.story in
   let url =
     match item.link with
@@ -59,24 +67,25 @@ let rss2_item_to_article ~feed_id ~person_id (item : Syndic.Rss2.item) :
   match url with
   | None -> None
   | Some url ->
-      let article =
+      let uri =
         {
-          Db.Article.feed_id;
-          person_id;
+          feed_id;
+          connection_id;
+          kind = Model.Uri_kind.Blog;
           title;
           url;
           published_at = Option.map ptime_to_string item.pubDate;
           content;
           author = item.author;
           image_url = rss2_enclosure_to_image item.enclosure;
+          tags = rss2_item_categories item;
         }
       in
-      let tags = rss2_item_categories item in
-      Some { article; tags }
+      Some uri
 
-(* Convert Atom entry to article format with tags *)
-let atom_entry_to_article ~feed_id ~person_id (entry : Syndic.Atom.entry) :
-    article_with_tags option =
+(* Convert Atom entry to URI format with tags *)
+let atom_entry_to_uri ~feed_id ~connection_id (entry : Syndic.Atom.entry) :
+    uri_with_tags option =
   let url =
     let links = entry.links in
     let alternate =
@@ -128,10 +137,11 @@ let atom_entry_to_article ~feed_id ~person_id (entry : Syndic.Atom.entry) :
             | _ -> None)
           entry.links
       in
-      let article =
+      let uri =
         {
-          Db.Article.feed_id;
-          person_id;
+          feed_id;
+          connection_id;
+          kind = Model.Uri_kind.Blog;
           title;
           url;
           published_at =
@@ -141,20 +151,20 @@ let atom_entry_to_article ~feed_id ~person_id (entry : Syndic.Atom.entry) :
           content;
           author;
           image_url;
+          tags = atom_entry_categories entry;
         }
       in
-      let tags = atom_entry_categories entry in
-      Some { article; tags }
+      Some uri
 
-let extract_articles_with_tags ~feed_id ~person_id
-    (feed : Feed_parser.parsed_feed) : article_with_tags list =
+let extract_uris_with_tags ~feed_id ~connection_id
+    (feed : Feed_parser.parsed_feed) : uri_with_tags list =
   match feed with
   | Rss2 channel ->
-      List.filter_map (rss2_item_to_article ~feed_id ~person_id) channel.items
+      List.filter_map (rss2_item_to_uri ~feed_id ~connection_id) channel.items
   | Atom feed ->
-      List.filter_map (atom_entry_to_article ~feed_id ~person_id) feed.entries
+      List.filter_map (atom_entry_to_uri ~feed_id ~connection_id) feed.entries
 
-let associate_tags_with_article ~article_id ~tag_names : unit =
+let associate_tags_with_uri ~uri_id ~tag_names : unit =
   List.iter
     (fun tag_name ->
       match Db.Tag.get_or_create ~name:tag_name with
@@ -163,12 +173,12 @@ let associate_tags_with_article ~article_id ~tag_names : unit =
               m "Failed to get/create tag '%s': %a" tag_name Caqti_error.pp err)
       | Ok tag -> (
           match
-            Db.Tag.add_to_article ~article_id ~tag_id:(Model.Tag.id tag)
+            Db.Tag.add_to_uri ~uri_id ~tag_id:(Model.Tag.id tag)
           with
           | Error err ->
               Log.err (fun m ->
-                  m "Failed to associate tag '%s' with article %d: %a" tag_name
-                    article_id Caqti_error.pp err)
+                  m "Failed to associate tag '%s' with URI %d: %a" tag_name
+                    uri_id Caqti_error.pp err)
           | Ok () -> ()))
     tag_names
 
@@ -180,7 +190,7 @@ let get_feed_tag_ids ~feed_id : int list =
 let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
   let feed_id = Model.Rss_feed.id feed in
   let feed_url = Model.Rss_feed.url feed in
-  let person_id = Some (Model.Rss_feed.person_id feed) in
+  let connection_id = Some (Model.Rss_feed.connection_id feed) in
   Log.info (fun m -> m "Fetching feed %d: %s" feed_id feed_url);
   match Http_client.fetch ~sw ~env feed_url with
   | Error msg ->
@@ -192,48 +202,39 @@ let process_feed ~sw ~env (feed : Model.Rss_feed.t) : unit =
           Log.err (fun m ->
               m "Failed to parse feed %d (%s): %s" feed_id feed_url msg)
       | Ok parsed_feed ->
-          let articles_with_tags =
-            extract_articles_with_tags ~feed_id ~person_id parsed_feed
+          let uris_with_tags =
+            extract_uris_with_tags ~feed_id ~connection_id parsed_feed
           in
           let feed_tag_ids = get_feed_tag_ids ~feed_id in
           let count = ref 0 in
           List.iter
-            (fun { article; tags } ->
-              match Db.Article.upsert article with
+            (fun uri_data ->
+              match Db.Uri_store.upsert ~feed_id:uri_data.feed_id
+                      ~connection_id:uri_data.connection_id
+                      ~kind:uri_data.kind ~title:uri_data.title
+                      ~url:uri_data.url ~published_at:uri_data.published_at
+                      ~content:uri_data.content ~author:uri_data.author
+                      ~image_url:uri_data.image_url with
               | Error err ->
                   Log.err (fun m ->
-                      m "Failed to upsert article '%s': %a"
-                        (Option.value ~default:article.Db.Article.url
-                           article.Db.Article.title)
+                      m "Failed to upsert URI '%s': %a"
+                        (Option.value ~default:uri_data.url uri_data.title)
                         Caqti_error.pp err)
-              | Ok () -> (
+              | Ok stored_uri ->
                   incr count;
-                  match
-                    Db.Article.get_by_feed_url ~feed_id
-                      ~url:article.Db.Article.url
-                  with
-                  | Error err ->
-                      Log.err (fun m ->
-                          m "Failed to get article after upsert: %a"
-                            Caqti_error.pp err)
-                  | Ok None ->
-                      Log.err (fun m ->
-                          m "Article not found after upsert: %s"
-                            article.Db.Article.url)
-                  | Ok (Some stored_article) ->
-                      let stored_id = Model.Article.id stored_article in
-                      associate_tags_with_article ~article_id:stored_id
-                        ~tag_names:tags;
-                      List.iter
-                        (fun tag_id ->
-                          let _ =
-                            Db.Tag.add_to_article ~article_id:stored_id ~tag_id
-                          in
-                          ())
-                        feed_tag_ids))
-            articles_with_tags;
+                  let stored_id = Model.Uri_entry.id stored_uri in
+                  associate_tags_with_uri ~uri_id:stored_id
+                    ~tag_names:uri_data.tags;
+                  List.iter
+                    (fun tag_id ->
+                      let _ =
+                        Db.Tag.add_to_uri ~uri_id:stored_id ~tag_id
+                      in
+                      ())
+                    feed_tag_ids)
+            uris_with_tags;
           Log.info (fun m ->
-              m "Processed %d articles for feed %d" !count feed_id);
+              m "Processed %d URIs for feed %d" !count feed_id);
           let _ = Db.Rss_feed.update_last_fetched ~id:feed_id in
           ())
 

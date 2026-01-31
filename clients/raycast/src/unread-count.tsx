@@ -1,27 +1,24 @@
 import { Icon, MenuBarExtra, open, launchCommand, LaunchType, showToast, Toast } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
-import * as Article from "./api/article";
-import { markAllArticlesRead } from "./actions/article-actions";
+import * as Uri from "./api/uri";
+import { markAllUrisRead } from "./actions/uri-actions";
 
 export default function Command() {
-  const { isLoading, data, error, revalidate } = useFetch<Article.ArticlesResponse>(
-    Article.listAllUrl({ page: 1, unread: true }),
-    {
-      keepPreviousData: true,
-    },
-  );
+  const { isLoading, data, error, revalidate } = useFetch<Uri.UrisResponse>(Uri.listAllUrl({ page: 1, unread: true }), {
+    keepPreviousData: true,
+  });
 
   const unreadCount = data?.total ?? 0;
-  const recentArticles = data?.data.slice(0, 5) ?? [];
+  const recentUris = data?.data.slice(0, 5) ?? [];
 
-  const handleArticleClick = async (article: Article.Article) => {
+  const handleUriClick = async (uri: Uri.Uri) => {
     try {
-      await Article.markArticleRead(article.id, true);
+      await Uri.markUriRead(uri.id, true);
       revalidate();
     } catch {
       await showToast({ style: Toast.Style.Failure, title: "Failed to mark as read" });
     }
-    await open(article.url);
+    await open(uri.url);
   };
 
   const title = error || unreadCount === 0 ? undefined : String(unreadCount);
@@ -33,15 +30,15 @@ export default function Command() {
       ) : (
         <>
           <MenuBarExtra.Section title="Recent Unread">
-            {recentArticles.length === 0 ? (
-              <MenuBarExtra.Item title="No unread articles" />
+            {recentUris.length === 0 ? (
+              <MenuBarExtra.Item title="No unread URIs" />
             ) : (
-              recentArticles.map((article) => (
+              recentUris.map((uri) => (
                 <MenuBarExtra.Item
-                  key={article.id}
-                  title={article.title ?? article.url}
-                  subtitle={article.author ?? undefined}
-                  onAction={() => handleArticleClick(article)}
+                  key={uri.id}
+                  title={uri.title ?? uri.url}
+                  subtitle={uri.author ?? undefined}
+                  onAction={() => handleUriClick(uri)}
                 />
               ))
             )}
@@ -53,7 +50,7 @@ export default function Command() {
                 title="Mark All as Read"
                 icon={Icon.CheckCircle}
                 shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
-                onAction={() => markAllArticlesRead(revalidate)}
+                onAction={() => markAllUrisRead(revalidate)}
               />
             )}
             <MenuBarExtra.Item

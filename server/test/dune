@@ -5,8 +5,8 @@
 
 (test
  (name test_main)
- (modules test_main test_helpers test_utils test_person test_rss_feed
-          test_article test_feed_parser test_opml_parser test_metadata test_e2e)
+ (modules test_main test_helpers test_utils test_connection test_rss_feed
+          test_uri test_feed_parser test_opml_parser test_metadata test_e2e)
  (libraries
   connections_server
   e2e_helpers

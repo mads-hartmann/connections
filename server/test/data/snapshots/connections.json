@@ -1,0 +1,203 @@
+{
+  "data": [
+    {
+      "id": 8,
+      "name": "Adam Wiggins",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 20,
+      "unread_uri_count": 20,
+      "metadata": []
+    },
+    {
+      "id": 9,
+      "name": "Alex Reid",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 25,
+      "unread_uri_count": 25,
+      "metadata": []
+    },
+    {
+      "id": 10,
+      "name": "Amos Wenger",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 25,
+      "unread_uri_count": 25,
+      "metadata": []
+    },
+    {
+      "id": 11,
+      "name": "Andy Dote",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 170,
+      "unread_uri_count": 170,
+      "metadata": []
+    },
+    {
+      "id": 47,
+      "name": "Anil Madhavapeddy",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 342,
+      "unread_uri_count": 335,
+      "metadata": []
+    },
+    {
+      "id": 12,
+      "name": "Arkadiy Tetelman",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 9,
+      "unread_uri_count": 9,
+      "metadata": []
+    },
+    {
+      "id": 13,
+      "name": "Bozhidar Batsov",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 10,
+      "unread_uri_count": 10,
+      "metadata": []
+    },
+    {
+      "id": 14,
+      "name": "Casey Handmer's blog",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 10,
+      "unread_uri_count": 10,
+      "metadata": []
+    },
+    {
+      "id": 15,
+      "name": "Chris Swan's Weblog",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 11,
+      "unread_uri_count": 11,
+      "metadata": []
+    },
+    {
+      "id": 16,
+      "name": "Dan McKinley",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 20,
+      "unread_uri_count": 20,
+      "metadata": []
+    },
+    {
+      "id": 17,
+      "name": "Dr. Axel Rauschmayer",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 64,
+      "unread_uri_count": 64,
+      "metadata": []
+    },
+    {
+      "id": 18,
+      "name": "Fernando Borretti",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 24,
+      "unread_uri_count": 24,
+      "metadata": []
+    },
+    {
+      "id": 19,
+      "name": "Gregor Hohpe",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 13,
+      "unread_uri_count": 13,
+      "metadata": []
+    },
+    {
+      "id": 20,
+      "name": "Hillel Wayne",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 19,
+      "unread_uri_count": 19,
+      "metadata": []
+    },
+    {
+      "id": 21,
+      "name": "James Shore",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 15,
+      "unread_uri_count": 15,
+      "metadata": []
+    },
+    {
+      "id": 22,
+      "name": "Julia Evans",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 20,
+      "unread_uri_count": 20,
+      "metadata": []
+    },
+    {
+      "id": 23,
+      "name": "Kenneth Skovhus",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 24,
+      "unread_uri_count": 24,
+      "metadata": []
+    },
+    {
+      "id": 24,
+      "name": "Kevin Purdy",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 18,
+      "unread_uri_count": 18,
+      "metadata": []
+    },
+    {
+      "id": 25,
+      "name": "Lara Callender Hogan",
+      "tags": [],
+      "feed_count": 1,
+      "uri_count": 10,
+      "unread_uri_count": 10,
+      "metadata": []
+    },
+    {
+      "id": 26,
+      "name": "Mads Hartmann",
+      "tags": [
+        { "id": 2, "name": "OCaml" },
+        { "id": 331, "name": "software-development" },
+        { "id": 336, "name": "observability" }
+      ],
+      "feed_count": 1,
+      "uri_count": 35,
+      "unread_uri_count": 35,
+      "metadata": [
+        {
+          "id": 2,
+          "field_type": { "id": 6, "name": "Website" },
+          "value": "https://www.mads-hartmann.com/"
+        },
+        {
+          "id": 1,
+          "field_type": { "id": 7, "name": "X" },
+          "value": "https://x.com/Mads_Hartmann"
+        }
+      ]
+    }
+  ],
+  "page": 1,
+  "per_page": 20,
+  "total": 41,
+  "total_pages": 3
+}

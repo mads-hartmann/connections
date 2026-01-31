@@ -1,14 +1,14 @@
 import { Action, ActionPanel, Form, showToast, Toast, useNavigation } from "@raycast/api";
 import { useState } from "react";
-import { createMetadata, FIELD_TYPES } from "../api/person";
+import { createMetadata, FIELD_TYPES } from "../api/connection";
 
 interface AddMetadataFormProps {
-  personId: number;
-  personName: string;
+  connectionId: number;
+  connectionName: string;
   revalidate: () => void;
 }
 
-export function AddMetadataForm({ personId, personName, revalidate }: AddMetadataFormProps) {
+export function AddMetadataForm({ connectionId, connectionName, revalidate }: AddMetadataFormProps) {
   const { pop } = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [fieldTypeId, setFieldTypeId] = useState(String(FIELD_TYPES[0].id));
@@ -22,7 +22,7 @@ export function AddMetadataForm({ personId, personName, revalidate }: AddMetadat
 
     setIsLoading(true);
     try {
-      await createMetadata(personId, parseInt(fieldTypeId), value.trim());
+      await createMetadata(connectionId, parseInt(fieldTypeId), value.trim());
       showToast({ style: Toast.Style.Success, title: "Metadata added" });
       revalidate();
       pop();
@@ -40,7 +40,7 @@ export function AddMetadataForm({ personId, personName, revalidate }: AddMetadat
   return (
     <Form
       isLoading={isLoading}
-      navigationTitle={`Add Metadata to ${personName}`}
+      navigationTitle={`Add Metadata to ${connectionName}`}
       actions={
         <ActionPanel>
           <Action.SubmitForm title="Add Metadata" onSubmit={handleSubmit} />

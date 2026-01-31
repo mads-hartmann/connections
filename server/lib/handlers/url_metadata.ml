@@ -13,8 +13,8 @@ let get_context () =
   | Some sw, Some env -> (sw, env)
   | _ -> failwith "Handler context not initialized"
 
-(* Contact metadata - person/site information *)
-let contact_handler request =
+(* Connection metadata - person/site information *)
+let connection_handler request =
   let* url =
     Handler_utils.query "url" request
     |> Handler_utils.or_not_found "Missing 'url' query parameter"
@@ -28,8 +28,8 @@ let contact_handler request =
   in
   Handler_utils.json_response (Metadata.Contact.to_json result)
 
-(* Article metadata - content information *)
-let article_handler request =
+(* URI metadata - content information *)
+let uri_handler request =
   let* url =
     Handler_utils.query "url" request
     |> Handler_utils.or_not_found "Missing 'url' query parameter"
@@ -46,6 +46,6 @@ let article_handler request =
 let routes () =
   let open Tapak.Router in
   [
-    get (s "contact-metadata") |> request |> into contact_handler;
-    get (s "article-metadata") |> request |> into article_handler;
+    get (s "discovery" / s "connection-metadata") |> request |> into connection_handler;
+    get (s "discovery" / s "uri-metadata") |> request |> into uri_handler;
   ]

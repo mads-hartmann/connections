@@ -17,6 +17,8 @@
   syndic
   logs
   lambdasoup
-  uri)
+  uri
+  ptime
+  ptime.clock.os)
  (preprocess
   (pps ppx_yojson_conv)))

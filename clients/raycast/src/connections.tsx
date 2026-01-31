@@ -1,17 +1,17 @@
 import { Action, ActionPanel, getPreferenceValues, Icon, Keyboard, List } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
-import { markAllArticlesRead } from "./actions/article-actions";
-import { PersonCreateForm } from "./components/person-create-form";
+import { markAllUrisRead } from "./actions/uri-actions";
+import { ConnectionCreateForm } from "./components/connection-create-form";
 import { ImportOpml } from "./components/import-opml";
-import { ArticleListItem } from "./components/article-list-item";
-import { PersonListItem } from "./components/person-list-item";
+import { UriListItem } from "./components/uri-list-item";
+import { ConnectionListItem } from "./components/connection-list-item";
 import { TagListItem } from "./components/tag-list-item";
-import * as Person from "./api/person";
-import * as Article from "./api/article";
+import * as Connection from "./api/connection";
+import * as Uri from "./api/uri";
 import * as Tag from "./api/tag";
 
-type ViewType = "connections" | "articles-all" | "articles-unread" | "articles-read-later" | "tags";
+type ViewType = "connections" | "uris-all" | "uris-unread" | "uris-read-later" | "tags";
 
 interface Preferences {
   serverUrl: string;
@@ -20,18 +20,18 @@ interface Preferences {
 
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
-  const [selectedView, setSelectedView] = useState<ViewType>(preferences.defaultView || "articles-unread");
+  const [selectedView, setSelectedView] = useState<ViewType>(preferences.defaultView || "uris-unread");
   const [searchText, setSearchText] = useState("");
   const [showConnectionsDetail, setShowConnectionsDetail] = useState(true);
-  const [showArticlesDetail, setShowArticlesDetail] = useState(true);
+  const [showUrisDetail, setShowUrisDetail] = useState(true);
 
   const {
     isLoading: isLoadingConnections,
     data: connectionsData,
     pagination: connectionsPagination,
     revalidate: revalidateConnections,
-  } = useFetch((options) => Person.listUrl({ page: options.page + 1, query: searchText || undefined }), {
-    mapResult(result: Person.PersonsResponse) {
+  } = useFetch((options) => Connection.listUrl({ page: options.page + 1, query: searchText || undefined }), {
+    mapResult(result: Connection.ConnectionsResponse) {
       return {
         data: result.data,
         hasMore: result.page < result.total_pages,
@@ -41,31 +41,31 @@ export default function Command() {
     execute: selectedView === "connections",
   });
 
-  const isArticlesView =
-    selectedView === "articles-all" || selectedView === "articles-unread" || selectedView === "articles-read-later";
+  const isUrisView =
+    selectedView === "uris-all" || selectedView === "uris-unread" || selectedView === "uris-read-later";
 
   const {
-    isLoading: isLoadingArticles,
-    data: articlesData,
-    pagination: articlesPagination,
-    revalidate: revalidateArticles,
+    isLoading: isLoadingUris,
+    data: urisData,
+    pagination: urisPagination,
+    revalidate: revalidateUris,
   } = useFetch(
     (options) =>
-      Article.listAllUrl({
+      Uri.listAllUrl({
         page: options.page + 1,
         query: searchText || undefined,
-        unread: selectedView === "articles-unread",
-        readLater: selectedView === "articles-read-later",
+        unread: selectedView === "uris-unread",
+        readLater: selectedView === "uris-read-later",
       }),
     {
-      mapResult(result: Article.ArticlesResponse) {
+      mapResult(result: Uri.UrisResponse) {
         return {
           data: result.data,
           hasMore: result.page < result.total_pages,
         };
       },
       keepPreviousData: true,
-      execute: isArticlesView,
+      execute: isUrisView,
     },
   );
 
@@ -87,19 +87,19 @@ export default function Command() {
 
   const { isLoading, pagination, searchBarPlaceholder } = (() => {
     switch (selectedView) {
-      case "articles-all":
-      case "articles-unread":
-      case "articles-read-later":
+      case "uris-all":
+      case "uris-unread":
+      case "uris-read-later":
         return {
-          isLoading: isLoadingArticles,
-          pagination: articlesPagination,
-          searchBarPlaceholder: "Search articles...",
+          isLoading: isLoadingUris,
+          pagination: urisPagination,
+          searchBarPlaceholder: "Search URIs...",
         };
       case "connections":
         return {
           isLoading: isLoadingConnections,
           pagination: connectionsPagination,
-          searchBarPlaceholder: "Search people...",
+          searchBarPlaceholder: "Search connections...",
         };
       case "tags":
         return { isLoading: isLoadingTags, pagination: tagsPagination, searchBarPlaceholder: "Search tags..." };
@@ -113,9 +113,7 @@ export default function Command() {
       filtering={false}
       onSearchTextChange={setSearchText}
       searchBarPlaceholder={searchBarPlaceholder}
-      isShowingDetail={
-        (selectedView === "connections" && showConnectionsDetail) || (isArticlesView && showArticlesDetail)
-      }
+      isShowingDetail={(selectedView === "connections" && showConnectionsDetail) || (isUrisView && showUrisDetail)}
       searchBarAccessory={
         <List.Dropdown
           tooltip="Select View"
@@ -124,10 +122,10 @@ export default function Command() {
         >
           <List.Dropdown.Item title="Connections" value="connections" icon={Icon.TwoPeople} />
           <List.Dropdown.Item title="Tags" value="tags" icon={Icon.Tag} />
-          <List.Dropdown.Section title="Articles">
-            <List.Dropdown.Item title="All" value="articles-all" icon={Icon.Document} />
-            <List.Dropdown.Item title="Unread" value="articles-unread" icon={Icon.Circle} />
-            <List.Dropdown.Item title="Read Later" value="articles-read-later" icon={Icon.Clock} />
+          <List.Dropdown.Section title="URIs">
+            <List.Dropdown.Item title="All" value="uris-all" icon={Icon.Document} />
+            <List.Dropdown.Item title="Unread" value="uris-unread" icon={Icon.Circle} />
+            <List.Dropdown.Item title="Read Later" value="uris-read-later" icon={Icon.Clock} />
           </List.Dropdown.Section>
         </List.Dropdown>
       }
@@ -135,10 +133,10 @@ export default function Command() {
         selectedView === "connections" ? (
           <ActionPanel>
             <Action.Push
-              title="Create Person"
+              title="Create Connection"
               icon={Icon.Plus}
               shortcut={Keyboard.Shortcut.Common.New}
-              target={<PersonCreateForm revalidate={revalidateConnections} />}
+              target={<ConnectionCreateForm revalidate={revalidateConnections} />}
             />
             <Action.Push
               title="Import from OPML"
@@ -152,18 +150,18 @@ export default function Command() {
     >
       {selectedView === "connections" &&
         (() => {
-          const withUnread = connectionsData?.filter((p) => p.unread_article_count > 0) ?? [];
-          const withoutUnread = connectionsData?.filter((p) => p.unread_article_count === 0) ?? [];
-          const totalUnread = withUnread.reduce((sum, p) => sum + p.unread_article_count, 0);
+          const withUnread = connectionsData?.filter((c) => c.unread_uri_count > 0) ?? [];
+          const withoutUnread = connectionsData?.filter((c) => c.unread_uri_count === 0) ?? [];
+          const totalUnread = withUnread.reduce((sum, c) => sum + c.unread_uri_count, 0);
 
           return (
             <>
               {withUnread.length > 0 && (
-                <List.Section title="Unread" subtitle={`${totalUnread} unread articles`}>
-                  {withUnread.map((person) => (
-                    <PersonListItem
-                      key={String(person.id)}
-                      person={person}
+                <List.Section title="Unread" subtitle={`${totalUnread} unread URIs`}>
+                  {withUnread.map((connection) => (
+                    <ConnectionListItem
+                      key={String(connection.id)}
+                      connection={connection}
                       revalidate={revalidateConnections}
                       showDetail={showConnectionsDetail}
                       onToggleDetail={() => setShowConnectionsDetail(!showConnectionsDetail)}
@@ -173,10 +171,10 @@ export default function Command() {
               )}
               {withoutUnread.length > 0 && (
                 <List.Section title="All">
-                  {withoutUnread.map((person) => (
-                    <PersonListItem
-                      key={String(person.id)}
-                      person={person}
+                  {withoutUnread.map((connection) => (
+                    <ConnectionListItem
+                      key={String(connection.id)}
+                      connection={connection}
                       revalidate={revalidateConnections}
                       showDetail={showConnectionsDetail}
                       onToggleDetail={() => setShowConnectionsDetail(!showConnectionsDetail)}
@@ -188,17 +186,15 @@ export default function Command() {
           );
         })()}
 
-      {isArticlesView &&
-        articlesData?.map((article) => (
-          <ArticleListItem
-            key={String(article.id)}
-            article={article}
-            revalidate={revalidateArticles}
-            showDetail={showArticlesDetail}
-            onToggleDetail={() => setShowArticlesDetail(!showArticlesDetail)}
-            onMarkAllRead={
-              selectedView !== "articles-read-later" ? () => markAllArticlesRead(revalidateArticles) : undefined
-            }
+      {isUrisView &&
+        urisData?.map((uri) => (
+          <UriListItem
+            key={String(uri.id)}
+            uri={uri}
+            revalidate={revalidateUris}
+            showDetail={showUrisDetail}
+            onToggleDetail={() => setShowUrisDetail(!showUrisDetail)}
+            onMarkAllRead={selectedView !== "uris-read-later" ? () => markAllUrisRead(revalidateUris) : undefined}
           />
         ))}
 

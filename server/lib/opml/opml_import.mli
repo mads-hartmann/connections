@@ -1,16 +1,16 @@
 type feed_info = { url : string; title : string option }
-type person_info = { name : string; feeds : feed_info list; tags : string list }
+type connection_info = { name : string; feeds : feed_info list; tags : string list }
 type import_error = { url : string; error : string }
 
 type preview_response = {
-  people : person_info list;
+  connections : connection_info list;
   errors : import_error list;
 }
 
-type confirm_request = { people : person_info list }
+type confirm_request = { connections : connection_info list }
 
 type confirm_response = {
-  created_people : int;
+  created_connections : int;
   created_feeds : int;
   created_tags : int;
 }

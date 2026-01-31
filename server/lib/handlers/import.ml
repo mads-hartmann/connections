@@ -36,8 +36,8 @@ let confirm request =
       request
     |> Handler_utils.or_bad_request
   in
-  if List.length req.people = 0 then
-    Handler_utils.bad_request "No people selected for import"
+  if List.length req.connections = 0 then
+    Handler_utils.bad_request "No connections selected for import"
   else
     let* response =
       Opml.Opml_import.confirm req |> Handler_utils.or_internal_error
