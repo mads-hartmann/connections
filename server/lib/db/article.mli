@@ -64,6 +64,7 @@ val mark_read :
 
 val mark_all_read : feed_id:int -> (int, Caqti_error.t) result
 val mark_all_read_global : unit -> (int, Caqti_error.t) result
+val mark_all_read_by_person : person_id:int -> (int, Caqti_error.t) result
 
 val mark_read_later :
   id:int -> read_later:bool -> (Model.Article.t option, Caqti_error.t) result

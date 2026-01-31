@@ -54,6 +54,10 @@ let mark_all_read_global () =
   Db.Article.mark_all_read_global ()
   |> Result.map_error (fun err -> Error.Database err)
 
+let mark_all_read_by_person ~person_id =
+  Db.Article.mark_all_read_by_person ~person_id
+  |> Result.map_error (fun err -> Error.Database err)
+
 let delete ~id =
   match Db.Article.delete ~id with
   | Error err -> Error (Error.Database err)
