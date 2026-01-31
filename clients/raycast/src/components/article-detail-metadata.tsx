@@ -1,16 +1,17 @@
 import { Icon, List } from "@raycast/api";
+import { usePromise } from "@raycast/utils";
 import { Article } from "../api/article";
+import { fetchArticleContent, isArticleContentError } from "../api/article-content";
 
-function truncateContent(content: string | null, maxLength: number = 1000): string {
-  if (!content) return "*No content available*";
+function truncateContent(content: string, maxLength: number = 1000): string {
   if (content.length <= maxLength) return content;
   return content.substring(0, maxLength) + "...";
 }
 
-function buildMarkdown(article: Article): string {
+function buildMarkdown(article: Article, serverContent: string | null): string {
   const imageUrl = article.og_image || article.image_url;
   const imageLine = imageUrl ? `![](${imageUrl})\n\n` : "";
-  const content = article.og_description || article.content;
+  const content = serverContent || article.og_description || article.content || "*No content available*";
   return imageLine + truncateContent(content);
 }
 
@@ -21,12 +22,18 @@ function formatDate(dateStr: string | null): string {
 }
 
 export function ArticleDetailMetadata({ article }: { article: Article }) {
+  const { data: articleContent, isLoading } = usePromise(fetchArticleContent, [article.id]);
+
+  const serverContent =
+    articleContent && !isArticleContentError(articleContent) ? articleContent.markdown : null;
+
   const isRead = article.read_at !== null;
   const isReadLater = article.read_later_at !== null;
   const by = article.person_name || article.author;
   return (
     <List.Item.Detail
-      markdown={buildMarkdown(article)}
+      isLoading={isLoading}
+      markdown={buildMarkdown(article, serverContent)}
       key={article.id}
       metadata={
         <List.Item.Detail.Metadata>
