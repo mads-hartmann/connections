@@ -89,6 +89,7 @@ opam install . --deps-only
 ```
 
 - Building: `dune build`
+- Running: `dune exec connections-server`
 - Formatting: `dune fmt`
 - Tests: `dune test`
 - Updating snapshots `dune exec server/bin/update_snapshots.exe`
