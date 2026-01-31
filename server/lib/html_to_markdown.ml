@@ -181,7 +181,9 @@ module Converter = struct
         else "![" ^ alt ^ "](" ^ src ^ ")"
     | "ul" ->
         let items =
-          Soup.select ":scope > li" el
+          Soup.children el
+          |> Soup.elements
+          |> Soup.filter (fun child -> Soup.name child = "li")
           |> Soup.fold
                (fun acc li ->
                  let content = String.trim (convert_element li) in
@@ -191,7 +193,9 @@ module Converter = struct
         "\n" ^ items ^ "\n"
     | "ol" ->
         let items =
-          Soup.select ":scope > li" el
+          Soup.children el
+          |> Soup.elements
+          |> Soup.filter (fun child -> Soup.name child = "li")
           |> Soup.fold
                (fun (acc, i) li ->
                  let content = String.trim (convert_element li) in
