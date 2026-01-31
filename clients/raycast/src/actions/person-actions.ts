@@ -8,7 +8,7 @@ export async function markAllArticlesReadByPerson(
 ): Promise<void> {
   const confirmed = await confirmAlert({
     title: "Mark All as Read",
-    message: `Mark all articles from "${personName}" as read?`,
+    message: `Mark all articles from ${personName} as read?`,
     primaryAction: {
       title: "Mark All as Read",
       style: Alert.ActionStyle.Default,

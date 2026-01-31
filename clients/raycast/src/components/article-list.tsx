@@ -14,7 +14,7 @@ type ArticleListProps = (
 async function confirmMarkAllRead(feedTitle: string): Promise<boolean> {
   return await confirmAlert({
     title: "Mark All as Read",
-    message: `Are you sure you want to mark all articles in "${feedTitle}" as read?`,
+    message: `Are you sure you want to mark all articles in ${feedTitle} as read?`,
     primaryAction: {
       title: "Mark All as Read",
       style: Alert.ActionStyle.Default,
