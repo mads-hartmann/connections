@@ -95,7 +95,7 @@ let list_all_query =
     Caqti_type.(
       t2
         (t5 bool bool (option string) (option string) (option string))
-        (t2 (t4 (option string) (option string) bool int) int))
+        (t2 (t5 (option string) (option string) (option string) bool int) int))
     ->* uri_row_type)
     list_all_base
 
@@ -104,14 +104,14 @@ let count_all_query =
     Caqti_type.(
       t2
         (t4 bool bool (option string) (option string))
-        (t3 (option string) (option string) bool))
+        (t4 (option string) (option string) (option string) bool))
     ->! Caqti_type.int)
     {|
       SELECT COUNT(*) FROM uris u
       WHERE (? = false OR u.read_at IS NULL)
         AND (? = false OR u.read_later_at IS NOT NULL)
         AND (? IS NULL OR u.id IN (SELECT uri_id FROM uri_tags ut JOIN tags t ON ut.tag_id = t.id WHERE t.name = ?))
-        AND (? IS NULL OR u.title LIKE ? OR u.url LIKE ?)
+        AND (? IS NULL OR u.title LIKE ? OR u.url LIKE ? OR u.og_title LIKE ?)
         AND (? = false OR u.connection_id IS NULL)
     |}
 
@@ -269,7 +269,7 @@ let list_all ~page ~per_page ~unread_only ~read_later_only ~tag ~orphan_only ?qu
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.find count_all_query
-          ((unread_only, read_later_only, tag, tag), (pattern, pattern, orphan_only)))
+          ((unread_only, read_later_only, tag, tag), (pattern, pattern, pattern, orphan_only)))
       pool
   in
   let+ rows =
@@ -277,7 +277,7 @@ let list_all ~page ~per_page ~unread_only ~read_later_only ~tag ~orphan_only ?qu
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.collect_list list_all_query
           ( (unread_only, read_later_only, tag, tag, pattern),
-            ((pattern, pattern, orphan_only, per_page), offset) ))
+            ((pattern, pattern, pattern, orphan_only, per_page), offset) ))
       pool
   in
   let data = List.map tuple_to_uri rows in
