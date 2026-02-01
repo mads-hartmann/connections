@@ -103,6 +103,8 @@ export default function Command() {
       case "uris-all":
       case "uris-unread":
       case "uris-read-later":
+      case "uris-upvoted":
+      case "uris-downvoted":
         return {
           isLoading: isLoadingUris,
           pagination: urisPagination,
