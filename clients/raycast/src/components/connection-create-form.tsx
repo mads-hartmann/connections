@@ -191,6 +191,9 @@ function ConnectionPreviewForm({ metadata, sourceUrl, revalidate }: ConnectionPr
         info={metadata.bio || undefined}
       />
 
+      {/* Show discovered photo */}
+      {metadata.photo && <Form.Description title="Photo" text={metadata.photo} />}
+
       {/* Show extracted metadata as read-only info */}
       {detailParts.length > 0 && <Form.Description text={detailParts.join("  •  ")} />}
 
