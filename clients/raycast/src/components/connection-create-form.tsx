@@ -55,13 +55,17 @@ export function ConnectionCreateForm({ revalidate }: CreateConnectionFormProps) 
 async function createConnection(
   name: string,
   url?: string,
+  photo?: string,
   feeds?: Array<{ url: string; title: string | null }>,
   profiles?: Array<Metadata.ClassifiedProfileWithFieldType>,
 ) {
+  const body: { name: string; url?: string; photo?: string } = { name };
+  if (url) body.url = url;
+  if (photo) body.photo = photo;
   const response = await fetch(`${getServerUrl()}/connections`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, url }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     const error = await response.json();
@@ -135,7 +139,7 @@ function ConnectionPreviewForm({ metadata, sourceUrl, revalidate }: ConnectionPr
       // Collect selected metadata profiles from checkbox values
       const profilesToCreate = classifiedProfiles.filter((p) => values[`profile_${p.url}`] === true);
 
-      await createConnection(name.trim(), sourceUrl, feedsToCreate, profilesToCreate);
+      await createConnection(name.trim(), sourceUrl, metadata.photo, feedsToCreate, profilesToCreate);
 
       const parts: string[] = [];
       if (feedsToCreate.length > 0) parts.push(`${feedsToCreate.length} feed(s)`);
