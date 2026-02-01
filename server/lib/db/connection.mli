@@ -24,3 +24,6 @@ val update :
   (Model.Connection.t option, Caqti_error.t) result
 
 val delete : id:int -> (bool, Caqti_error.t) result
+
+val find_by_host : host:string -> (Model.Connection.t list, Caqti_error.t) result
+(** Find connections that have a Website metadata field or RSS feed URL matching the given host. *)

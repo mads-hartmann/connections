@@ -18,6 +18,7 @@ type ViewType =
   | "uris-read-later"
   | "uris-upvoted"
   | "uris-downvoted"
+  | "uris-inbox"
   | "tags";
 
 interface Preferences {
@@ -53,7 +54,8 @@ export default function Command() {
     selectedView === "uris-unread" ||
     selectedView === "uris-read-later" ||
     selectedView === "uris-upvoted" ||
-    selectedView === "uris-downvoted";
+    selectedView === "uris-downvoted" ||
+    selectedView === "uris-inbox";
 
   const {
     isLoading: isLoadingUris,
@@ -69,6 +71,7 @@ export default function Command() {
         readLater: selectedView === "uris-read-later",
         upvoted: selectedView === "uris-upvoted",
         downvoted: selectedView === "uris-downvoted",
+        orphan: selectedView === "uris-inbox",
       }),
     {
       mapResult(result: Uri.UrisResponse) {
@@ -105,6 +108,7 @@ export default function Command() {
       case "uris-read-later":
       case "uris-upvoted":
       case "uris-downvoted":
+      case "uris-inbox":
         return {
           isLoading: isLoadingUris,
           pagination: urisPagination,
@@ -143,6 +147,7 @@ export default function Command() {
             <List.Dropdown.Item title="Read Later" value="uris-read-later" icon={Icon.Clock} />
             <List.Dropdown.Item title="Upvoted" value="uris-upvoted" icon={Icon.ArrowUp} />
             <List.Dropdown.Item title="Downvoted" value="uris-downvoted" icon={Icon.ArrowDown} />
+            <List.Dropdown.Item title="Inbox" value="uris-inbox" icon={Icon.Tray} />
           </List.Dropdown.Section>
         </List.Dropdown>
       }

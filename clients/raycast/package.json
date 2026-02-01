@@ -57,6 +57,12 @@
       "mode": "view"
     },
     {
+      "name": "create-uri",
+      "title": "Create URI",
+      "description": "Save a URL with metadata",
+      "mode": "view"
+    },
+    {
       "name": "unread-count",
       "title": "Unread Articles",
       "description": "Shows unread article count in menu bar",
