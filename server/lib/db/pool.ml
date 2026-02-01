@@ -56,5 +56,32 @@ let exec_sql sql =
   in
   apply statements
 
+(* Execute SQL statements that may fail (for migrations) *)
+let exec_sql_ignore_errors sql =
+  let pool = get () in
+  let statements =
+    String.split_on_char ';' sql
+    |> List.map String.trim
+    |> List.filter (fun s -> String.length s > 0)
+  in
+  let exec_statement stmt =
+    let query =
+      Caqti_request.Infix.(Caqti_type.unit ->. Caqti_type.unit) stmt
+    in
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.exec query ())
+      pool
+  in
+  List.iter (fun stmt -> ignore (exec_statement stmt)) statements
+
+(* Migrations for existing databases - these may fail if columns already exist *)
+let migrations =
+  {|
+  ALTER TABLE connections ADD COLUMN note TEXT;
+  ALTER TABLE uris ADD COLUMN note TEXT
+|}
+
 (* Apply database schema embedded at build time from schema.sql *)
-let apply_schema () = exec_sql Schema_sql.content
+let apply_schema () =
+  exec_sql Schema_sql.content;
+  exec_sql_ignore_errors migrations

@@ -23,6 +23,7 @@ val og_fetched_at : t -> string option
 val og_fetch_error : t -> string option
 val vote : t -> int option
 val voted_at : t -> string option
+val note : t -> string option
 
 val create :
   id:int ->
@@ -48,8 +49,10 @@ val create :
   og_fetch_error:string option ->
   vote:int option ->
   voted_at:string option ->
+  note:string option ->
   t
 
+val with_note : t -> string option -> t
 val to_json : t -> Yojson.Safe.t
 val paginated_to_json : t Shared.Paginated.t -> Yojson.Safe.t
 val error_to_json : string -> Yojson.Safe.t

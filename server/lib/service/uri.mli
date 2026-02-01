@@ -54,3 +54,4 @@ val mark_all_read : feed_id:int -> (int, Error.t) result
 val mark_all_read_global : unit -> (int, Error.t) result
 val mark_all_read_by_connection : connection_id:int -> (int, Error.t) result
 val delete : id:int -> (unit, Error.t) result
+val update_note : id:int -> note:string option -> (Model.Uri_entry.t, Error.t) result

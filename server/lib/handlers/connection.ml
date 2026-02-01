@@ -81,6 +81,19 @@ let delete_connection _request id =
   let* () = Service.Connection.delete ~id |> Handler_utils.or_connection_error in
   Response.of_string ~body:"" `No_content
 
+type update_note_request = { note : string option [@yojson.option] }
+[@@deriving yojson]
+
+let update_note request id =
+  let* { note } =
+    Handler_utils.parse_json_body update_note_request_of_yojson request
+    |> Handler_utils.or_bad_request
+  in
+  let* connection =
+    Service.Connection.update_note ~id ~note |> Handler_utils.or_connection_error
+  in
+  Handler_utils.json_response (Model.Connection.to_json connection)
+
 (* Find the Website metadata field for a connection *)
 let find_website_url (connection : Model.Connection.t) =
   List.find_opt
@@ -177,5 +190,6 @@ let routes () =
     |> request |> into refresh_metadata_preview;
     post (s "connections") |> request |> into create;
     put (s "connections" / int) |> request |> into update;
+    put (s "connections" / int / s "note") |> request |> into update_note;
     delete (s "connections" / int) |> request |> into delete_connection;
   ]

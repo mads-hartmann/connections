@@ -30,6 +30,11 @@ val update :
   photo:string option ->
   (Model.Connection.t, Error.t) result
 
+val update_note :
+  id:int ->
+  note:string option ->
+  (Model.Connection.t, Error.t) result
+
 val delete : id:int -> (unit, Error.t) result
 
 val find_by_host : host:string -> (Model.Connection.t list, Error.t) result

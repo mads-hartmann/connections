@@ -32,6 +32,7 @@ export interface Uri {
   og_fetch_error: string | null;
   vote: number | null;
   voted_at: string | null;
+  note: string | null;
 }
 
 export interface UrisResponse {
@@ -236,6 +237,19 @@ export async function createUri(request: CreateUriRequest): Promise<Uri> {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to create URI");
+  }
+  return response.json();
+}
+
+export async function updateUriNote(id: number, note: string | null): Promise<Uri> {
+  const response = await fetch(`${getServerUrl()}/uris/${id}/note`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update URI note");
   }
   return response.json();
 }

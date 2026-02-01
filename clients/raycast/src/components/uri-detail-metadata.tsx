@@ -57,6 +57,12 @@ export function UriDetailMetadata({ uri }: { uri: Uri }) {
               </List.Item.Detail.Metadata.TagList>
             </>
           )}
+          {uri.note && (
+            <>
+              <List.Item.Detail.Metadata.Separator />
+              <List.Item.Detail.Metadata.Label title="Note" text={uri.note} />
+            </>
+          )}
         </List.Item.Detail.Metadata>
       }
     />

@@ -1,5 +1,5 @@
-(* URI row type with connection, tags JSON, OG fields, and vote: 23 fields *)
-(* Split as t2 of (t2 of (t6, t2), t2 of (t7, t2 of (t6, t2))) *)
+(* URI row type with connection, tags JSON, OG fields, vote, and note: 24 fields *)
+(* Split as t2 of (t2 of (t6, t2), t2 of (t7, t2 of (t6, t3))) *)
 let uri_row_type =
   Caqti_type.(
     t2
@@ -12,7 +12,7 @@ let uri_row_type =
          (t2
             (t6 (option string) (option string) (option string) (option string)
                (option string) (option string))
-            (t2 (option int) (option string)))))
+            (t3 (option int) (option string) (option string)))))
 
 (* Upsert input type: 9 fields *)
 let upsert_input_type =
@@ -53,7 +53,8 @@ let base_select =
       u.og_fetched_at,
       u.og_fetch_error,
       u.vote,
-      u.voted_at
+      u.voted_at,
+      u.note
     FROM uris u
     LEFT JOIN connections c ON u.connection_id = c.id
   |}
@@ -224,17 +225,22 @@ let list_needing_og_metadata_query =
   Caqti_request.Infix.(Caqti_type.int ->* uri_row_type)
     (base_select ^ " WHERE u.og_fetched_at IS NULL LIMIT ?")
 
+let update_note_query =
+  Caqti_request.Infix.(
+    Caqti_type.(t2 (option string) int) ->. Caqti_type.unit)
+    "UPDATE uris SET note = ? WHERE id = ?"
+
 let tuple_to_uri
     ( ( (id, feed_id, connection_id, connection_name, kind_id, title),
         (url, published_at) ),
       ( (content, author, image_url, created_at, read_at, read_later_at, tags_json),
         ( (og_title, og_description, og_image, og_site_name, og_fetched_at, og_fetch_error),
-          (vote, voted_at) ) ) ) =
+          (vote, voted_at, note) ) ) ) =
   let kind = Model.Uri_kind.of_id_exn kind_id in
   Model.Uri_entry.create ~id ~feed_id ~connection_id ~connection_name ~kind ~title ~url
     ~published_at ~content ~author ~image_url ~created_at ~read_at ~read_later_at
     ~tags:(Tag_json.parse tags_json) ~og_title ~og_description ~og_image
-    ~og_site_name ~og_fetched_at ~og_fetch_error ~vote ~voted_at
+    ~og_site_name ~og_fetched_at ~og_fetch_error ~vote ~voted_at ~note
 
 let get ~id =
   let pool = Pool.get () in
@@ -467,3 +473,22 @@ let list_needing_og_metadata ~limit =
       Db.collect_list list_needing_og_metadata_query limit)
     pool
   |> Result.map (List.map tuple_to_uri)
+
+let update_note ~id ~note =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let* exists =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
+      pool
+  in
+  match exists with
+  | 0 -> Ok None
+  | _ ->
+      let* () =
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.exec update_note_query (note, id))
+          pool
+      in
+      get ~id

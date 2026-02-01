@@ -3,6 +3,7 @@ import { usePromise } from "@raycast/utils";
 import { Uri, markUriRead, refreshUriMetadata } from "../api/uri";
 import { fetchUriContent, isUriContentError } from "../api/uri-content";
 import { UriEditForm } from "./uri-edit-form";
+import { UriNoteForm } from "./uri-note-form";
 
 interface UriDetailProps {
   uri: Uri;
@@ -92,6 +93,12 @@ ${contentBody}
           {uri.author && <Detail.Metadata.Label title="Author" text={uri.author} />}
           <Detail.Metadata.Label title="Published" text={formatDate(uri.published_at)} />
           <Detail.Metadata.Label title="Read" text={isRead ? formatDate(uri.read_at) : "Unread"} />
+          {uri.note && (
+            <>
+              <Detail.Metadata.Separator />
+              <Detail.Metadata.Label title="Note" text={uri.note} />
+            </>
+          )}
         </Detail.Metadata>
       }
       navigationTitle={uri.title || undefined}
@@ -108,6 +115,12 @@ ${contentBody}
             icon={Icon.Pencil}
             shortcut={Keyboard.Shortcut.Common.Edit}
             target={<UriEditForm uri={uri} revalidate={revalidateUris} />}
+          />
+          <Action.Push
+            title="Edit Note"
+            icon={Icon.Paragraph}
+            shortcut={{ modifiers: ["cmd"], key: "n" }}
+            target={<UriNoteForm uri={uri} revalidate={revalidateUris} />}
           />
           <Action
             title="Refresh Metadata"

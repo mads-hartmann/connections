@@ -22,6 +22,7 @@ type t = {
   og_fetch_error : string option; [@yojson.option]
   vote : int option;
   voted_at : string option; [@yojson.option]
+  note : string option; [@yojson.option]
 }
 
 let id t = t.id
@@ -47,11 +48,12 @@ let og_fetched_at t = t.og_fetched_at
 let og_fetch_error t = t.og_fetch_error
 let vote t = t.vote
 let voted_at t = t.voted_at
+let note t = t.note
 
 let create ~id ~feed_id ~connection_id ~connection_name ~kind ~title ~url
     ~published_at ~content ~author ~image_url ~created_at ~read_at ~read_later_at
     ~tags ~og_title ~og_description ~og_image ~og_site_name ~og_fetched_at
-    ~og_fetch_error ~vote ~voted_at =
+    ~og_fetch_error ~vote ~voted_at ~note =
   {
     id;
     feed_id;
@@ -76,7 +78,10 @@ let create ~id ~feed_id ~connection_id ~connection_name ~kind ~title ~url
     og_fetch_error;
     vote;
     voted_at;
+    note;
   }
+
+let with_note t note = { t with note }
 
 let nullable_string_to_json = function
   | Some v -> `String v
@@ -112,6 +117,7 @@ let to_json t =
        ("og_fetch_error", nullable_string_to_json t.og_fetch_error);
        ("vote", nullable_int_to_json t.vote);
        ("voted_at", nullable_string_to_json t.voted_at);
+       ("note", nullable_string_to_json t.note);
      ])
 
 let paginated_to_json response = Shared.Paginated.to_json to_json response
@@ -157,3 +163,4 @@ let equal a b =
   && Option.equal String.equal a.og_fetch_error b.og_fetch_error
   && Option.equal Int.equal a.vote b.vote
   && Option.equal String.equal a.voted_at b.voted_at
+  && Option.equal String.equal a.note b.note

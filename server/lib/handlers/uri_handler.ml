@@ -181,6 +181,19 @@ let delete_uri _request id =
   let* () = Service.Uri.delete ~id |> Handler_utils.or_uri_error in
   Response.of_string ~body:"" `No_content
 
+type update_note_request = { note : string option [@yojson.option] }
+[@@deriving yojson]
+
+let update_note request id =
+  let* { note } =
+    Handler_utils.parse_json_body update_note_request_of_yojson request
+    |> Handler_utils.or_bad_request
+  in
+  let* uri =
+    Service.Uri.update_note ~id ~note |> Handler_utils.or_uri_error
+  in
+  Handler_utils.json_response (Model.Uri_entry.to_json uri)
+
 let refresh_metadata _request id =
   let* uri = Service.Uri.get ~id |> Handler_utils.or_uri_error in
   let sw, env = get_context () in
@@ -222,6 +235,7 @@ let routes () =
     |> request |> into mark_all_read_global;
     get (s "uris" / int) |> request |> into get_uri;
     put (s "uris" / int) |> request |> into update;
+    put (s "uris" / int / s "note") |> request |> into update_note;
     post (s "uris" / int / s "read") |> request |> into mark_read;
     post (s "uris" / int / s "read-later") |> request |> into mark_read_later;
     post (s "uris" / int / s "vote") |> request |> into vote;

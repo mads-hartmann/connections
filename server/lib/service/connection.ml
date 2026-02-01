@@ -31,6 +31,12 @@ let update ~id ~name ~photo =
   | Ok None -> Error Error.Not_found
   | Ok (Some connection) -> Ok connection
 
+let update_note ~id ~note =
+  match Db.Connection.update_note ~id ~note with
+  | Error err -> Error (Error.Database err)
+  | Ok None -> Error Error.Not_found
+  | Ok (Some connection) -> Ok connection
+
 let delete ~id =
   match Db.Connection.delete ~id with
   | Error err -> Error (Error.Database err)

@@ -32,6 +32,12 @@ export function ConnectionDetailMetadata({ connection }: ConnectionDetailMetadat
               ))}
             </List.Item.Detail.Metadata.TagList>
           )}
+          {connection.note && (
+            <>
+              <List.Item.Detail.Metadata.Separator />
+              <List.Item.Detail.Metadata.Label title="Note" text={connection.note} />
+            </>
+          )}
           {connection.metadata.length > 0 && <List.Item.Detail.Metadata.Separator />}
           {connection.metadata.map((m) => {
             const url = getMetadataUrl(m);
