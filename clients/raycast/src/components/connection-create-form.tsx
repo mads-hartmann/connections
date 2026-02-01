@@ -55,13 +55,17 @@ export function ConnectionCreateForm({ revalidate }: CreateConnectionFormProps) 
 async function createConnection(
   name: string,
   url?: string,
+  photo?: string,
   feeds?: Array<{ url: string; title: string | null }>,
   profiles?: Array<Metadata.ClassifiedProfileWithFieldType>,
 ) {
+  const body: { name: string; url?: string; photo?: string } = { name };
+  if (url) body.url = url;
+  if (photo) body.photo = photo;
   const response = await fetch(`${getServerUrl()}/connections`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, url }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     const error = await response.json();
@@ -72,14 +76,15 @@ async function createConnection(
   // Create feeds if provided
   if (feeds && feeds.length > 0) {
     for (const feed of feeds) {
+      const feedBody: { connection_id: number; url: string; title?: string } = {
+        connection_id: connection.id,
+        url: feed.url,
+      };
+      if (feed.title) feedBody.title = feed.title;
       await fetch(`${getServerUrl()}/connections/${connection.id}/feeds`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          connection_id: connection.id,
-          url: feed.url,
-          title: feed.title,
-        }),
+        body: JSON.stringify(feedBody),
       });
     }
   }
@@ -135,7 +140,7 @@ function ConnectionPreviewForm({ metadata, sourceUrl, revalidate }: ConnectionPr
       // Collect selected metadata profiles from checkbox values
       const profilesToCreate = classifiedProfiles.filter((p) => values[`profile_${p.url}`] === true);
 
-      await createConnection(name.trim(), sourceUrl, feedsToCreate, profilesToCreate);
+      await createConnection(name.trim(), sourceUrl, metadata.photo, feedsToCreate, profilesToCreate);
 
       const parts: string[] = [];
       if (feedsToCreate.length > 0) parts.push(`${feedsToCreate.length} feed(s)`);
@@ -186,6 +191,9 @@ function ConnectionPreviewForm({ metadata, sourceUrl, revalidate }: ConnectionPr
         placeholder="Enter connection's name"
         info={metadata.bio || undefined}
       />
+
+      {/* Show discovered photo */}
+      {metadata.photo && <Form.Description title="Photo" text={metadata.photo} />}
 
       {/* Show extracted metadata as read-only info */}
       {detailParts.length > 0 && <Form.Description text={detailParts.join("  •  ")} />}

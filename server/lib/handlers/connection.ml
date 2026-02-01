@@ -29,18 +29,22 @@ let get_connection _request id =
   let* connection = Service.Connection.get ~id |> Handler_utils.or_connection_error in
   Handler_utils.json_response (Model.Connection.to_json connection)
 
-type create_request = { name : string; url : string option [@yojson.option] }
+type create_request = {
+  name : string;
+  url : string option; [@yojson.option]
+  photo : string option; [@yojson.option]
+}
 [@@deriving yojson]
 
 let create request =
-  let* { name; url } =
+  let* { name; url; photo } =
     Handler_utils.parse_json_body create_request_of_yojson request
     |> Handler_utils.or_bad_request
   in
   if String.trim name = "" then Handler_utils.bad_request "Name cannot be empty"
   else
     let* connection =
-      Service.Connection.create ~name () |> Handler_utils.or_connection_error
+      Service.Connection.create ~name ?photo () |> Handler_utils.or_connection_error
     in
     let () =
       match url with
