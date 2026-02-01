@@ -31,3 +31,6 @@ val update :
   (Model.Connection.t, Error.t) result
 
 val delete : id:int -> (unit, Error.t) result
+
+val find_by_host : host:string -> (Model.Connection.t list, Error.t) result
+(** Find connections that have a Website metadata field or RSS feed URL matching the given host. *)

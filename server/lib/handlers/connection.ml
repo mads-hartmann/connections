@@ -150,12 +150,24 @@ let refresh_metadata_preview _request id =
   in
   Handler_utils.json_response response
 
+let find_by_host request =
+  let* host =
+    Handler_utils.query "host" request
+    |> Handler_utils.or_not_found "Missing 'host' query parameter"
+  in
+  let* connections =
+    Service.Connection.find_by_host ~host |> Handler_utils.or_connection_error
+  in
+  Handler_utils.json_response
+    (`List (List.map Model.Connection.to_json connections))
+
 let routes () =
   let open Tapak.Router in
   [
     get (s "connections")
     |> extract Pagination.Pagination.pagination_extractor
     |> request |> into list;
+    get (s "connections" / s "by-host") |> request |> into find_by_host;
     get (s "connections" / int) |> request |> into get_connection;
     get (s "connections" / int / s "refresh-metadata")
     |> request |> into refresh_metadata_preview;

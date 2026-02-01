@@ -312,3 +312,55 @@ let list_with_counts ~page ~per_page ?query () =
   in
   let data = List.map (attach_metadata_with_counts metadata_tbl) connections in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
+
+(* Find connections by host - matches Website metadata and RSS feed URLs *)
+let find_by_host_query =
+  Caqti_request.Infix.(Caqti_type.(t4 string string string string) ->* connection_row_type)
+    {|
+      SELECT DISTINCT c.id, c.name, c.photo,
+             COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
+                       FROM connection_tags ct
+                       JOIN tags t ON ct.tag_id = t.id
+                       WHERE ct.connection_id = c.id), '[]') as tags
+      FROM connections c
+      LEFT JOIN connection_metadata cm ON cm.connection_id = c.id AND cm.field_type_id = 6
+      LEFT JOIN rss_feeds f ON f.connection_id = c.id
+      WHERE
+        (cm.value IS NOT NULL AND (cm.value LIKE ? OR cm.value LIKE ?))
+        OR
+        (f.url IS NOT NULL AND (f.url LIKE ? OR f.url LIKE ?))
+      ORDER BY c.name ASC
+    |}
+
+let find_by_host ~host =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  (* Match URLs like https://host/... or http://host/... *)
+  let pattern_https = "https://" ^ host ^ "%"
+  and pattern_http = "http://" ^ host ^ "%" in
+  let* rows =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        Db.collect_list find_by_host_query (pattern_https, pattern_http, pattern_https, pattern_http))
+      pool
+  in
+  let connections = List.map tuple_to_connection rows in
+  let connection_ids = List.map Model.Connection.id connections in
+  if List.length connection_ids = 0 then Ok connections
+  else
+    let query = metadata_by_connection_ids_query connection_ids in
+    let+ metadata_rows =
+      Caqti_eio.Pool.use
+        (fun (module Db : Caqti_eio.CONNECTION) -> Db.collect_list query ())
+        pool
+    in
+    let metadata_tbl =
+      group_metadata_by_connection (List.filter_map tuple_to_metadata metadata_rows)
+    in
+    List.map
+      (fun c ->
+        let metadata =
+          Option.value ~default:[] (Hashtbl.find_opt metadata_tbl (Model.Connection.id c))
+        in
+        Model.Connection.with_metadata c metadata)
+      connections

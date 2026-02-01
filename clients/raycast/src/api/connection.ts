@@ -178,3 +178,13 @@ export async function fetchRefreshMetadataPreview(connectionId: number): Promise
   }
   return response.json();
 }
+
+export async function findByHost(host: string): Promise<Connection[]> {
+  const params = new URLSearchParams({ host });
+  const response = await fetch(`${getServerUrl()}/connections/by-host?${params.toString()}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to find connections by host");
+  }
+  return response.json();
+}

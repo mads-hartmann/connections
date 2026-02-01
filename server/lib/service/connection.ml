@@ -36,3 +36,7 @@ let delete ~id =
   | Error err -> Error (Error.Database err)
   | Ok false -> Error Error.Not_found
   | Ok true -> Ok ()
+
+let find_by_host ~host =
+  Db.Connection.find_by_host ~host
+  |> Result.map_error (fun err -> Error.Database err)
