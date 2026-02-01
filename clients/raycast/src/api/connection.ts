@@ -68,8 +68,9 @@ export async function getConnection(id: number): Promise<ConnectionDetail> {
 }
 
 export async function updateConnection(id: number, name: string, photo?: string | null): Promise<ConnectionDetail> {
-  const body: { name: string; photo?: string | null } = { name };
-  if (photo !== undefined) {
+  const body: { name: string; photo?: string } = { name };
+  // Only include photo if it's a non-empty string (server expects field to be absent or a string, not null)
+  if (photo) {
     body.photo = photo;
   }
   const response = await fetch(`${getServerUrl()}/connections/${id}`, {
