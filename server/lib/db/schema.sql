@@ -5,7 +5,8 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS connections (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
-  photo TEXT
+  photo TEXT,
+  note TEXT
 );
 
 -- Tags table
@@ -84,6 +85,7 @@ CREATE TABLE IF NOT EXISTS uris (
   og_fetch_error TEXT,
   vote INTEGER,
   voted_at TEXT,
+  note TEXT,
   FOREIGN KEY (feed_id) REFERENCES rss_feeds(id) ON DELETE CASCADE,
   FOREIGN KEY (connection_id) REFERENCES connections(id) ON DELETE SET NULL,
   FOREIGN KEY (kind_id) REFERENCES uri_kinds(id)

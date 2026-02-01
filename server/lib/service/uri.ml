@@ -76,3 +76,9 @@ let delete ~id =
   | Error err -> Error (Error.Database err)
   | Ok false -> Error Error.Not_found
   | Ok true -> Ok ()
+
+let update_note ~id ~note =
+  match Db.Uri_store.update_note ~id ~note with
+  | Error err -> Error (Error.Database err)
+  | Ok None -> Error Error.Not_found
+  | Ok (Some uri) -> Ok uri

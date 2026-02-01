@@ -17,6 +17,7 @@ export interface Connection {
   id: number;
   name: string;
   photo?: string;
+  note?: string;
   feed_count: number;
   uri_count: number;
   unread_uri_count: number;
@@ -28,6 +29,7 @@ export interface ConnectionDetail {
   id: number;
   name: string;
   photo?: string;
+  note?: string;
   metadata: ConnectionMetadata[];
 }
 
@@ -81,6 +83,19 @@ export async function updateConnection(id: number, name: string, photo?: string 
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to update connection");
+  }
+  return response.json();
+}
+
+export async function updateConnectionNote(id: number, note: string | null): Promise<ConnectionDetail> {
+  const response = await fetch(`${getServerUrl()}/connections/${id}/note`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update connection note");
   }
   return response.json();
 }

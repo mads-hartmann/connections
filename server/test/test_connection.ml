@@ -9,7 +9,8 @@ open Test_helpers
 
 let test_connection_to_json () =
   let connection =
-    Model.Connection.create ~id:1 ~name:"Alice" ~photo:None ~tags:[] ~metadata:[]
+    Model.Connection.create ~id:1 ~name:"Alice" ~photo:None ~note:None ~tags:[]
+      ~metadata:[]
   in
   let json = Model.Connection.to_json connection in
   match json with
@@ -30,7 +31,8 @@ let test_connection_to_json_with_metadata () =
     ]
   in
   let connection =
-    Model.Connection.create ~id:1 ~name:"Alice" ~photo:None ~tags:[] ~metadata
+    Model.Connection.create ~id:1 ~name:"Alice" ~photo:None ~note:None ~tags:[]
+      ~metadata
   in
   let json = Model.Connection.to_json connection in
   match json with
@@ -42,10 +44,12 @@ let test_connection_to_json_with_metadata () =
 
 let test_connection_paginated_to_json () =
   let alice =
-    Model.Connection.create ~id:1 ~name:"Alice" ~photo:None ~tags:[] ~metadata:[]
+    Model.Connection.create ~id:1 ~name:"Alice" ~photo:None ~note:None ~tags:[]
+      ~metadata:[]
   in
   let bob =
-    Model.Connection.create ~id:2 ~name:"Bob" ~photo:None ~tags:[] ~metadata:[]
+    Model.Connection.create ~id:2 ~name:"Bob" ~photo:None ~note:None ~tags:[]
+      ~metadata:[]
   in
   let response =
     Model.Shared.Paginated.make ~data:[ alice; bob ] ~page:1 ~per_page:10

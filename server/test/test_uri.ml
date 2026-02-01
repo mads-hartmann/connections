@@ -17,7 +17,7 @@ let test_uri_to_json () =
       ~image_url:None ~created_at:"2024-01-01 12:00:00" ~read_at:None
       ~read_later_at:None ~tags:[] ~og_title:None ~og_description:None
       ~og_image:None ~og_site_name:None ~og_fetched_at:None ~og_fetch_error:None
-      ~vote:None ~voted_at:None
+      ~vote:None ~voted_at:None ~note:None
   in
   let json = Model.Uri_entry.to_json uri in
   match json with

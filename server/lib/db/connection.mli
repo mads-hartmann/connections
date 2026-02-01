@@ -23,6 +23,11 @@ val update :
   photo:string option ->
   (Model.Connection.t option, Caqti_error.t) result
 
+val update_note :
+  id:int ->
+  note:string option ->
+  (Model.Connection.t option, Caqti_error.t) result
+
 val delete : id:int -> (bool, Caqti_error.t) result
 
 val find_by_host : host:string -> (Model.Connection.t list, Caqti_error.t) result

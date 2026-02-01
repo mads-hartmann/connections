@@ -8,6 +8,7 @@ import { FeedList } from "./feed-list";
 import { ImportOpml } from "./import-opml";
 import { ConnectionDetailMetadata } from "./connection-detail-metadata";
 import { ConnectionEditForm } from "./connection-edit-form";
+import { ConnectionNoteForm } from "./connection-note-form";
 import { ConnectionRefreshMetadata } from "./connection-refresh-metadata";
 
 interface ConnectionItemProps {
@@ -73,6 +74,12 @@ export function ConnectionListItem({ connection, revalidate, showDetail, onToggl
             icon={Icon.Pencil}
             shortcut={Keyboard.Shortcut.Common.Edit}
             target={<ConnectionEditForm connection={connection} revalidate={revalidate} />}
+          />
+          <Action.Push
+            title="Edit Note"
+            icon={Icon.Paragraph}
+            shortcut={{ modifiers: ["cmd"], key: "n" }}
+            target={<ConnectionNoteForm connection={connection} revalidate={revalidate} />}
           />
           <Action.Push
             title="Refresh from Website"

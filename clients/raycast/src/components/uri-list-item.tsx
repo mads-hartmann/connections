@@ -3,6 +3,7 @@ import * as Uri from "../api/uri";
 import { UriDetail } from "./uri-detail";
 import { UriDetailMetadata } from "./uri-detail-metadata";
 import { UriEditForm } from "./uri-edit-form";
+import { UriNoteForm } from "./uri-note-form";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -192,6 +193,12 @@ export function UriListItem({ uri, revalidate, showDetail, onToggleDetail, onMar
             icon={Icon.Pencil}
             shortcut={Keyboard.Shortcut.Common.Edit}
             target={<UriEditForm uri={uri} revalidate={revalidate} />}
+          />
+          <Action.Push
+            title="Edit Note"
+            icon={Icon.Paragraph}
+            shortcut={{ modifiers: ["cmd"], key: "n" }}
+            target={<UriNoteForm uri={uri} revalidate={revalidate} />}
           />
           <Action
             title="Delete"

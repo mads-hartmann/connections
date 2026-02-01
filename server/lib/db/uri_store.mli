@@ -78,3 +78,8 @@ val update_og_metadata :
 
 val list_needing_og_metadata :
   limit:int -> (Model.Uri_entry.t list, Caqti_error.t) result
+
+val update_note :
+  id:int ->
+  note:string option ->
+  (Model.Uri_entry.t option, Caqti_error.t) result

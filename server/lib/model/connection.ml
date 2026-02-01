@@ -2,6 +2,7 @@ type t = {
   id : int;
   name : string;
   photo : string option;
+  note : string option;
   tags : Tag.t list;
   metadata : Connection_metadata.t list;
 }
@@ -10,6 +11,7 @@ type t_with_counts = {
   id : int;
   name : string;
   photo : string option;
+  note : string option;
   tags : Tag.t list;
   feed_count : int;
   uri_count : int;
@@ -21,18 +23,20 @@ type t_with_counts = {
 let id_with_counts (t : t_with_counts) = t.id
 let name_with_counts (t : t_with_counts) = t.name
 let photo_with_counts (t : t_with_counts) = t.photo
+let note_with_counts (t : t_with_counts) = t.note
 let tags_with_counts (t : t_with_counts) = t.tags
 let feed_count (t : t_with_counts) = t.feed_count
 let uri_count (t : t_with_counts) = t.uri_count
 let unread_uri_count (t : t_with_counts) = t.unread_uri_count
 let metadata_with_counts (t : t_with_counts) = t.metadata
 
-let create_with_counts ~id ~name ~photo ~tags ~feed_count ~uri_count
+let create_with_counts ~id ~name ~photo ~note ~tags ~feed_count ~uri_count
     ~unread_uri_count ~metadata =
   {
     id;
     name;
     photo;
+    note;
     tags;
     feed_count;
     uri_count;
@@ -41,18 +45,24 @@ let create_with_counts ~id ~name ~photo ~tags ~feed_count ~uri_count
   }
 
 let with_metadata_counts (t : t_with_counts) metadata = { t with metadata }
+let with_note_counts (t : t_with_counts) note = { t with note }
 
 (* t accessors - defined last so they match the .mli signature *)
 let id (t : t) = t.id
 let name (t : t) = t.name
 let photo (t : t) = t.photo
+let note (t : t) = t.note
 let tags (t : t) = t.tags
 let metadata (t : t) = t.metadata
-let create ~id ~name ~photo ~tags ~metadata = { id; name; photo; tags; metadata }
-let with_metadata (t : t) metadata = { t with metadata }
 
-let photo_to_json photo =
-  match photo with Some p -> [ ("photo", `String p) ] | None -> []
+let create ~id ~name ~photo ~note ~tags ~metadata =
+  { id; name; photo; note; tags; metadata }
+
+let with_metadata (t : t) metadata = { t with metadata }
+let with_note (t : t) note = { t with note }
+
+let optional_string_to_json key value =
+  match value with Some v -> [ (key, `String v) ] | None -> []
 
 let to_json (t : t) =
   `Assoc
@@ -60,7 +70,8 @@ let to_json (t : t) =
        ("id", `Int t.id);
        ("name", `String t.name);
      ]
-    @ photo_to_json t.photo
+    @ optional_string_to_json "photo" t.photo
+    @ optional_string_to_json "note" t.note
     @ [
         ("tags", `List (List.map Tag.yojson_of_t t.tags));
         ("metadata", `List (List.map Connection_metadata.to_json t.metadata));
@@ -72,7 +83,8 @@ let to_json_with_counts (t : t_with_counts) =
        ("id", `Int t.id);
        ("name", `String t.name);
      ]
-    @ photo_to_json t.photo
+    @ optional_string_to_json "photo" t.photo
+    @ optional_string_to_json "note" t.note
     @ [
         ("tags", `List (List.map Tag.yojson_of_t t.tags));
         ("feed_count", `Int t.feed_count);
@@ -91,16 +103,20 @@ let error_to_json = Shared.error_to_json
 (* t_with_counts pp/equal - defined first *)
 let pp_with_counts fmt (t : t_with_counts) =
   Format.fprintf fmt
-    "{ id = %d; name = %S; photo = %a; tags = [%d items]; feed_count = %d; \
-     uri_count = %d; unread_uri_count = %d; metadata = [%d items] }"
+    "{ id = %d; name = %S; photo = %a; note = %a; tags = [%d items]; \
+     feed_count = %d; uri_count = %d; unread_uri_count = %d; metadata = [%d \
+     items] }"
     t.id t.name
     (Format.pp_print_option Format.pp_print_string)
-    t.photo (List.length t.tags) t.feed_count t.uri_count
-    t.unread_uri_count (List.length t.metadata)
+    t.photo
+    (Format.pp_print_option Format.pp_print_string)
+    t.note (List.length t.tags) t.feed_count t.uri_count t.unread_uri_count
+    (List.length t.metadata)
 
 let equal_with_counts (a : t_with_counts) (b : t_with_counts) =
   Int.equal a.id b.id && String.equal a.name b.name
   && Option.equal String.equal a.photo b.photo
+  && Option.equal String.equal a.note b.note
   && List.equal Tag.equal a.tags b.tags
   && Int.equal a.feed_count b.feed_count
   && Int.equal a.uri_count b.uri_count
@@ -110,14 +126,17 @@ let equal_with_counts (a : t_with_counts) (b : t_with_counts) =
 (* t pp/equal - defined last to match .mli *)
 let pp fmt (t : t) =
   Format.fprintf fmt
-    "{ id = %d; name = %S; photo = %a; tags = [%d items]; metadata = [%d items] \
-     }"
+    "{ id = %d; name = %S; photo = %a; note = %a; tags = [%d items]; metadata = \
+     [%d items] }"
     t.id t.name
     (Format.pp_print_option Format.pp_print_string)
-    t.photo (List.length t.tags) (List.length t.metadata)
+    t.photo
+    (Format.pp_print_option Format.pp_print_string)
+    t.note (List.length t.tags) (List.length t.metadata)
 
 let equal (a : t) (b : t) =
   Int.equal a.id b.id && String.equal a.name b.name
   && Option.equal String.equal a.photo b.photo
+  && Option.equal String.equal a.note b.note
   && List.equal Tag.equal a.tags b.tags
   && List.equal Connection_metadata.equal a.metadata b.metadata

@@ -1,8 +1,10 @@
-(* Row type definitions - 4 fields with tags JSON *)
-let connection_row_type = Caqti_type.(t4 int string (option string) string)
+(* Row type definitions - 5 fields with tags JSON *)
+let connection_row_type =
+  Caqti_type.(t5 int string (option string) (option string) string)
 
 let connection_with_counts_row_type =
-  Caqti_type.(t7 int string (option string) string int int int)
+  Caqti_type.(
+    t2 (t4 int string (option string) (option string)) (t4 string int int int))
 
 let metadata_row_type = Caqti_type.(t4 int int int string)
 
@@ -13,7 +15,7 @@ let insert_query =
 (* Base SELECT with tags JSON aggregation *)
 let select_with_tags =
   {|
-    SELECT c.id, c.name, c.photo,
+    SELECT c.id, c.name, c.photo, c.note,
            COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
                      FROM connection_tags ct
                      JOIN tags t ON ct.tag_id = t.id
@@ -49,6 +51,7 @@ let list_with_counts_query =
         c.id,
         c.name,
         c.photo,
+        c.note,
         COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
                   FROM connection_tags ct
                   JOIN tags t ON ct.tag_id = t.id
@@ -74,6 +77,7 @@ let list_with_counts_filtered_query =
         c.id,
         c.name,
         c.photo,
+        c.note,
         COALESCE((SELECT json_group_array(json_object('id', t.id, 'name', t.name))
                   FROM connection_tags ct
                   JOIN tags t ON ct.tag_id = t.id
@@ -96,6 +100,11 @@ let update_query =
   Caqti_request.Infix.(
     Caqti_type.(t3 string (option string) int) ->. Caqti_type.unit)
     "UPDATE connections SET name = ?, photo = ? WHERE id = ?"
+
+let update_note_query =
+  Caqti_request.Infix.(
+    Caqti_type.(t2 (option string) int) ->. Caqti_type.unit)
+    "UPDATE connections SET note = ? WHERE id = ?"
 
 let delete_query =
   Caqti_request.Infix.(Caqti_type.int ->. Caqti_type.unit)
@@ -145,16 +154,16 @@ let group_metadata_by_connection metadata =
   Hashtbl.iter (fun k v -> Hashtbl.replace tbl k (List.rev v)) tbl;
   tbl
 
-let tuple_to_connection (id, name, photo, tags_json) =
-  Model.Connection.create ~id ~name ~photo ~tags:(Tag_json.parse tags_json)
-    ~metadata:[]
+let tuple_to_connection (id, name, photo, note, tags_json) =
+  Model.Connection.create ~id ~name ~photo ~note
+    ~tags:(Tag_json.parse tags_json) ~metadata:[]
 
 let tuple_to_connection_with_counts
-    (id, name, photo, tags_json, feed_count, uri_count, unread_uri_count)
+    ((id, name, photo, note), (tags_json, feed_count, uri_count, unread_uri_count))
     =
-  Model.Connection.create_with_counts ~id ~name ~photo
-    ~tags:(Tag_json.parse tags_json) ~feed_count ~uri_count
-    ~unread_uri_count ~metadata:[]
+  Model.Connection.create_with_counts ~id ~name ~photo ~note
+    ~tags:(Tag_json.parse tags_json) ~feed_count ~uri_count ~unread_uri_count
+    ~metadata:[]
 
 let attach_metadata_with_counts metadata_tbl
     (connection : Model.Connection.t_with_counts) =
@@ -244,6 +253,25 @@ let update ~id ~name ~photo =
         Caqti_eio.Pool.use
           (fun (module Db : Caqti_eio.CONNECTION) ->
             Db.exec update_query (name, photo, id))
+          pool
+      in
+      get ~id
+
+let update_note ~id ~note =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let* exists =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) -> Db.find exists_query id)
+      pool
+  in
+  match exists with
+  | 0 -> Ok None
+  | _ ->
+      let* () =
+        Caqti_eio.Pool.use
+          (fun (module Db : Caqti_eio.CONNECTION) ->
+            Db.exec update_note_query (note, id))
           pool
       in
       get ~id

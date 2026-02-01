@@ -3,6 +3,7 @@ type t
 val id : t -> int
 val name : t -> string
 val photo : t -> string option
+val note : t -> string option
 val tags : t -> Tag.t list
 val metadata : t -> Connection_metadata.t list
 
@@ -10,11 +11,13 @@ val create :
   id:int ->
   name:string ->
   photo:string option ->
+  note:string option ->
   tags:Tag.t list ->
   metadata:Connection_metadata.t list ->
   t
 
 val with_metadata : t -> Connection_metadata.t list -> t
+val with_note : t -> string option -> t
 val to_json : t -> Yojson.Safe.t
 val paginated_to_json : t Shared.Paginated.t -> Yojson.Safe.t
 val error_to_json : string -> Yojson.Safe.t
@@ -26,6 +29,7 @@ type t_with_counts
 val id_with_counts : t_with_counts -> int
 val name_with_counts : t_with_counts -> string
 val photo_with_counts : t_with_counts -> string option
+val note_with_counts : t_with_counts -> string option
 val tags_with_counts : t_with_counts -> Tag.t list
 val feed_count : t_with_counts -> int
 val uri_count : t_with_counts -> int
@@ -36,6 +40,7 @@ val create_with_counts :
   id:int ->
   name:string ->
   photo:string option ->
+  note:string option ->
   tags:Tag.t list ->
   feed_count:int ->
   uri_count:int ->
@@ -45,6 +50,8 @@ val create_with_counts :
 
 val with_metadata_counts :
   t_with_counts -> Connection_metadata.t list -> t_with_counts
+
+val with_note_counts : t_with_counts -> string option -> t_with_counts
 
 val to_json_with_counts : t_with_counts -> Yojson.Safe.t
 
