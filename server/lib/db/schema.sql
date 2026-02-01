@@ -82,6 +82,8 @@ CREATE TABLE IF NOT EXISTS uris (
   og_site_name TEXT,
   og_fetched_at TEXT,
   og_fetch_error TEXT,
+  vote INTEGER,
+  voted_at TEXT,
   FOREIGN KEY (feed_id) REFERENCES rss_feeds(id) ON DELETE CASCADE,
   FOREIGN KEY (connection_id) REFERENCES connections(id) ON DELETE SET NULL,
   FOREIGN KEY (kind_id) REFERENCES uri_kinds(id)
@@ -108,6 +110,7 @@ CREATE INDEX IF NOT EXISTS idx_uris_read_at ON uris(read_at);
 CREATE INDEX IF NOT EXISTS idx_uris_read_later_at ON uris(read_later_at);
 CREATE INDEX IF NOT EXISTS idx_uris_og_fetched_at ON uris(og_fetched_at);
 CREATE INDEX IF NOT EXISTS idx_uris_kind_id ON uris(kind_id);
+CREATE INDEX IF NOT EXISTS idx_uris_vote ON uris(vote);
 
 -- Indexes for tag lookups
 CREATE INDEX IF NOT EXISTS idx_connection_tags_connection_id ON connection_tags(connection_id);

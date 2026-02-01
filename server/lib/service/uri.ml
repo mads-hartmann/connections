@@ -27,8 +27,10 @@ let update ~id ~connection_id ~kind ~title =
   | Ok None -> Error Error.Not_found
   | Ok (Some uri) -> Ok uri
 
-let list_all ~page ~per_page ~unread_only ~read_later_only ~tag ~orphan_only ?query () =
-  Db.Uri_store.list_all ~page ~per_page ~unread_only ~read_later_only ~tag ~orphan_only ?query ()
+let list_all ~page ~per_page ~unread_only ~read_later_only ~upvoted_only
+    ~downvoted_only ~tag ~orphan_only ?query () =
+  Db.Uri_store.list_all ~page ~per_page ~unread_only ~read_later_only
+    ~upvoted_only ~downvoted_only ~tag ~orphan_only ?query ()
   |> Result.map_error (fun err -> Error.Database err)
 
 let list_by_feed ~feed_id ~page ~per_page =
@@ -47,6 +49,12 @@ let mark_read ~id ~read =
 
 let mark_read_later ~id ~read_later =
   match Db.Uri_store.mark_read_later ~id ~read_later with
+  | Error err -> Error (Error.Database err)
+  | Ok None -> Error Error.Not_found
+  | Ok (Some uri) -> Ok uri
+
+let vote ~id ~vote =
+  match Db.Uri_store.vote ~id ~vote with
   | Error err -> Error (Error.Database err)
   | Ok None -> Error Error.Not_found
   | Ok (Some uri) -> Ok uri

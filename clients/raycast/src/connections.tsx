@@ -11,7 +11,14 @@ import * as Connection from "./api/connection";
 import * as Uri from "./api/uri";
 import * as Tag from "./api/tag";
 
-type ViewType = "connections" | "uris-all" | "uris-unread" | "uris-read-later" | "tags";
+type ViewType =
+  | "connections"
+  | "uris-all"
+  | "uris-unread"
+  | "uris-read-later"
+  | "uris-upvoted"
+  | "uris-downvoted"
+  | "tags";
 
 interface Preferences {
   serverUrl: string;
@@ -42,7 +49,11 @@ export default function Command() {
   });
 
   const isUrisView =
-    selectedView === "uris-all" || selectedView === "uris-unread" || selectedView === "uris-read-later";
+    selectedView === "uris-all" ||
+    selectedView === "uris-unread" ||
+    selectedView === "uris-read-later" ||
+    selectedView === "uris-upvoted" ||
+    selectedView === "uris-downvoted";
 
   const {
     isLoading: isLoadingUris,
@@ -56,6 +67,8 @@ export default function Command() {
         query: searchText || undefined,
         unread: selectedView === "uris-unread",
         readLater: selectedView === "uris-read-later",
+        upvoted: selectedView === "uris-upvoted",
+        downvoted: selectedView === "uris-downvoted",
       }),
     {
       mapResult(result: Uri.UrisResponse) {
@@ -126,6 +139,8 @@ export default function Command() {
             <List.Dropdown.Item title="All" value="uris-all" icon={Icon.Document} />
             <List.Dropdown.Item title="Unread" value="uris-unread" icon={Icon.Circle} />
             <List.Dropdown.Item title="Read Later" value="uris-read-later" icon={Icon.Clock} />
+            <List.Dropdown.Item title="Upvoted" value="uris-upvoted" icon={Icon.ArrowUp} />
+            <List.Dropdown.Item title="Downvoted" value="uris-downvoted" icon={Icon.ArrowDown} />
           </List.Dropdown.Section>
         </List.Dropdown>
       }

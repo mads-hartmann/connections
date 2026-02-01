@@ -18,6 +18,8 @@ val list_all :
   per_page:int ->
   unread_only:bool ->
   read_later_only:bool ->
+  upvoted_only:bool ->
+  downvoted_only:bool ->
   tag:string option ->
   orphan_only:bool ->
   ?query:string ->
@@ -55,6 +57,9 @@ val mark_read :
 
 val mark_read_later :
   id:int -> read_later:bool -> (Model.Uri_entry.t option, Caqti_error.t) result
+
+val vote :
+  id:int -> vote:int option -> (Model.Uri_entry.t option, Caqti_error.t) result
 
 val mark_all_read : feed_id:int -> (int, Caqti_error.t) result
 val mark_all_read_global : unit -> (int, Caqti_error.t) result

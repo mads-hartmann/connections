@@ -21,6 +21,8 @@ val og_image : t -> string option
 val og_site_name : t -> string option
 val og_fetched_at : t -> string option
 val og_fetch_error : t -> string option
+val vote : t -> int option
+val voted_at : t -> string option
 
 val create :
   id:int ->
@@ -44,6 +46,8 @@ val create :
   og_site_name:string option ->
   og_fetched_at:string option ->
   og_fetch_error:string option ->
+  vote:int option ->
+  voted_at:string option ->
   t
 
 val to_json : t -> Yojson.Safe.t

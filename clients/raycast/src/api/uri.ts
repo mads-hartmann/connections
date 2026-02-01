@@ -30,6 +30,8 @@ export interface Uri {
   og_site_name: string | null;
   og_fetched_at: string | null;
   og_fetch_error: string | null;
+  vote: number | null;
+  voted_at: string | null;
 }
 
 export interface UrisResponse {
@@ -49,12 +51,16 @@ export function listAllUrl({
   page,
   unread,
   readLater,
+  upvoted,
+  downvoted,
   orphan,
   query,
 }: {
   page: number;
   unread?: boolean;
   readLater?: boolean;
+  upvoted?: boolean;
+  downvoted?: boolean;
   orphan?: boolean;
   query?: string;
 }) {
@@ -64,6 +70,12 @@ export function listAllUrl({
   }
   if (readLater) {
     params.set("read_later", "true");
+  }
+  if (upvoted) {
+    params.set("upvoted", "true");
+  }
+  if (downvoted) {
+    params.set("downvoted", "true");
   }
   if (orphan) {
     params.set("orphan", "true");
@@ -169,6 +181,19 @@ export async function markReadLater(id: number, readLater: boolean): Promise<Uri
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to update read later status");
+  }
+  return response.json();
+}
+
+export async function voteUri(id: number, vote: number | null): Promise<Uri> {
+  const response = await fetch(`${getServerUrl()}/uris/${id}/vote`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ vote }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to vote on URI");
   }
   return response.json();
 }
