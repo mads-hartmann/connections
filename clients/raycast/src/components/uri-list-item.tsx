@@ -22,6 +22,8 @@ interface UriListItemProps {
 export function UriListItem({ uri, revalidate, showDetail, onToggleDetail, onMarkAllRead }: UriListItemProps) {
   const isRead = uri.read_at !== null;
   const isReadLater = uri.read_later_at !== null;
+  const isUpvoted = uri.vote === 1;
+  const isDownvoted = uri.vote === -1;
 
   const toggleRead = async () => {
     try {
@@ -48,6 +50,57 @@ export function UriListItem({ uri, revalidate, showDetail, onToggleDetail, onMar
       showToast({
         style: Toast.Style.Failure,
         title: "Failed to update URI",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+
+  const upvote = async () => {
+    try {
+      await Uri.voteUri(uri.id, 1);
+      revalidate();
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Upvoted",
+      });
+    } catch (error) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to upvote",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+
+  const downvote = async () => {
+    try {
+      await Uri.voteUri(uri.id, -1);
+      revalidate();
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Downvoted",
+      });
+    } catch (error) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to downvote",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+
+  const removeVote = async () => {
+    try {
+      await Uri.voteUri(uri.id, null);
+      revalidate();
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Vote removed",
+      });
+    } catch (error) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to remove vote",
         message: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -97,6 +150,8 @@ export function UriListItem({ uri, revalidate, showDetail, onToggleDetail, onMar
           ? undefined
           : [
               { text: formatDate(uri.published_at) },
+              ...(isUpvoted ? [{ icon: Icon.ArrowUp, tooltip: "Upvoted" }] : []),
+              ...(isDownvoted ? [{ icon: Icon.ArrowDown, tooltip: "Downvoted" }] : []),
               { icon: isRead ? Icon.Checkmark : Icon.Circle, tooltip: isRead ? "Read" : "Unread" },
             ]
       }
@@ -117,6 +172,21 @@ export function UriListItem({ uri, revalidate, showDetail, onToggleDetail, onMar
             onAction={toggleReadLater}
             shortcut={{ modifiers: ["cmd"], key: "l" }}
           />
+          <Action title="Upvote" icon={Icon.ArrowUp} onAction={upvote} shortcut={{ modifiers: ["cmd"], key: "u" }} />
+          <Action
+            title="Downvote"
+            icon={Icon.ArrowDown}
+            onAction={downvote}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "u" }}
+          />
+          {uri.vote !== null && (
+            <Action
+              title="Remove Vote"
+              icon={Icon.XMarkCircle}
+              onAction={removeVote}
+              shortcut={{ modifiers: ["cmd", "opt"], key: "u" }}
+            />
+          )}
           <Action.Push
             title="Edit URI"
             icon={Icon.Pencil}

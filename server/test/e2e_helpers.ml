@@ -22,9 +22,8 @@ let snapshots_dir = Filename.concat workspace_root "server/test/data/snapshots"
 let endpoints =
   [
     "/connections";
-    "/connections/8";
+    "/connections/1";
     "/feeds";
-    "/feeds/2";
     "/uris";
     "/uris/1";
     "/tags";

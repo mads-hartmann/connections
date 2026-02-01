@@ -24,8 +24,7 @@ function formatDate(dateStr: string | null): string {
 export function UriDetailMetadata({ uri }: { uri: Uri }) {
   const { data: uriContent, isLoading } = usePromise(fetchUriContent, [uri.id]);
 
-  const serverContent =
-    uriContent && !isUriContentError(uriContent) ? uriContent.markdown : null;
+  const serverContent = uriContent && !isUriContentError(uriContent) ? uriContent.markdown : null;
 
   const isRead = uri.read_at !== null;
   const isReadLater = uri.read_later_at !== null;

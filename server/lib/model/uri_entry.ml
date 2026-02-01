@@ -20,6 +20,8 @@ type t = {
   og_site_name : string option; [@yojson.option]
   og_fetched_at : string option; [@yojson.option]
   og_fetch_error : string option; [@yojson.option]
+  vote : int option;
+  voted_at : string option; [@yojson.option]
 }
 
 let id t = t.id
@@ -43,11 +45,13 @@ let og_image t = t.og_image
 let og_site_name t = t.og_site_name
 let og_fetched_at t = t.og_fetched_at
 let og_fetch_error t = t.og_fetch_error
+let vote t = t.vote
+let voted_at t = t.voted_at
 
 let create ~id ~feed_id ~connection_id ~connection_name ~kind ~title ~url
     ~published_at ~content ~author ~image_url ~created_at ~read_at ~read_later_at
     ~tags ~og_title ~og_description ~og_image ~og_site_name ~og_fetched_at
-    ~og_fetch_error =
+    ~og_fetch_error ~vote ~voted_at =
   {
     id;
     feed_id;
@@ -70,6 +74,8 @@ let create ~id ~feed_id ~connection_id ~connection_name ~kind ~title ~url
     og_site_name;
     og_fetched_at;
     og_fetch_error;
+    vote;
+    voted_at;
   }
 
 let nullable_string_to_json = function
@@ -104,6 +110,8 @@ let to_json t =
        ("og_site_name", nullable_string_to_json t.og_site_name);
        ("og_fetched_at", nullable_string_to_json t.og_fetched_at);
        ("og_fetch_error", nullable_string_to_json t.og_fetch_error);
+       ("vote", nullable_int_to_json t.vote);
+       ("voted_at", nullable_string_to_json t.voted_at);
      ])
 
 let paginated_to_json response = Shared.Paginated.to_json to_json response
@@ -112,7 +120,7 @@ let error_to_json = Shared.error_to_json
 let pp fmt t =
   Format.fprintf fmt
     "{ id = %d; feed_id = %a; connection_id = %a; kind = %a; title = %a; url = \
-     %S; read_later_at = %a }"
+     %S; read_later_at = %a; vote = %a }"
     t.id
     (Format.pp_print_option Format.pp_print_int)
     t.feed_id
@@ -122,6 +130,8 @@ let pp fmt t =
     t.title t.url
     (Format.pp_print_option Format.pp_print_string)
     t.read_later_at
+    (Format.pp_print_option Format.pp_print_int)
+    t.vote
 
 let equal a b =
   Int.equal a.id b.id
@@ -145,3 +155,5 @@ let equal a b =
   && Option.equal String.equal a.og_site_name b.og_site_name
   && Option.equal String.equal a.og_fetched_at b.og_fetched_at
   && Option.equal String.equal a.og_fetch_error b.og_fetch_error
+  && Option.equal Int.equal a.vote b.vote
+  && Option.equal String.equal a.voted_at b.voted_at

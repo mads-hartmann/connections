@@ -1,5 +1,5 @@
-(* URI row type with connection, tags JSON and OG fields: 21 fields *)
-(* Split as t2 of (t2 of (t6, t2), t2 of (t7, t6)) *)
+(* URI row type with connection, tags JSON, OG fields, and vote: 23 fields *)
+(* Split as t2 of (t2 of (t6, t2), t2 of (t7, t2 of (t6, t2))) *)
 let uri_row_type =
   Caqti_type.(
     t2
@@ -9,8 +9,10 @@ let uri_row_type =
       (t2
          (t7 (option string) (option string) (option string) string
             (option string) (option string) string)
-         (t6 (option string) (option string) (option string) (option string)
-            (option string) (option string))))
+         (t2
+            (t6 (option string) (option string) (option string) (option string)
+               (option string) (option string))
+            (t2 (option int) (option string)))))
 
 (* Upsert input type: 9 fields *)
 let upsert_input_type =
@@ -49,7 +51,9 @@ let base_select =
       u.og_image,
       u.og_site_name,
       u.og_fetched_at,
-      u.og_fetch_error
+      u.og_fetch_error,
+      u.vote,
+      u.voted_at
     FROM uris u
     LEFT JOIN connections c ON u.connection_id = c.id
   |}
@@ -83,6 +87,8 @@ let list_all_base =
   base_select
   ^ {| WHERE (? = false OR u.read_at IS NULL)
        AND (? = false OR u.read_later_at IS NOT NULL)
+       AND (? = false OR u.vote = 1)
+       AND (? = false OR u.vote = -1)
        AND (? IS NULL OR u.id IN (SELECT uri_id FROM uri_tags ut JOIN tags t ON ut.tag_id = t.id WHERE t.name = ?))
        AND (? IS NULL OR u.title LIKE ? OR u.url LIKE ? OR u.og_title LIKE ?)
        AND (? = false OR u.connection_id IS NULL)
@@ -94,7 +100,7 @@ let list_all_query =
   Caqti_request.Infix.(
     Caqti_type.(
       t2
-        (t5 bool bool (option string) (option string) (option string))
+        (t2 (t4 bool bool bool bool) (t3 (option string) (option string) (option string)))
         (t2 (t5 (option string) (option string) (option string) bool int) int))
     ->* uri_row_type)
     list_all_base
@@ -103,13 +109,15 @@ let count_all_query =
   Caqti_request.Infix.(
     Caqti_type.(
       t2
-        (t4 bool bool (option string) (option string))
-        (t4 (option string) (option string) (option string) bool))
+        (t2 (t4 bool bool bool bool) (t2 (option string) (option string)))
+        (t5 (option string) (option string) (option string) (option string) bool))
     ->! Caqti_type.int)
     {|
       SELECT COUNT(*) FROM uris u
       WHERE (? = false OR u.read_at IS NULL)
         AND (? = false OR u.read_later_at IS NOT NULL)
+        AND (? = false OR u.vote = 1)
+        AND (? = false OR u.vote = -1)
         AND (? IS NULL OR u.id IN (SELECT uri_id FROM uri_tags ut JOIN tags t ON ut.tag_id = t.id WHERE t.name = ?))
         AND (? IS NULL OR u.title LIKE ? OR u.url LIKE ? OR u.og_title LIKE ?)
         AND (? = false OR u.connection_id IS NULL)
@@ -149,6 +157,11 @@ let mark_read_query =
 let mark_read_later_query =
   Caqti_request.Infix.(Caqti_type.(t2 (option string) int) ->. Caqti_type.unit)
     "UPDATE uris SET read_later_at = ? WHERE id = ?"
+
+let vote_query =
+  Caqti_request.Infix.(
+    Caqti_type.(t3 (option int) (option string) int) ->. Caqti_type.unit)
+    "UPDATE uris SET vote = ?, voted_at = ? WHERE id = ?"
 
 let mark_all_read_by_feed_query =
   Caqti_request.Infix.(Caqti_type.(t2 string int) ->! Caqti_type.int)
@@ -215,12 +228,13 @@ let tuple_to_uri
     ( ( (id, feed_id, connection_id, connection_name, kind_id, title),
         (url, published_at) ),
       ( (content, author, image_url, created_at, read_at, read_later_at, tags_json),
-        (og_title, og_description, og_image, og_site_name, og_fetched_at, og_fetch_error) ) ) =
+        ( (og_title, og_description, og_image, og_site_name, og_fetched_at, og_fetch_error),
+          (vote, voted_at) ) ) ) =
   let kind = Model.Uri_kind.of_id_exn kind_id in
   Model.Uri_entry.create ~id ~feed_id ~connection_id ~connection_name ~kind ~title ~url
     ~published_at ~content ~author ~image_url ~created_at ~read_at ~read_later_at
     ~tags:(Tag_json.parse tags_json) ~og_title ~og_description ~og_image
-    ~og_site_name ~og_fetched_at ~og_fetch_error
+    ~og_site_name ~og_fetched_at ~og_fetch_error ~vote ~voted_at
 
 let get ~id =
   let pool = Pool.get () in
@@ -268,7 +282,8 @@ let list_by_connection ~connection_id ~page ~per_page ~unread_only =
   let data = List.map tuple_to_uri rows in
   Model.Shared.Paginated.make ~data ~page ~per_page ~total
 
-let list_all ~page ~per_page ~unread_only ~read_later_only ~tag ~orphan_only ?query () =
+let list_all ~page ~per_page ~unread_only ~read_later_only ~upvoted_only
+    ~downvoted_only ~tag ~orphan_only ?query () =
   let open Result.Syntax in
   let pool = Pool.get () in
   let offset = (page - 1) * per_page in
@@ -277,14 +292,15 @@ let list_all ~page ~per_page ~unread_only ~read_later_only ~tag ~orphan_only ?qu
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.find count_all_query
-          ((unread_only, read_later_only, tag, tag), (pattern, pattern, pattern, orphan_only)))
+          ( ((unread_only, read_later_only, upvoted_only, downvoted_only), (tag, tag)),
+            (pattern, pattern, pattern, pattern, orphan_only) ))
       pool
   in
   let+ rows =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.collect_list list_all_query
-          ( (unread_only, read_later_only, tag, tag, pattern),
+          ( ((unread_only, read_later_only, upvoted_only, downvoted_only), (tag, tag, pattern)),
             ((pattern, pattern, pattern, orphan_only, per_page), offset) ))
       pool
   in
@@ -359,6 +375,20 @@ let mark_read_later ~id ~read_later =
     Caqti_eio.Pool.use
       (fun (module Db : Caqti_eio.CONNECTION) ->
         Db.exec mark_read_later_query (now, id))
+      pool
+  in
+  get ~id
+
+let vote ~id ~vote =
+  let open Result.Syntax in
+  let pool = Pool.get () in
+  let voted_at =
+    Option.map (fun _ -> Ptime_clock.now () |> Ptime.to_rfc3339) vote
+  in
+  let* () =
+    Caqti_eio.Pool.use
+      (fun (module Db : Caqti_eio.CONNECTION) ->
+        Db.exec vote_query (vote, voted_at, id))
       pool
   in
   get ~id

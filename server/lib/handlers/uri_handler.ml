@@ -37,12 +37,14 @@ let list_by_connection request (pagination : Pagination.Pagination.t) connection
 let list_all request (pagination : Pagination.Pagination.t) =
   let unread_only = Handler_utils.query "unread" request = Some "true" in
   let read_later_only = Handler_utils.query "read_later" request = Some "true" in
+  let upvoted_only = Handler_utils.query "upvoted" request = Some "true" in
+  let downvoted_only = Handler_utils.query "downvoted" request = Some "true" in
   let orphan_only = Handler_utils.query "orphan" request = Some "true" in
   let tag = Handler_utils.query "tag" request in
   let query = Handler_utils.query "query" request in
   let* paginated =
     Service.Uri.list_all ~page:pagination.page ~per_page:pagination.per_page
-      ~unread_only ~read_later_only ~tag ~orphan_only ?query ()
+      ~unread_only ~read_later_only ~upvoted_only ~downvoted_only ~tag ~orphan_only ?query ()
     |> Handler_utils.or_uri_error
   in
   Handler_utils.json_response (Model.Uri_entry.paginated_to_json paginated)
@@ -143,6 +145,18 @@ let mark_read_later request id =
   in
   Handler_utils.json_response (Model.Uri_entry.to_json uri)
 
+type vote_request = { vote : int option } [@@deriving yojson]
+
+let vote request id =
+  let* { vote } =
+    Handler_utils.parse_json_body vote_request_of_yojson request
+    |> Handler_utils.or_bad_request
+  in
+  let* uri =
+    Service.Uri.vote ~id ~vote |> Handler_utils.or_uri_error
+  in
+  Handler_utils.json_response (Model.Uri_entry.to_json uri)
+
 let mark_all_read _request feed_id =
   let* _ = Service.Rss_feed.get ~id:feed_id |> Handler_utils.or_feed_error in
   let* count =
@@ -210,6 +224,7 @@ let routes () =
     put (s "uris" / int) |> request |> into update;
     post (s "uris" / int / s "read") |> request |> into mark_read;
     post (s "uris" / int / s "read-later") |> request |> into mark_read_later;
+    post (s "uris" / int / s "vote") |> request |> into vote;
     post (s "uris" / int / s "refresh-metadata")
     |> request |> into refresh_metadata;
     get (s "uris" / int / s "content") |> request |> into get_content;
