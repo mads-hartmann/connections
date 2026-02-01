@@ -76,14 +76,15 @@ async function createConnection(
   // Create feeds if provided
   if (feeds && feeds.length > 0) {
     for (const feed of feeds) {
+      const feedBody: { connection_id: number; url: string; title?: string } = {
+        connection_id: connection.id,
+        url: feed.url,
+      };
+      if (feed.title) feedBody.title = feed.title;
       await fetch(`${getServerUrl()}/connections/${connection.id}/feeds`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          connection_id: connection.id,
-          url: feed.url,
-          title: feed.title,
-        }),
+        body: JSON.stringify(feedBody),
       });
     }
   }
