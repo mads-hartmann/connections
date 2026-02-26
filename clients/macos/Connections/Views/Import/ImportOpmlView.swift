@@ -26,7 +26,7 @@ struct ImportOpmlView: View {
             }
         }
         .padding()
-        .frame(width: 550, minHeight: 400)
+        .frame(minWidth: 550, minHeight: 400)
     }
 
     // MARK: - File Picker

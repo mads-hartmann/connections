@@ -101,7 +101,7 @@ struct UriNoteView: View {
             }
         }
         .padding()
-        .frame(width: 450, minHeight: 250)
+        .frame(minWidth: 450, minHeight: 250)
     }
 
     private func save() {
