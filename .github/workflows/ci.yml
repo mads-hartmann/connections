@@ -34,5 +34,5 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-      - run: xcodebuild -scheme Connections -derivedDataPath .build
+      - run: xcodebuild -scheme Connections -destination 'platform=macOS' -derivedDataPath .build
         working-directory: clients/macos
