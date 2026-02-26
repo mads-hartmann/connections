@@ -23,7 +23,8 @@
       "og_fetched_at": null,
       "og_fetch_error": null,
       "vote": null,
-      "voted_at": null
+      "voted_at": null,
+      "note": null
     }
   ],
   "page": 1,

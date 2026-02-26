@@ -44,7 +44,7 @@ struct ConnectionRefreshMetadataView: View {
             if isSubmitting { ProgressView() }
         }
         .padding()
-        .frame(width: 500, minHeight: 300)
+        .frame(minWidth: 500, minHeight: 300)
         .task { await loadPreview() }
     }
 
