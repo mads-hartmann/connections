@@ -5,25 +5,44 @@ A native SwiftUI macOS application for the Connections server.
 ## Requirements
 
 - macOS 14 (Sonoma) or later
-- Xcode 15+
+- Xcode 15+ (includes Swift 5.9+ and the macOS SDK)
 - A running Connections server (default: `http://localhost:8080`)
 
-## Building
+## Building from the Terminal
 
-Open the project in Xcode:
+Build the app bundle using `xcodebuild`:
+
+```bash
+cd clients/macos
+xcodebuild -scheme Connections -derivedDataPath .build
+```
+
+The built `.app` bundle will be at:
+
+```
+.build/Build/Products/Debug/Connections.app
+```
+
+To build a release version:
+
+```bash
+xcodebuild -scheme Connections -configuration Release -derivedDataPath .build
+```
+
+To run the app after building:
+
+```bash
+open .build/Build/Products/Debug/Connections.app
+```
+
+## Building in Xcode
 
 ```bash
 cd clients/macos
 open Package.swift
 ```
 
-Or build from the command line:
-
-```bash
-cd clients/macos
-swift build
-swift run Connections
-```
+Then press ⌘R to build and run.
 
 ## Configuration
 

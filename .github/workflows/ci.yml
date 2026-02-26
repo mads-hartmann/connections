@@ -29,3 +29,10 @@ jobs:
         working-directory: clients/raycast
       - run: npm run build
         working-directory: clients/raycast
+
+  macos-client:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -scheme Connections -derivedDataPath .build
+        working-directory: clients/macos
