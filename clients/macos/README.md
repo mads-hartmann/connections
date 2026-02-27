@@ -15,13 +15,13 @@ Build the app bundle using `xcodebuild`:
 ```bash
 cd clients/macos
 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-xcodebuild -scheme Connections -destination 'platform=macOS' -derivedDataPath .build
+xcodebuild -scheme Connections -derivedDataPath .build -destination 'platform=macOS'
 ```
 
 The built `.app` bundle will be at:
 
 ```
-open .build/Build/Products/Debug/Connections.app
+open .build/Build/Products/Debug/Connections
 ```
 
 To build a release version:
