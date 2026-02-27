@@ -40,12 +40,7 @@ export function UriNoteForm({ uri, revalidate }: UriNoteFormProps) {
         </ActionPanel>
       }
     >
-      <Form.TextArea
-        id="note"
-        title="Note"
-        defaultValue={uri.note || ""}
-        placeholder="Add a note about this URI..."
-      />
+      <Form.TextArea id="note" title="Note" defaultValue={uri.note || ""} placeholder="Add a note about this URI..." />
     </Form>
   );
 }
