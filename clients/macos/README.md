@@ -10,30 +10,25 @@ A native SwiftUI macOS application for the Connections server.
 
 ## Building from the Terminal
 
-Build the app bundle using `xcodebuild`:
+Build the app bundle using the build script:
 
 ```bash
 cd clients/macos
-sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-xcodebuild -scheme Connections -derivedDataPath .build -destination 'platform=macOS'
+./build.sh
 ```
 
-The built `.app` bundle will be at:
-
-```
-open .build/Build/Products/Debug/Connections
-```
+This compiles the Swift code and assembles a proper `.app` bundle at `.build/Connections.app`.
 
 To build a release version:
 
 ```bash
-xcodebuild -scheme Connections -configuration Release -derivedDataPath .build
+./build.sh release
 ```
 
 To run the app after building:
 
 ```bash
-open .build/Build/Products/Debug/Connections.app
+open .build/Connections.app
 ```
 
 ## Building in Xcode
@@ -44,6 +39,9 @@ open Package.swift
 ```
 
 Then press ⌘R to build and run.
+
+> **Note:** Building via Xcode (⌘R) runs the binary directly without an `.app` bundle,
+> so the app won't appear in the Dock or Cmd+Tab. Use `./build.sh` for a proper app experience.
 
 ## Configuration
 
