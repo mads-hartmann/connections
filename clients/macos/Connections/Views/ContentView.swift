@@ -18,20 +18,23 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 800, minHeight: 500)
-        .keyboardShortcut("1", modifiers: .command, action: { selection = .uriFilter(.unread) })
-        .keyboardShortcut("2", modifiers: .command, action: { selection = .uriFilter(.readLater) })
-        .keyboardShortcut("3", modifiers: .command, action: { selection = .uriFilter(.upvoted) })
-        .keyboardShortcut("4", modifiers: .command, action: { selection = .uriFilter(.inbox) })
-    }
-}
-
-extension View {
-    func keyboardShortcut(_ key: Character, modifiers: EventModifiers, action: @escaping () -> Void) -> some View {
-        self.background(
-            Button("") { action() }
-                .keyboardShortcut(KeyEquivalent(key), modifiers: modifiers)
-                .hidden()
-        )
+        .focusable()
+        .onKeyPress(.init("1"), modifiers: .command) {
+            selection = .uriFilter(.unread)
+            return .handled
+        }
+        .onKeyPress(.init("2"), modifiers: .command) {
+            selection = .uriFilter(.readLater)
+            return .handled
+        }
+        .onKeyPress(.init("3"), modifiers: .command) {
+            selection = .uriFilter(.upvoted)
+            return .handled
+        }
+        .onKeyPress(.init("4"), modifiers: .command) {
+            selection = .uriFilter(.inbox)
+            return .handled
+        }
     }
 }
 
