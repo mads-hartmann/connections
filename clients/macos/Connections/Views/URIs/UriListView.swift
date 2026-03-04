@@ -50,8 +50,8 @@ struct UriListView: View {
                         showCreateSheet = true
                     }
                 }
-                ToolbarItem {
-                    if mode == .unread {
+                if mode == .unread {
+                    ToolbarItem {
                         Button("Mark All Read", systemImage: "checkmark.circle") {
                             markAllRead()
                         }
