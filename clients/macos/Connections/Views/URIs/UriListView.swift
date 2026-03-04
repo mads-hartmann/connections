@@ -28,54 +28,52 @@ struct UriListView: View {
     @State private var showCreateSheet = false
 
     var body: some View {
-        NavigationStack {
-            List(selection: $selectedUri) {
-                ForEach(uris) { uri in
-                    UriRowView(uri: uri, onRefresh: loadUris)
-                }
+        List(selection: $selectedUri) {
+            ForEach(uris) { uri in
+                UriRowView(uri: uri, onRefresh: loadUris)
+            }
 
-                if hasMore {
-                    Button("Load More") { loadMore() }
-                        .frame(maxWidth: .infinity)
+            if hasMore {
+                Button("Load More") { loadMore() }
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .searchable(text: $searchText, prompt: "Search URIs...")
+        .onChange(of: searchText) { _, _ in
+            Task { await search() }
+        }
+        .navigationTitle(mode.title)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Create URI", systemImage: "plus") {
+                    showCreateSheet = true
                 }
             }
-            .searchable(text: $searchText, prompt: "Search URIs...")
-            .onChange(of: searchText) { _, _ in
-                Task { await search() }
-            }
-            .navigationTitle(mode.title)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Create URI", systemImage: "plus") {
-                        showCreateSheet = true
-                    }
-                }
-                if mode == .unread {
-                    ToolbarItem {
-                        Button("Mark All Read", systemImage: "checkmark.circle") {
-                            markAllRead()
-                        }
-                    }
-                }
+            if mode == .unread {
                 ToolbarItem {
-                    Button("Refresh", systemImage: "arrow.clockwise") {
-                        loadUris()
+                    Button("Mark All Read", systemImage: "checkmark.circle") {
+                        markAllRead()
                     }
                 }
             }
-            .overlay {
-                if isLoading && uris.isEmpty {
-                    ProgressView()
-                } else if let error {
-                    ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
-                } else if uris.isEmpty && !isLoading {
-                    ContentUnavailableView("No URIs", systemImage: "doc.text", description: Text("No URIs found"))
+            ToolbarItem {
+                Button("Refresh", systemImage: "arrow.clockwise") {
+                    loadUris()
                 }
             }
-            .task { loadUris() }
-            .sheet(isPresented: $showCreateSheet) {
-                CreateUriView(onCreated: loadUris)
+        }
+        .overlay {
+            if isLoading && uris.isEmpty {
+                ProgressView()
+            } else if let error {
+                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+            } else if uris.isEmpty && !isLoading {
+                ContentUnavailableView("No URIs", systemImage: "doc.text", description: Text("No URIs found"))
             }
+        }
+        .task { loadUris() }
+        .sheet(isPresented: $showCreateSheet) {
+            CreateUriView(onCreated: loadUris)
         }
     }
 
