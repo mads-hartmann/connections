@@ -10,9 +10,10 @@ enum UriService {
         readLater: Bool = false,
         upvoted: Bool = false,
         downvoted: Bool = false,
-        orphan: Bool = false
+        orphan: Bool = false,
+        perPage: Int = 20
     ) async throws -> UrisResponse {
-        var params = ["page": "\(page)", "per_page": "20"]
+        var params = ["page": "\(page)", "per_page": "\(perPage)"]
         if let query, !query.isEmpty { params["query"] = query }
         if unread { params["unread"] = "true" }
         if readLater { params["read_later"] = "true" }
