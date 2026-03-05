@@ -1,5 +1,17 @@
 import SwiftUI
 
+// FocusedValue key to expose the sidebar selection to menu commands
+struct SidebarSelectionKey: FocusedValueKey {
+    typealias Value = Binding<SidebarSelection?>
+}
+
+extension FocusedValues {
+    var sidebarSelection: Binding<SidebarSelection?>? {
+        get { self[SidebarSelectionKey.self] }
+        set { self[SidebarSelectionKey.self] = newValue }
+    }
+}
+
 struct ContentView: View {
     @State private var selection: SidebarSelection? = .uriFilter(.unread)
 
@@ -18,23 +30,7 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 800, minHeight: 500)
-        .focusable()
-        .onKeyPress(.init("1"), modifiers: .command) {
-            selection = .uriFilter(.unread)
-            return .handled
-        }
-        .onKeyPress(.init("2"), modifiers: .command) {
-            selection = .uriFilter(.readLater)
-            return .handled
-        }
-        .onKeyPress(.init("3"), modifiers: .command) {
-            selection = .uriFilter(.upvoted)
-            return .handled
-        }
-        .onKeyPress(.init("4"), modifiers: .command) {
-            selection = .uriFilter(.inbox)
-            return .handled
-        }
+        .focusedValue(\.sidebarSelection, $selection)
     }
 }
 
