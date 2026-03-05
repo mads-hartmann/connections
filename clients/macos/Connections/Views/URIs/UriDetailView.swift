@@ -155,8 +155,8 @@ struct UriDetailView: View {
             .frame(width: 280)
         }
         .navigationTitle(uri.displayTitle)
-        .toolbar {
-            ToolbarItem {
+        .toolbar(id: "uriDetail") {
+            ToolbarItem(id: "copyUrl", placement: .secondaryAction) {
                 Button("Copy URL", systemImage: "doc.on.doc") {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(uri.url, forType: .string)

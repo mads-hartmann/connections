@@ -29,12 +29,13 @@ struct ConnectionDetailPaneView: View {
             uriTable
         }
         .navigationTitle(connection.name)
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
+        .toolbar(id: "connectionDetail") {
+            ToolbarItem(id: "createUri", placement: .primaryAction) {
                 Button("Create URI", systemImage: "plus") {
                     showCreateUriSheet = true
                 }
-
+            }
+            ToolbarItem(id: "connectionMenu", placement: .primaryAction) {
                 Menu {
                     Button("Edit Connection", systemImage: "pencil") {
                         showEditSheet = true

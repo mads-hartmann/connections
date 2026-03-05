@@ -43,20 +43,20 @@ struct UriListView: View {
             Task { await search() }
         }
         .navigationTitle(mode.title)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+        .toolbar(id: "uriList") {
+            ToolbarItem(id: "createUri", placement: .primaryAction) {
                 Button("Create URI", systemImage: "plus") {
                     showCreateSheet = true
                 }
             }
-            ToolbarItem {
+            ToolbarItem(id: "markAllRead", placement: .secondaryAction) {
                 Button("Mark All Read", systemImage: "checkmark.circle") {
                     markAllRead()
                 }
                 .opacity(mode == .unread ? 1 : 0)
                 .disabled(mode != .unread)
             }
-            ToolbarItem {
+            ToolbarItem(id: "refresh", placement: .secondaryAction) {
                 Button("Refresh", systemImage: "arrow.clockwise") {
                     loadUris()
                 }

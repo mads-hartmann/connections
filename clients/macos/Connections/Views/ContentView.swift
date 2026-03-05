@@ -19,18 +19,28 @@ struct ContentView: View {
         NavigationSplitView {
             SidebarView(selection: $selection)
         } detail: {
-            switch selection {
-            case .uriFilter(let card):
-                UriListView(mode: card.listMode)
-            case .connection(let connection):
-                ConnectionDetailPaneView(connection: connection)
-            case nil:
-                Text("Select a section")
-                    .foregroundStyle(.secondary)
-            }
+            detailView
         }
         .frame(minWidth: 800, minHeight: 500)
         .focusedValue(\.sidebarSelection, $selection)
+    }
+
+    // Assign a stable id per detail kind so SwiftUI fully recreates the
+    // NSToolbar when switching between detail views instead of trying to
+    // diff toolbar items in-place (which crashes NSToolbar).
+    @ViewBuilder
+    private var detailView: some View {
+        switch selection {
+        case .uriFilter(let card):
+            UriListView(mode: card.listMode)
+                .id("uriFilter-\(card.rawValue)")
+        case .connection(let connection):
+            ConnectionDetailPaneView(connection: connection)
+                .id("connection-\(connection.id)")
+        case nil:
+            Text("Select a section")
+                .foregroundStyle(.secondary)
+        }
     }
 }
 
