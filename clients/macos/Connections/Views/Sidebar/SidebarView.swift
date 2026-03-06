@@ -94,8 +94,8 @@ struct SidebarView: View {
                 Task { await search() }
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+        .toolbar(id: "sidebar") {
+            ToolbarItem(id: "add", placement: .primaryAction) {
                 Menu {
                     Button("Create Connection", systemImage: "plus") {
                         showCreateSheet = true
