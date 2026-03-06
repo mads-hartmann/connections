@@ -14,9 +14,11 @@ struct ConnectionsApp: App {
             CommandGroup(after: .sidebar) {
                 Button("Toggle Sidebar") {
                     guard let binding = sidebarVisibility else { return }
-                    binding.wrappedValue = binding.wrappedValue == .detailOnly
-                        ? .all
-                        : .detailOnly
+                    withAnimation {
+                        binding.wrappedValue = binding.wrappedValue == .detailOnly
+                            ? .all
+                            : .detailOnly
+                    }
                 }
                 .keyboardShortcut("s", modifiers: [.command, .control])
             }

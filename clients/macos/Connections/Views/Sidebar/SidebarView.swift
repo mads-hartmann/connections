@@ -63,7 +63,7 @@ struct SidebarView: View {
             cardGrid
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
-                .padding(.bottom, 4)
+                .padding(.bottom, 24)
 
             // Connection list
             List(selection: Binding(
