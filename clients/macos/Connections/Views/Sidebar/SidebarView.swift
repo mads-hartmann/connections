@@ -63,11 +63,7 @@ struct SidebarView: View {
             cardGrid
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
-                .padding(.bottom, 4)
-
-            Divider()
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
+                .padding(.bottom, 24)
 
             // Connection list
             List(selection: Binding(
@@ -78,16 +74,18 @@ struct SidebarView: View {
                     }
                 }
             )) {
-                ForEach(connections) { connection in
-                    ConnectionSidebarRow(connection: connection)
-                        .tag(connection)
-                }
+                Section("Connections") {
+                    ForEach(connections) { connection in
+                        ConnectionSidebarRow(connection: connection)
+                            .tag(connection)
+                    }
 
-                if hasMore {
-                    Button("Load More") { loadMore() }
-                        .frame(maxWidth: .infinity)
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
+                    if hasMore {
+                        Button("Load More") { loadMore() }
+                            .frame(maxWidth: .infinity)
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
                 }
             }
             .listStyle(.sidebar)
@@ -96,8 +94,8 @@ struct SidebarView: View {
                 Task { await search() }
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            HStack {
+        .toolbar(id: "sidebar") {
+            ToolbarItem(id: "add", placement: .primaryAction) {
                 Menu {
                     Button("Create Connection", systemImage: "plus") {
                         showCreateSheet = true
@@ -106,16 +104,9 @@ struct SidebarView: View {
                         showImportSheet = true
                     }
                 } label: {
-                    Label("Add", systemImage: "plus.circle")
-                        .font(.caption)
+                    Image(systemName: "plus")
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-
-                Spacer()
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
         }
         .navigationTitle("Connections")
         .task {

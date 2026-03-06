@@ -5,24 +5,36 @@ struct SidebarSelectionKey: FocusedValueKey {
     typealias Value = Binding<SidebarSelection?>
 }
 
+// FocusedValue key to expose sidebar visibility to menu commands
+struct SidebarVisibilityKey: FocusedValueKey {
+    typealias Value = Binding<NavigationSplitViewVisibility>
+}
+
 extension FocusedValues {
     var sidebarSelection: Binding<SidebarSelection?>? {
         get { self[SidebarSelectionKey.self] }
         set { self[SidebarSelectionKey.self] = newValue }
     }
+
+    var sidebarVisibility: Binding<NavigationSplitViewVisibility>? {
+        get { self[SidebarVisibilityKey.self] }
+        set { self[SidebarVisibilityKey.self] = newValue }
+    }
 }
 
 struct ContentView: View {
     @State private var selection: SidebarSelection? = .uriFilter(.unread)
+    @State private var sidebarVisibility: NavigationSplitViewVisibility = .automatic
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $sidebarVisibility) {
             SidebarView(selection: $selection)
         } detail: {
             detailView
         }
         .frame(minWidth: 800, minHeight: 500)
         .focusedValue(\.sidebarSelection, $selection)
+        .focusedValue(\.sidebarVisibility, $sidebarVisibility)
     }
 
     // Assign a stable id per detail kind so SwiftUI fully recreates the
