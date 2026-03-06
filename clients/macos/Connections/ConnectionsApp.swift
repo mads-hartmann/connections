@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct ConnectionsApp: App {
     @FocusedValue(\.sidebarSelection) var selection
+    @FocusedValue(\.sidebarVisibility) var sidebarVisibility
 
     var body: some Scene {
         WindowGroup {
@@ -10,6 +11,16 @@ struct ConnectionsApp: App {
         }
         .defaultSize(width: 1000, height: 700)
         .commands {
+            CommandGroup(after: .sidebar) {
+                Button("Toggle Sidebar") {
+                    guard let binding = sidebarVisibility else { return }
+                    binding.wrappedValue = binding.wrappedValue == .detailOnly
+                        ? .all
+                        : .detailOnly
+                }
+                .keyboardShortcut("s", modifiers: [.command, .control])
+            }
+
             CommandMenu("Go") {
                 Button("Unread") {
                     selection?.wrappedValue = .uriFilter(.unread)
