@@ -3,16 +3,16 @@ import SwiftData
 import os
 
 /// Handles periodic RSS/Atom feed synchronization.
-@MainActor
 @Observable
 final class FeedSyncService {
-    private(set) var isSyncing = false
-    private(set) var lastSyncDate: Date?
-    private(set) var lastSyncError: String?
+    @MainActor private(set) var isSyncing = false
+    @MainActor private(set) var lastSyncDate: Date?
+    @MainActor private(set) var lastSyncError: String?
 
     private let logger = Logger(subsystem: "Connections", category: "FeedSync")
 
     /// Sync all feeds: fetch, parse, upsert URIs, associate tags.
+    @MainActor
     func syncAllFeeds(context: ModelContext) async {
         guard !isSyncing else { return }
 
@@ -41,6 +41,7 @@ final class FeedSyncService {
     }
 
     /// Sync a single feed.
+    @MainActor
     @discardableResult
     func syncFeed(_ feed: CDFeed, context: ModelContext) async throws -> Int {
         let feedUrl = feed.url
@@ -86,6 +87,7 @@ final class FeedSyncService {
     }
 
     /// Refresh a single feed (user-triggered).
+    @MainActor
     func refreshFeed(_ feed: CDFeed, context: ModelContext) async {
         do {
             let count = try await syncFeed(feed, context: context)
