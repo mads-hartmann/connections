@@ -2,18 +2,17 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ImportOpmlView: View {
-    let onImported: () -> Void
-
     @Environment(\.dismiss) private var dismiss
-    @State private var preview: ImportPreviewResponse?
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var preview: ImportPreview?
     @State private var isLoading = false
     @State private var error: String?
     @State private var showFilePicker = false
 
-    // Preview state
     @State private var selectedConnections: Set<String> = []
     @State private var isImporting = false
-    @State private var importResult: ImportConfirmResponse?
+    @State private var importResult: ImportResult?
 
     var body: some View {
         VStack(spacing: 16) {
@@ -33,12 +32,10 @@ struct ImportOpmlView: View {
 
     private var filePickerView: some View {
         VStack(spacing: 16) {
-            Text("Import OPML")
-                .font(.headline)
+            Text("Import OPML").font(.headline)
 
             Text("Select an OPML file exported from your RSS reader.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(.secondary)
 
             Button("Choose File...") { showFilePicker = true }
                 .buttonStyle(.borderedProminent)
@@ -50,8 +47,7 @@ struct ImportOpmlView: View {
             }
 
             HStack {
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Spacer()
             }
         }
@@ -66,15 +62,13 @@ struct ImportOpmlView: View {
 
     // MARK: - Preview
 
-    private func importPreviewView(_ preview: ImportPreviewResponse) -> some View {
+    private func importPreviewView(_ preview: ImportPreview) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Import Preview")
-                    .font(.headline)
+                Text("Import Preview").font(.headline)
                 Spacer()
                 Text("\(selectedConnections.count) of \(preview.connections.count) selected")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             ScrollView {
@@ -83,16 +77,13 @@ struct ImportOpmlView: View {
                         HStack {
                             Toggle(isOn: connectionBinding(connection.name)) {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(connection.name)
-                                        .fontWeight(.medium)
+                                    Text(connection.name).fontWeight(.medium)
                                     HStack(spacing: 8) {
                                         Text("\(connection.feeds.count) feed\(connection.feeds.count != 1 ? "s" : "")")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                            .font(.caption).foregroundStyle(.secondary)
                                         if !connection.tags.isEmpty {
                                             Text(connection.tags.joined(separator: ", "))
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
+                                                .font(.caption).foregroundStyle(.secondary)
                                         }
                                     }
                                 }
@@ -103,12 +94,10 @@ struct ImportOpmlView: View {
                     if !preview.errors.isEmpty {
                         Divider()
                         Text("Failed Feeds (\(preview.errors.count))")
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
+                            .font(.subheadline).foregroundStyle(.red)
                         ForEach(preview.errors, id: \.url) { error in
                             HStack {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .foregroundStyle(.red)
+                                Image(systemName: "exclamationmark.triangle").foregroundStyle(.red)
                                 VStack(alignment: .leading) {
                                     Text(error.url).font(.caption)
                                     Text(error.error).font(.caption2).foregroundStyle(.secondary)
@@ -139,28 +128,22 @@ struct ImportOpmlView: View {
 
     // MARK: - Result
 
-    private func importResultView(_ result: ImportConfirmResponse) -> some View {
+    private func importResultView(_ result: ImportResult) -> some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.largeTitle)
-                .foregroundStyle(.green)
+                .font(.largeTitle).foregroundStyle(.green)
 
-            Text("Import Complete")
-                .font(.headline)
+            Text("Import Complete").font(.headline)
 
             VStack(spacing: 4) {
                 Text("\(result.createdConnections) connections created")
                 Text("\(result.createdFeeds) feeds created")
                 Text("\(result.createdTags) tags created")
             }
-            .font(.body)
-            .foregroundStyle(.secondary)
+            .font(.body).foregroundStyle(.secondary)
 
-            Button("Done") {
-                onImported()
-                dismiss()
-            }
-            .keyboardShortcut(.defaultAction)
+            Button("Done") { dismiss() }
+                .keyboardShortcut(.defaultAction)
         }
     }
 
@@ -175,16 +158,21 @@ struct ImportOpmlView: View {
             Task {
                 do {
                     guard url.startAccessingSecurityScopedResource() else {
-                        throw APIError(message: "Cannot access file")
+                        throw NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Cannot access file"])
                     }
                     defer { url.stopAccessingSecurityScopedResource() }
 
                     let content = try String(contentsOf: url, encoding: .utf8)
-                    let result = try await ImportService.previewOpml(content: content)
+                    let result = await OpmlImportService.preview(opmlContent: content)
 
                     await MainActor.run {
-                        preview = result
-                        selectedConnections = Set(result.connections.map(\.name))
+                        switch result {
+                        case .success(let previewData):
+                            preview = previewData
+                            selectedConnections = Set(previewData.connections.map(\.name))
+                        case .failure(let msg):
+                            error = msg
+                        }
                         isLoading = false
                     }
                 } catch {
@@ -199,23 +187,17 @@ struct ImportOpmlView: View {
         }
     }
 
-    private func confirmImport(_ preview: ImportPreviewResponse) {
+    private func confirmImport(_ preview: ImportPreview) {
         isImporting = true
         let connectionsToImport = preview.connections.filter { selectedConnections.contains($0.name) }
-        Task {
-            do {
-                let result = try await ImportService.confirmImport(connections: connectionsToImport)
-                await MainActor.run {
-                    importResult = result
-                    isImporting = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.error = error.localizedDescription
-                    isImporting = false
-                }
-            }
-        }
+
+        let result = OpmlImportService.confirm(
+            connections: connectionsToImport,
+            context: modelContext
+        )
+
+        importResult = result
+        isImporting = false
     }
 
     private func connectionBinding(_ name: String) -> Binding<Bool> {

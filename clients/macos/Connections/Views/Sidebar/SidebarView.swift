@@ -1,17 +1,29 @@
 import SwiftUI
+import SwiftData
 
-// What the user can select in the sidebar: either a URI filter card or a connection
+// What the user can select in the sidebar
 enum SidebarSelection: Hashable {
     case uriFilter(UriFilterCard)
-    case connection(Connection)
+    case connection(CDConnection)
+
+    static func == (lhs: SidebarSelection, rhs: SidebarSelection) -> Bool {
+        switch (lhs, rhs) {
+        case (.uriFilter(let a), .uriFilter(let b)): a == b
+        case (.connection(let a), .connection(let b)): a.uid == b.uid
+        default: false
+        }
+    }
+
+    func hash(into hasher: inout Hasher) {
+        switch self {
+        case .uriFilter(let card): hasher.combine("filter"); hasher.combine(card)
+        case .connection(let conn): hasher.combine("connection"); hasher.combine(conn.uid)
+        }
+    }
 }
 
-// The four top-level URI filter cards (Reminders-style)
 enum UriFilterCard: String, Hashable, CaseIterable {
-    case unread
-    case readLater
-    case upvoted
-    case inbox
+    case unread, readLater, upvoted, inbox
 
     var title: String {
         switch self {
@@ -43,56 +55,47 @@ enum UriFilterCard: String, Hashable, CaseIterable {
 
 struct SidebarView: View {
     @Binding var selection: SidebarSelection?
+    @Environment(\.modelContext) private var modelContext
+    @Environment(FeedSyncService.self) private var feedSyncService
+
+    @Query(sort: \CDConnection.name) private var connections: [CDConnection]
+
     @State private var searchText = ""
-    @State private var connections: [Connection] = []
-    @State private var isLoading = false
-    @State private var page = 1
-    @State private var hasMore = false
     @State private var showCreateSheet = false
     @State private var showImportSheet = false
 
-    // URI counts for the filter cards
-    @State private var unreadCount = 0
-    @State private var readLaterCount = 0
-    @State private var upvotedCount = 0
-    @State private var inboxCount = 0
+    private var filteredConnections: [CDConnection] {
+        if searchText.isEmpty { return connections }
+        return connections.filter { $0.name.localizedStandardContains(searchText) }
+    }
+
+    private var unreadCount: Int { UriStore.countUnread(in: modelContext) }
+    private var readLaterCount: Int { UriStore.countReadLater(in: modelContext) }
+    private var upvotedCount: Int { UriStore.countUpvoted(in: modelContext) }
+    private var inboxCount: Int { UriStore.countOrphan(in: modelContext) }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Card grid
             cardGrid
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
 
-            // Connection list
             List(selection: Binding(
                 get: { connectionFromSelection },
                 set: { conn in
-                    if let conn {
-                        selection = .connection(conn)
-                    }
+                    if let conn { selection = .connection(conn) }
                 }
             )) {
                 Section("Connections") {
-                    ForEach(connections) { connection in
+                    ForEach(filteredConnections) { connection in
                         ConnectionSidebarRow(connection: connection)
                             .tag(connection)
-                    }
-
-                    if hasMore {
-                        Button("Load More") { loadMore() }
-                            .frame(maxWidth: .infinity)
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
                     }
                 }
             }
             .listStyle(.sidebar)
             .searchable(text: $searchText, prompt: "Search connections...")
-            .onChange(of: searchText) { _, _ in
-                Task { await search() }
-            }
         }
         .toolbar(id: "sidebar") {
             ToolbarItem(id: "add", placement: .primaryAction) {
@@ -107,68 +110,51 @@ struct SidebarView: View {
                     Image(systemName: "plus")
                 }
             }
+            ToolbarItem(id: "sync", placement: .secondaryAction) {
+                Button {
+                    Task { await feedSyncService.syncAllFeeds(context: modelContext) }
+                } label: {
+                    if feedSyncService.isSyncing {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+                .disabled(feedSyncService.isSyncing)
+                .help("Sync all feeds")
+            }
         }
         .navigationTitle("Connections")
-        .task {
-            loadConnections()
-            await loadCounts()
-        }
         .sheet(isPresented: $showCreateSheet) {
-            ConnectionCreateView(onCreated: {
-                loadConnections()
-                Task { await loadCounts() }
-            })
+            ConnectionCreateView()
         }
         .sheet(isPresented: $showImportSheet) {
-            ImportOpmlView(onImported: {
-                loadConnections()
-                Task { await loadCounts() }
-            })
+            ImportOpmlView()
         }
     }
-
-    // MARK: - Card Grid
 
     private var cardGrid: some View {
         Grid(horizontalSpacing: 8, verticalSpacing: 8) {
             GridRow {
-                FilterCardView(
-                    card: .unread,
-                    count: unreadCount,
-                    isSelected: isCardSelected(.unread)
-                ) {
+                FilterCardView(card: .unread, count: unreadCount, isSelected: isCardSelected(.unread)) {
                     selection = .uriFilter(.unread)
                 }
-                FilterCardView(
-                    card: .readLater,
-                    count: readLaterCount,
-                    isSelected: isCardSelected(.readLater)
-                ) {
+                FilterCardView(card: .readLater, count: readLaterCount, isSelected: isCardSelected(.readLater)) {
                     selection = .uriFilter(.readLater)
                 }
             }
             GridRow {
-                FilterCardView(
-                    card: .upvoted,
-                    count: upvotedCount,
-                    isSelected: isCardSelected(.upvoted)
-                ) {
+                FilterCardView(card: .upvoted, count: upvotedCount, isSelected: isCardSelected(.upvoted)) {
                     selection = .uriFilter(.upvoted)
                 }
-                FilterCardView(
-                    card: .inbox,
-                    count: inboxCount,
-                    isSelected: isCardSelected(.inbox)
-                ) {
+                FilterCardView(card: .inbox, count: inboxCount, isSelected: isCardSelected(.inbox)) {
                     selection = .uriFilter(.inbox)
                 }
             }
         }
     }
 
-    // MARK: - Helpers
-
-    private var connectionFromSelection: Connection? {
+    private var connectionFromSelection: CDConnection? {
         if case .connection(let conn) = selection { return conn }
         return nil
     }
@@ -177,73 +163,7 @@ struct SidebarView: View {
         if case .uriFilter(let selected) = selection { return selected == card }
         return false
     }
-
-    // MARK: - Data Loading
-
-    func loadConnections() {
-        page = 1
-        isLoading = true
-        Task {
-            do {
-                let response = try await ConnectionService.list(page: 1, query: searchText.isEmpty ? nil : searchText)
-                await MainActor.run {
-                    connections = response.data
-                    hasMore = response.page < response.totalPages
-                    isLoading = false
-                }
-            } catch {
-                await MainActor.run { isLoading = false }
-            }
-        }
-    }
-
-    func loadCounts() async {
-        async let unreadResult = UriService.listAll(page: 1, query: nil, unread: true, perPage: 1)
-        async let readLaterResult = UriService.listAll(page: 1, query: nil, readLater: true, perPage: 1)
-        async let upvotedResult = UriService.listAll(page: 1, query: nil, upvoted: true, perPage: 1)
-        async let inboxResult = UriService.listAll(page: 1, query: nil, orphan: true, perPage: 1)
-
-        let unread = (try? await unreadResult)?.total ?? 0
-        let readLater = (try? await readLaterResult)?.total ?? 0
-        let upvoted = (try? await upvotedResult)?.total ?? 0
-        let inbox = (try? await inboxResult)?.total ?? 0
-
-        await MainActor.run {
-            unreadCount = unread
-            readLaterCount = readLater
-            upvotedCount = upvoted
-            inboxCount = inbox
-        }
-    }
-
-    private func loadMore() {
-        page += 1
-        Task {
-            do {
-                let response = try await ConnectionService.list(page: page, query: searchText.isEmpty ? nil : searchText)
-                await MainActor.run {
-                    connections.append(contentsOf: response.data)
-                    hasMore = response.page < response.totalPages
-                }
-            } catch {
-                await MainActor.run { page -= 1 }
-            }
-        }
-    }
-
-    private func search() async {
-        page = 1
-        do {
-            let response = try await ConnectionService.list(page: 1, query: searchText.isEmpty ? nil : searchText)
-            await MainActor.run {
-                connections = response.data
-                hasMore = response.page < response.totalPages
-            }
-        } catch {}
-    }
 }
-
-// MARK: - Filter Card
 
 struct FilterCardView: View {
     let card: UriFilterCard
@@ -281,10 +201,8 @@ struct FilterCardView: View {
     }
 }
 
-// MARK: - Connection Sidebar Row
-
 struct ConnectionSidebarRow: View {
-    let connection: Connection
+    let connection: CDConnection
 
     var body: some View {
         HStack(spacing: 8) {
@@ -292,8 +210,7 @@ struct ConnectionSidebarRow: View {
                 AsyncImage(url: url) { image in
                     image.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
-                    Image(systemName: "person.circle.fill")
-                        .foregroundStyle(.secondary)
+                    Image(systemName: "person.circle.fill").foregroundStyle(.secondary)
                 }
                 .frame(width: 28, height: 28)
                 .clipShape(Circle())
@@ -304,17 +221,13 @@ struct ConnectionSidebarRow: View {
                     .frame(width: 28, height: 28)
             }
 
-            Text(connection.name)
-                .lineLimit(1)
-
+            Text(connection.name).lineLimit(1)
             Spacer()
 
             if connection.unreadUriCount > 0 {
                 Text("\(connection.unreadUriCount)")
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .font(.caption2).fontWeight(.medium)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
                     .background(.blue.opacity(0.15))
                     .foregroundStyle(.blue)
                     .clipShape(Capsule())

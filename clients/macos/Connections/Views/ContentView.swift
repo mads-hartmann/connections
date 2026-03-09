@@ -1,11 +1,9 @@
 import SwiftUI
 
-// FocusedValue key to expose the sidebar selection to menu commands
 struct SidebarSelectionKey: FocusedValueKey {
     typealias Value = Binding<SidebarSelection?>
 }
 
-// FocusedValue key to expose sidebar visibility to menu commands
 struct SidebarVisibilityKey: FocusedValueKey {
     typealias Value = Binding<NavigationSplitViewVisibility>
 }
@@ -37,9 +35,6 @@ struct ContentView: View {
         .focusedValue(\.sidebarVisibility, $sidebarVisibility)
     }
 
-    // Assign a stable id per detail kind so SwiftUI fully recreates the
-    // NSToolbar when switching between detail views instead of trying to
-    // diff toolbar items in-place (which crashes NSToolbar).
     @ViewBuilder
     private var detailView: some View {
         switch selection {
@@ -48,7 +43,7 @@ struct ContentView: View {
                 .id("uriFilter-\(card.rawValue)")
         case .connection(let connection):
             ConnectionDetailPaneView(connection: connection)
-                .id("connection-\(connection.id)")
+                .id("connection-\(connection.uid)")
         case nil:
             Text("Select a section")
                 .foregroundStyle(.secondary)

@@ -1,23 +1,20 @@
 import SwiftUI
 
 struct AddMetadataView: View {
-    let connectionId: Int
-    let connectionName: String
-    let onSaved: () -> Void
+    let connection: CDConnection
 
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedFieldType = MetadataFieldType.allTypes[5] // Website
+    @Environment(\.modelContext) private var modelContext
+    @State private var selectedFieldType: CDMetadataFieldType = .website
     @State private var value = ""
-    @State private var isSaving = false
     @State private var error: String?
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Add Metadata to \(connectionName)")
-                .font(.headline)
+            Text("Add Metadata to \(connection.name)").font(.headline)
 
             Picker("Type", selection: $selectedFieldType) {
-                ForEach(MetadataFieldType.allTypes) { fieldType in
+                ForEach(CDMetadataFieldType.allCases) { fieldType in
                     Text(fieldType.name).tag(fieldType)
                 }
             }
@@ -30,12 +27,11 @@ struct AddMetadataView: View {
             }
 
             HStack {
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Add") { save() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(value.isEmpty || isSaving)
+                    .disabled(value.isEmpty)
             }
         }
         .padding()
@@ -43,25 +39,12 @@ struct AddMetadataView: View {
     }
 
     private func save() {
-        isSaving = true
-        error = nil
-        Task {
-            do {
-                _ = try await ConnectionService.createMetadata(
-                    connectionId: connectionId,
-                    fieldTypeId: selectedFieldType.id,
-                    value: value.trimmingCharacters(in: .whitespaces)
-                )
-                await MainActor.run {
-                    onSaved()
-                    dismiss()
-                }
-            } catch {
-                await MainActor.run {
-                    self.error = error.localizedDescription
-                    isSaving = false
-                }
-            }
-        }
+        _ = MetadataStore.create(
+            in: modelContext,
+            connection: connection,
+            fieldType: selectedFieldType,
+            value: value.trimmingCharacters(in: .whitespaces)
+        )
+        dismiss()
     }
 }

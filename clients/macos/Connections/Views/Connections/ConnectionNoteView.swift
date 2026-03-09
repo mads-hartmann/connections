@@ -1,25 +1,19 @@
 import SwiftUI
 
 struct ConnectionNoteView: View {
-    let connectionId: Int
-    let currentNote: String?
-    let onSaved: () -> Void
+    let connection: CDConnection
 
     @Environment(\.dismiss) private var dismiss
     @State private var note: String
-    @State private var isSaving = false
 
-    init(connectionId: Int, currentNote: String?, onSaved: @escaping () -> Void) {
-        self.connectionId = connectionId
-        self.currentNote = currentNote
-        self.onSaved = onSaved
-        self._note = State(initialValue: currentNote ?? "")
+    init(connection: CDConnection) {
+        self.connection = connection
+        self._note = State(initialValue: connection.note ?? "")
     }
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Edit Note")
-                .font(.headline)
+            Text("Edit Note").font(.headline)
 
             TextEditor(text: $note)
                 .font(.body)
@@ -27,12 +21,9 @@ struct ConnectionNoteView: View {
                 .border(Color.secondary.opacity(0.3))
 
             HStack {
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Spacer()
-                Button("Save") { save() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(isSaving)
+                Button("Save") { save() }.keyboardShortcut(.defaultAction)
             }
         }
         .padding()
@@ -40,13 +31,7 @@ struct ConnectionNoteView: View {
     }
 
     private func save() {
-        isSaving = true
-        Task {
-            _ = try? await ConnectionService.updateNote(id: connectionId, note: note.isEmpty ? nil : note)
-            await MainActor.run {
-                onSaved()
-                dismiss()
-            }
-        }
+        ConnectionStore.updateNote(connection, note: note.isEmpty ? nil : note)
+        dismiss()
     }
 }

@@ -1,32 +1,22 @@
 import SwiftUI
 
 struct TagCreateView: View {
-    let onCreated: () -> Void
-
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var name = ""
-    @State private var isCreating = false
-    @State private var error: String?
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Create Tag")
-                .font(.headline)
+            Text("Create Tag").font(.headline)
 
-            TextField("Tag name", text: $name)
-                .textFieldStyle(.roundedBorder)
-
-            if let error {
-                Text(error).font(.caption).foregroundStyle(.red)
-            }
+            TextField("Tag name", text: $name).textFieldStyle(.roundedBorder)
 
             HStack {
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Create") { create() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(name.isEmpty || isCreating)
+                    .disabled(name.isEmpty)
             }
         }
         .padding()
@@ -34,59 +24,35 @@ struct TagCreateView: View {
     }
 
     private func create() {
-        isCreating = true
-        error = nil
-        Task {
-            do {
-                _ = try await TagService.create(name: name.trimmingCharacters(in: .whitespaces))
-                await MainActor.run {
-                    onCreated()
-                    dismiss()
-                }
-            } catch {
-                await MainActor.run {
-                    self.error = error.localizedDescription
-                    isCreating = false
-                }
-            }
-        }
+        _ = TagStore.create(in: modelContext, name: name.trimmingCharacters(in: .whitespaces))
+        try? modelContext.save()
+        dismiss()
     }
 }
 
 struct TagEditView: View {
-    let tag: Tag
-    let onSaved: () -> Void
+    let tag: CDTag
 
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
-    @State private var isSaving = false
-    @State private var error: String?
 
-    init(tag: Tag, onSaved: @escaping () -> Void) {
+    init(tag: CDTag) {
         self.tag = tag
-        self.onSaved = onSaved
         self._name = State(initialValue: tag.name)
     }
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Edit Tag")
-                .font(.headline)
+            Text("Edit Tag").font(.headline)
 
-            TextField("Tag name", text: $name)
-                .textFieldStyle(.roundedBorder)
-
-            if let error {
-                Text(error).font(.caption).foregroundStyle(.red)
-            }
+            TextField("Tag name", text: $name).textFieldStyle(.roundedBorder)
 
             HStack {
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Save") { save() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(name.isEmpty || isSaving)
+                    .disabled(name.isEmpty)
             }
         }
         .padding()
@@ -94,20 +60,7 @@ struct TagEditView: View {
     }
 
     private func save() {
-        isSaving = true
-        Task {
-            do {
-                _ = try await TagService.update(id: tag.id, name: name.trimmingCharacters(in: .whitespaces))
-                await MainActor.run {
-                    onSaved()
-                    dismiss()
-                }
-            } catch {
-                await MainActor.run {
-                    self.error = error.localizedDescription
-                    isSaving = false
-                }
-            }
-        }
+        TagStore.update(tag, name: name.trimmingCharacters(in: .whitespaces))
+        dismiss()
     }
 }

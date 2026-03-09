@@ -1,40 +1,49 @@
 import SwiftUI
+import SwiftData
 
 struct ConnectionRefreshMetadataView: View {
-    let connection: Connection
-    let onSaved: () -> Void
+    let connection: CDConnection
 
     @Environment(\.dismiss) private var dismiss
-    @State private var preview: RefreshMetadataPreview?
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var discoveredMetadata: DiscoveredContactMetadata?
     @State private var isLoading = true
     @State private var isSubmitting = false
     @State private var error: String?
 
-    // Selections
     @State private var updateName = true
     @State private var updatePhoto = true
     @State private var selectedFeeds: Set<String> = []
     @State private var selectedProfiles: Set<String> = []
 
+    // Source URL: use the first website metadata, or first feed URL's host
+    private var sourceUrl: String {
+        if let website = connection.metadata.first(where: { $0.fieldType == .website }) {
+            return website.value
+        }
+        if let feed = connection.feeds.first, let host = URL(string: feed.url)?.host {
+            return "https://\(host)"
+        }
+        return ""
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Refresh Metadata: \(connection.name)")
-                .font(.headline)
+            Text("Refresh Metadata: \(connection.name)").font(.headline)
 
             if isLoading {
-                ProgressView("Fetching metadata...")
-                    .frame(maxWidth: .infinity)
+                ProgressView("Fetching metadata...").frame(maxWidth: .infinity)
             } else if let error {
                 Text(error).foregroundStyle(.red)
-            } else if let preview {
-                previewContent(preview)
+            } else if let metadata = discoveredMetadata {
+                previewContent(metadata)
             }
 
             HStack {
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Spacer()
-                if preview != nil {
+                if discoveredMetadata != nil {
                     Button("Apply") { applyChanges() }
                         .keyboardShortcut(.defaultAction)
                         .disabled(isSubmitting)
@@ -49,29 +58,31 @@ struct ConnectionRefreshMetadataView: View {
     }
 
     @ViewBuilder
-    private func previewContent(_ preview: RefreshMetadataPreview) -> some View {
+    private func previewContent(_ metadata: DiscoveredContactMetadata) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                LabeledContent("Source") { Text(preview.sourceUrl).font(.caption) }
+                LabeledContent("Source") { Text(sourceUrl).font(.caption) }
 
-                if let proposedName = preview.proposedName, proposedName != preview.currentName {
+                if let proposedName = metadata.name, proposedName != connection.name {
                     Toggle(isOn: $updateName) {
-                        Text("Update name: \"\(preview.currentName)\" → \"\(proposedName)\"")
-                            .font(.caption)
+                        Text("Update name: \"\(connection.name)\" → \"\(proposedName)\"").font(.caption)
                     }
                 }
 
-                if let proposedPhoto = preview.proposedPhoto, proposedPhoto != preview.currentPhoto {
+                if let proposedPhoto = metadata.photo, proposedPhoto != connection.photo {
                     Toggle(isOn: $updatePhoto) {
-                        Text(preview.currentPhoto != nil ? "Update photo" : "Add photo")
-                            .font(.caption)
+                        Text(connection.photo != nil ? "Update photo" : "Add photo").font(.caption)
                     }
                 }
 
-                if !preview.proposedFeeds.isEmpty {
+                // New feeds not already associated
+                let existingFeedUrls = Set(connection.feeds.map(\.url))
+                let newFeeds = metadata.feeds.filter { !existingFeedUrls.contains($0.url) }
+
+                if !newFeeds.isEmpty {
                     Divider()
                     Text("Discovered Feeds").font(.subheadline).fontWeight(.medium)
-                    ForEach(preview.proposedFeeds, id: \.url) { feed in
+                    ForEach(newFeeds, id: \.url) { feed in
                         Toggle(isOn: binding(for: feed.url, in: $selectedFeeds)) {
                             VStack(alignment: .leading) {
                                 Text(feed.title ?? "Untitled").font(.caption)
@@ -81,81 +92,78 @@ struct ConnectionRefreshMetadataView: View {
                     }
                 }
 
-                let existingUrls = Set(preview.currentMetadata.map(\.value))
-                let newProfiles = preview.proposedProfiles.filter { !existingUrls.contains($0.url) }
+                let existingProfileUrls = Set(connection.metadata.map(\.value))
+                let newProfiles = metadata.socialProfiles.filter { !existingProfileUrls.contains($0.url) }
 
                 if !newProfiles.isEmpty {
                     Divider()
                     Text("Discovered Profiles").font(.subheadline).fontWeight(.medium)
                     ForEach(newProfiles, id: \.url) { profile in
                         Toggle(isOn: binding(for: profile.url, in: $selectedProfiles)) {
-                            Text("\(profile.fieldType.name): \(profile.url)")
-                                .font(.caption)
+                            Text("\(profile.fieldType.name): \(profile.url)").font(.caption)
                         }
                     }
                 }
 
-                if preview.proposedName == nil && preview.proposedPhoto == nil
-                    && preview.proposedFeeds.isEmpty && newProfiles.isEmpty {
-                    Text("No new metadata discovered.")
-                        .foregroundStyle(.secondary)
+                if metadata.name == nil && metadata.photo == nil && newFeeds.isEmpty && newProfiles.isEmpty {
+                    Text("No new metadata discovered.").foregroundStyle(.secondary)
                 }
             }
         }
     }
 
     private func loadPreview() async {
-        do {
-            let result = try await ConnectionService.fetchRefreshPreview(connectionId: connection.id)
-            await MainActor.run {
-                preview = result
-                selectedFeeds = Set(result.proposedFeeds.map(\.url))
-                let existingUrls = Set(result.currentMetadata.map(\.value))
-                selectedProfiles = Set(result.proposedProfiles.filter { !existingUrls.contains($0.url) }.map(\.url))
-                isLoading = false
+        guard !sourceUrl.isEmpty else {
+            error = "No source URL available for this connection"
+            isLoading = false
+            return
+        }
+
+        let result = await ContactDiscoveryService.discover(url: sourceUrl)
+        await MainActor.run {
+            switch result {
+            case .success(let metadata):
+                discoveredMetadata = metadata
+                selectedFeeds = Set(metadata.feeds.map(\.url))
+                let existingUrls = Set(connection.metadata.map(\.value))
+                selectedProfiles = Set(
+                    metadata.socialProfiles.filter { !existingUrls.contains($0.url) }.map(\.url)
+                )
+            case .failure(let msg):
+                error = msg
             }
-        } catch {
-            await MainActor.run {
-                self.error = error.localizedDescription
-                isLoading = false
-            }
+            isLoading = false
         }
     }
 
     private func applyChanges() {
-        guard let preview else { return }
+        guard let metadata = discoveredMetadata else { return }
         isSubmitting = true
 
-        Task {
-            // Update name/photo
-            if updateName, let proposedName = preview.proposedName, proposedName != preview.currentName {
-                let photo = updatePhoto ? preview.proposedPhoto : connection.photo
-                _ = try? await ConnectionService.update(id: connection.id, name: proposedName, photo: photo)
-            } else if updatePhoto, let proposedPhoto = preview.proposedPhoto, proposedPhoto != preview.currentPhoto {
-                _ = try? await ConnectionService.update(id: connection.id, name: connection.name, photo: proposedPhoto)
-            }
-
-            // Add feeds
-            for feed in preview.proposedFeeds where selectedFeeds.contains(feed.url) {
-                _ = try? await FeedService.create(connectionId: connection.id, url: feed.url, title: feed.title ?? "")
-            }
-
-            // Add profiles
-            let existingUrls = Set(preview.currentMetadata.map(\.value))
-            for profile in preview.proposedProfiles where selectedProfiles.contains(profile.url) && !existingUrls.contains(profile.url) {
-                _ = try? await ConnectionService.createMetadata(
-                    connectionId: connection.id,
-                    fieldTypeId: profile.fieldType.id,
-                    value: profile.url
-                )
-            }
-
-            await MainActor.run {
-                isSubmitting = false
-                onSaved()
-                dismiss()
-            }
+        if updateName, let proposedName = metadata.name, proposedName != connection.name {
+            connection.name = proposedName
         }
+        if updatePhoto, let proposedPhoto = metadata.photo, proposedPhoto != connection.photo {
+            connection.photo = proposedPhoto
+        }
+
+        // Add new feeds
+        let existingFeedUrls = Set(connection.feeds.map(\.url))
+        for feed in metadata.feeds where selectedFeeds.contains(feed.url) && !existingFeedUrls.contains(feed.url) {
+            _ = FeedStore.create(in: modelContext, connection: connection, url: feed.url, title: feed.title)
+        }
+
+        // Add new profiles
+        let existingProfileUrls = Set(connection.metadata.map(\.value))
+        for profile in metadata.socialProfiles where selectedProfiles.contains(profile.url) && !existingProfileUrls.contains(profile.url) {
+            _ = MetadataStore.createIfNotExists(
+                in: modelContext, connection: connection,
+                fieldType: profile.fieldType, value: profile.url
+            )
+        }
+
+        try? modelContext.save()
+        dismiss()
     }
 
     private func binding(for url: String, in set: Binding<Set<String>>) -> Binding<Bool> {

@@ -1,54 +1,20 @@
 import SwiftUI
 
 struct UriDetailView: View {
-    let uri: UriEntry
-    let onRefresh: () -> Void
+    let uri: CDUri
 
-    @State private var content: String?
-    @State private var contentError: String?
-    @State private var isLoadingContent = true
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         HSplitView {
-            // Content pane
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(uri.displayTitle)
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .textSelection(.enabled)
-
-                    if let imageUrl = uri.ogImage ?? uri.imageUrl, let url = URL(string: imageUrl) {
-                        AsyncImage(url: url) { image in
-                            image.resizable().aspectRatio(contentMode: .fit)
-                        } placeholder: {
-                            Color.gray.opacity(0.1)
-                        }
-                        .frame(maxHeight: 300)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-
-                    if isLoadingContent {
-                        ProgressView("Loading content...")
-                    } else if let error = contentError {
-                        Text("⚠️ \(error)")
-                            .foregroundStyle(.orange)
-                        if let fallback = uri.ogDescription ?? uri.content {
-                            Divider()
-                            Text(fallback)
-                                .textSelection(.enabled)
-                        }
-                    } else if let content {
-                        Text(content)
-                            .textSelection(.enabled)
-                    } else {
-                        Text("No content available")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding()
+            // Content pane — WKWebView
+            if let url = URL(string: uri.url) {
+                WebContentView(url: url)
+                    .frame(minWidth: 400)
+            } else {
+                Text("Invalid URL")
+                    .frame(minWidth: 400)
             }
-            .frame(minWidth: 400)
 
             // Metadata sidebar
             ScrollView {
@@ -62,27 +28,31 @@ struct UriDetailView: View {
                         .buttonStyle(.borderedProminent)
 
                         HStack(spacing: 8) {
-                            Button(uri.isRead ? "Mark Unread" : "Mark Read") { toggleRead() }
-                                .buttonStyle(.bordered)
-                            Button(uri.isReadLater ? "Remove Later" : "Read Later") { toggleReadLater() }
-                                .buttonStyle(.bordered)
+                            Button(uri.isRead ? "Mark Unread" : "Mark Read") {
+                                UriStore.markRead(uri, read: !uri.isRead)
+                            }
+                            .buttonStyle(.bordered)
+                            Button(uri.isReadLater ? "Remove Later" : "Read Later") {
+                                UriStore.markReadLater(uri, readLater: !uri.isReadLater)
+                            }
+                            .buttonStyle(.bordered)
                         }
 
                         HStack(spacing: 8) {
-                            Button(action: { vote(1) }) {
+                            Button { UriStore.vote(uri, vote: 1) } label: {
                                 Image(systemName: "arrow.up")
                                     .foregroundStyle(uri.isUpvoted ? .green : .primary)
                             }
                             .buttonStyle(.bordered)
 
-                            Button(action: { vote(-1) }) {
+                            Button { UriStore.vote(uri, vote: -1) } label: {
                                 Image(systemName: "arrow.down")
                                     .foregroundStyle(uri.isDownvoted ? .red : .primary)
                             }
                             .buttonStyle(.bordered)
 
                             if uri.vote != nil {
-                                Button("Clear") { vote(nil) }
+                                Button("Clear") { UriStore.vote(uri, vote: nil) }
                                     .buttonStyle(.bordered)
                             }
                         }
@@ -90,7 +60,6 @@ struct UriDetailView: View {
 
                     Divider()
 
-                    // Info
                     Group {
                         if let author = uri.author {
                             LabeledContent("Author", value: author)
@@ -99,8 +68,8 @@ struct UriDetailView: View {
                             LabeledContent("Connection", value: name)
                         }
                         LabeledContent("Kind", value: uri.kind.displayName)
-                        LabeledContent("Published", value: DateFormatting.format(uri.publishedAt))
-                        LabeledContent("Read", value: uri.isRead ? DateFormatting.format(uri.readAt) : "Unread")
+                        LabeledContent("Published", value: DateFormatting.formatDate(uri.publishedAt))
+                        LabeledContent("Read", value: uri.isRead ? DateFormatting.formatDate(uri.readAt) : "Unread")
 
                         if let siteName = uri.ogSiteName {
                             LabeledContent("Site", value: siteName)
@@ -108,12 +77,10 @@ struct UriDetailView: View {
                     }
                     .font(.caption)
 
-                    // Tags
                     if !uri.tags.isEmpty {
                         Divider()
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Tags")
-                                .font(.headline)
+                            Text("Tags").font(.headline)
                             FlowLayout(spacing: 4) {
                                 ForEach(uri.tags) { tag in
                                     Text(tag.name)
@@ -127,23 +94,17 @@ struct UriDetailView: View {
                         }
                     }
 
-                    // Note
                     if let note = uri.note, !note.isEmpty {
                         Divider()
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Note")
-                                .font(.headline)
-                            Text(note)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            Text("Note").font(.headline)
+                            Text(note).font(.caption).foregroundStyle(.secondary)
                         }
                     }
 
-                    // URL
                     Divider()
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("URL")
-                            .font(.headline)
+                        Text("URL").font(.headline)
                         Text(uri.url)
                             .font(.caption)
                             .foregroundStyle(.blue)
@@ -163,48 +124,9 @@ struct UriDetailView: View {
                 }
             }
         }
-        .task { await loadContent() }
-    }
-
-    private func loadContent() async {
-        do {
-            let result = try await UriService.fetchContent(id: uri.id)
-            await MainActor.run {
-                content = result.markdown
-                isLoadingContent = false
-            }
-        } catch {
-            await MainActor.run {
-                contentError = error.localizedDescription
-                isLoadingContent = false
-            }
-        }
     }
 
     private func openInBrowser() {
-        if let url = URL(string: uri.url) {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
-    private func toggleRead() {
-        Task {
-            _ = try? await UriService.markRead(id: uri.id, read: !uri.isRead)
-            await MainActor.run { onRefresh() }
-        }
-    }
-
-    private func toggleReadLater() {
-        Task {
-            _ = try? await UriService.markReadLater(id: uri.id, readLater: !uri.isReadLater)
-            await MainActor.run { onRefresh() }
-        }
-    }
-
-    private func vote(_ value: Int?) {
-        Task {
-            _ = try? await UriService.vote(id: uri.id, vote: value)
-            await MainActor.run { onRefresh() }
-        }
+        if let url = URL(string: uri.url) { NSWorkspace.shared.open(url) }
     }
 }
