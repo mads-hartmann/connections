@@ -50,9 +50,7 @@ struct TagRowView: View {
     @State private var showUris = false
 
     var body: some View {
-        NavigationLink(value: tag.uid) {
-            Label(tag.name, systemImage: "tag")
-        }
+        Label(tag.name, systemImage: "tag")
         .contextMenu {
             Button("View URIs") { showUris = true }
             Button("Edit") { showEditSheet = true }

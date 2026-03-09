@@ -12,6 +12,11 @@ struct OpmlParseResult {
     let feeds: [OpmlFeedEntry]
 }
 
+struct OpmlParseError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
 /// Parses OPML files to extract feed URLs, titles, and folder-based tags.
 final class OpmlSAXParser: NSObject, XMLParserDelegate {
     private var feeds: [OpmlFeedEntry] = []
@@ -20,9 +25,9 @@ final class OpmlSAXParser: NSObject, XMLParserDelegate {
     // Tracks whether each open <outline> is a folder (true) or feed (false)
     private var outlineIsFolder: [Bool] = []
 
-    static func parse(_ content: String) -> Result<OpmlParseResult, String> {
+    static func parse(_ content: String) -> Result<OpmlParseResult, OpmlParseError> {
         guard let data = content.data(using: .utf8) else {
-            return .failure("Failed to encode OPML content")
+            return .failure(OpmlParseError(message: "Failed to encode OPML content"))
         }
 
         let xmlParser = XMLParser(data: data)
@@ -31,13 +36,13 @@ final class OpmlSAXParser: NSObject, XMLParserDelegate {
 
         if xmlParser.parse() {
             if delegate.feeds.isEmpty {
-                return .failure("No feeds found in OPML file")
+                return .failure(OpmlParseError(message: "No feeds found in OPML file"))
             }
             return .success(OpmlParseResult(feeds: delegate.feeds))
         } else if let error = xmlParser.parserError {
-            return .failure("XML parse error: \(error.localizedDescription)")
+            return .failure(OpmlParseError(message: "XML parse error: \(error.localizedDescription)"))
         } else {
-            return .failure("Unknown parse error")
+            return .failure(OpmlParseError(message: "Unknown parse error"))
         }
     }
 

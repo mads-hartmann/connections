@@ -47,21 +47,21 @@ struct FeedRowView: View {
     @State private var showUris = false
 
     var body: some View {
-        NavigationLink(value: feed.uid) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(feed.title ?? feed.url).fontWeight(.medium)
-                Text(feed.url).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                if let lastFetched = feed.lastFetchedAt {
-                    Text("Last fetched: \(DateFormatting.formatDateWithTime(lastFetched))")
-                        .font(.caption2).foregroundStyle(.tertiary)
-                }
+        VStack(alignment: .leading, spacing: 2) {
+            Text(feed.title ?? feed.url).fontWeight(.medium)
+            Text(feed.url).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            if let lastFetched = feed.lastFetchedAt {
+                Text("Last fetched: \(DateFormatting.formatDateWithTime(lastFetched))")
+                    .font(.caption2).foregroundStyle(.tertiary)
             }
-            .padding(.vertical, 2)
         }
+        .padding(.vertical, 2)
         .contextMenu {
             Button("View URIs") { showUris = true }
             Button("Refresh Feed") {
-                Task { await feedSyncService.refreshFeed(feed, context: modelContext) }
+                Task { @MainActor in
+                    await feedSyncService.refreshFeed(feed, context: modelContext)
+                }
             }
             Divider()
             Button("Edit") { showEditSheet = true }

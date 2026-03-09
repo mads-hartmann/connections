@@ -40,7 +40,7 @@ enum OpmlImportService {
     private static let fetchTimeoutSeconds: TimeInterval = 10
 
     /// Parse OPML and generate a preview by fetching feed metadata.
-    static func preview(opmlContent: String) async -> Result<ImportPreview, String> {
+    static func preview(opmlContent: String) async -> Result<ImportPreview, OpmlParseError> {
         let parseResult: OpmlParseResult
         switch OpmlSAXParser.parse(opmlContent) {
         case .success(let result): parseResult = result

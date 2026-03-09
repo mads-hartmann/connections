@@ -170,8 +170,8 @@ struct ImportOpmlView: View {
                         case .success(let previewData):
                             preview = previewData
                             selectedConnections = Set(previewData.connections.map(\.name))
-                        case .failure(let msg):
-                            error = msg
+                        case .failure(let err):
+                            error = err.message
                         }
                         isLoading = false
                     }

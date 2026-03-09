@@ -129,8 +129,8 @@ struct ConnectionRefreshMetadataView: View {
                 selectedProfiles = Set(
                     metadata.socialProfiles.filter { !existingUrls.contains($0.url) }.map(\.url)
                 )
-            case .failure(let msg):
-                error = msg
+            case .failure(let err):
+                error = err.message
             }
             isLoading = false
         }

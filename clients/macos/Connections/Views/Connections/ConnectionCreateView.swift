@@ -118,8 +118,8 @@ struct ConnectionCreateView: View {
                     name = metadata.name ?? (URL(string: url)?.host ?? "")
                     selectedFeeds = Set(metadata.feeds.map(\.url))
                     selectedProfiles = Set(metadata.socialProfiles.map(\.url))
-                case .failure(let msg):
-                    error = msg
+                case .failure(let err):
+                    error = err.message
                 }
                 isLoading = false
             }

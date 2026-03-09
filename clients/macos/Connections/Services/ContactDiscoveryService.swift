@@ -23,27 +23,32 @@ struct DiscoveredContactMetadata {
     let socialProfiles: [ClassifiedProfileInfo]
 }
 
+struct ContactDiscoveryError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
 /// Discovers contact metadata (feeds, social profiles) from a web page.
 enum ContactDiscoveryService {
 
     private static let logger = Logger(subsystem: "Connections", category: "ContactDiscovery")
 
     /// Fetch a URL and extract contact metadata.
-    static func discover(url: String) async -> Result<DiscoveredContactMetadata, String> {
+    static func discover(url: String) async -> Result<DiscoveredContactMetadata, ContactDiscoveryError> {
         guard let pageURL = URL(string: url) else {
-            return .failure("Invalid URL")
+            return .failure(ContactDiscoveryError(message: "Invalid URL"))
         }
 
         do {
             let (data, _) = try await URLSession.shared.data(from: pageURL)
             guard let html = String(data: data, encoding: .utf8) else {
-                return .failure("Failed to decode HTML")
+                return .failure(ContactDiscoveryError(message: "Failed to decode HTML"))
             }
 
             let result = extract(url: url, html: html)
             return .success(result)
         } catch {
-            return .failure(error.localizedDescription)
+            return .failure(ContactDiscoveryError(message: error.localizedDescription))
         }
     }
 
