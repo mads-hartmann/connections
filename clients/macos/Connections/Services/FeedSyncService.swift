@@ -3,6 +3,7 @@ import SwiftData
 import os
 
 /// Handles periodic RSS/Atom feed synchronization.
+@MainActor
 @Observable
 final class FeedSyncService {
     private(set) var isSyncing = false
@@ -15,7 +16,7 @@ final class FeedSyncService {
     func syncAllFeeds(context: ModelContext) async {
         guard !isSyncing else { return }
 
-        await MainActor.run { isSyncing = true }
+        isSyncing = true
         logger.info("Starting feed sync")
 
         let feeds = (try? context.fetch(FetchDescriptor<CDFeed>())) ?? []
@@ -34,24 +35,22 @@ final class FeedSyncService {
 
         logger.info("Feed sync complete: \(totalProcessed) URIs processed across \(feeds.count) feeds")
 
-        await MainActor.run {
-            lastSyncDate = Date()
-            lastSyncError = nil
-            isSyncing = false
-        }
+        lastSyncDate = Date()
+        lastSyncError = nil
+        isSyncing = false
     }
 
     /// Sync a single feed.
     @discardableResult
     func syncFeed(_ feed: CDFeed, context: ModelContext) async throws -> Int {
-        guard let url = URL(string: feed.url) else {
-            throw FeedSyncError.invalidURL(feed.url)
+        let feedUrl = feed.url
+        guard let url = URL(string: feedUrl) else {
+            throw FeedSyncError.invalidURL(feedUrl)
         }
 
         let (data, _) = try await URLSession.shared.data(from: url)
         let items = FeedParserService.parseItems(from: data)
 
-        // Collect feed-level tag UIDs for applying to new URIs
         let feedTags = feed.tags
 
         var count = 0
@@ -70,13 +69,11 @@ final class FeedSyncService {
                 imageUrl: item.imageUrl
             )
 
-            // Associate category tags from the feed item
             for categoryName in item.categories {
                 let tag = TagStore.getOrCreate(in: context, name: categoryName)
                 TagStore.addToUri(tag, uri: uri)
             }
 
-            // Apply feed-level tags
             for tag in feedTags {
                 TagStore.addToUri(tag, uri: uri)
             }

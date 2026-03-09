@@ -78,6 +78,7 @@ struct ConnectionsApp: App {
         }
     }
 
+    @MainActor
     private func startBackgroundSync() {
         guard backgroundSyncManager == nil else { return }
         let manager = BackgroundSyncManager(feedSyncService: feedSyncService)

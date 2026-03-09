@@ -59,7 +59,7 @@ struct FeedRowView: View {
         .contextMenu {
             Button("View URIs") { showUris = true }
             Button("Refresh Feed") {
-                Task { @MainActor in
+                Task {
                     await feedSyncService.refreshFeed(feed, context: modelContext)
                 }
             }

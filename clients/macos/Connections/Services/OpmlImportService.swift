@@ -60,27 +60,8 @@ enum OpmlImportService {
             await withTaskGroup(of: (OpmlFeedEntry, FeedMetadata?, String?).self) { group in
                 for entry in batchEntries {
                     group.addTask {
-                        do {
-                            let metadata = try await withThrowingTaskGroup(of: FeedMetadata?.self) { inner in
-                                inner.addTask {
-                                    await FeedParserService.fetchMetadata(url: entry.url)
-                                }
-                                inner.addTask {
-                                    try await Task.sleep(for: .seconds(fetchTimeoutSeconds))
-                                    return nil
-                                }
-                                for try await result in inner {
-                                    if let result {
-                                        inner.cancelAll()
-                                        return result
-                                    }
-                                }
-                                return nil
-                            }
-                            return (entry, metadata, nil)
-                        } catch {
-                            return (entry, nil, error.localizedDescription)
-                        }
+                        let metadata = await FeedParserService.fetchMetadata(url: entry.url)
+                        return (entry, metadata, metadata == nil ? "Failed to fetch" : nil)
                     }
                 }
 
@@ -90,7 +71,7 @@ enum OpmlImportService {
                     } else {
                         errors.append(ImportErrorInfo(
                             url: entry.url,
-                            error: error ?? "Timeout"
+                            error: error ?? "Failed to fetch"
                         ))
                     }
                 }

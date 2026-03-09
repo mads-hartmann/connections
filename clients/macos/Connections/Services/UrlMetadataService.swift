@@ -57,6 +57,7 @@ enum UrlMetadataService {
     }
 
     /// Batch-process URIs that need metadata.
+    @MainActor
     static func fetchMetadataForPending(context: ModelContext) async {
         let uris = UriStore.listNeedingMetadata(in: context)
         guard !uris.isEmpty else { return }
